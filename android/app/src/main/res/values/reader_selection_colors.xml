@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="reader_selection_accent">#B45309</color>
+    <color name="reader_selection_highlight">#55B45309</color>
+</resources>
