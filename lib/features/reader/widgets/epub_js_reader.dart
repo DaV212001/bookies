@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -6,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_epub_viewer/flutter_epub_viewer.dart';
 
 import '../../../core/utils/app_logger.dart';
+import '../../../data/models/discussion.dart';
 import '../bloc/reader_bloc.dart';
 
 class EpubJsReader extends StatefulWidget {
@@ -14,6 +16,10 @@ class EpubJsReader extends StatefulWidget {
   final ValueChanged<List<EpubChapter>>? onChaptersLoaded;
   final ValueChanged<EpubLocation>? onLocationChanged;
   final String? chapterTarget;
+  final List<Discussion> passageDiscussions;
+  final ValueChanged<EpubTextSelection>? onDiscussSelection;
+  final ValueChanged<EpubTextSelection>? onSaveQuoteSelection;
+  final ValueChanged<String>? onDiscussionIndicatorTapped;
 
   const EpubJsReader({
     super.key,
@@ -22,6 +28,10 @@ class EpubJsReader extends StatefulWidget {
     this.onChaptersLoaded,
     this.onLocationChanged,
     this.chapterTarget,
+    this.passageDiscussions = const [],
+    this.onDiscussSelection,
+    this.onSaveQuoteSelection,
+    this.onDiscussionIndicatorTapped,
   });
 
   @override
@@ -35,6 +45,8 @@ class _EpubJsReaderState extends State<EpubJsReader> {
   ThemeData? _appliedTheme;
   bool _hasInitialDisplaySettings = false;
   bool _isLoaded = false;
+  EpubTextSelection? _lastSelection;
+  final Set<String> _renderedDiscussionCfis = {};
   late bool _initialPositionReady;
 
   @override
@@ -71,12 +83,14 @@ class _EpubJsReaderState extends State<EpubJsReader> {
     if (_isLoaded &&
         oldWidget.state.preferences.fontSize !=
             widget.state.preferences.fontSize) {
-      _runControllerCall(() => _controller.setFontSize(
-        fontSize: ((widget.state.preferences.fontSize ?? 1.0) * 15).clamp(
-          8,
-          48,
+      _runControllerCall(
+        () => _controller.setFontSize(
+          fontSize: ((widget.state.preferences.fontSize ?? 1.0) * 15).clamp(
+            8,
+            48,
+          ),
         ),
-      ));
+      );
     }
     if (_isLoaded &&
         widget.chapterTarget != null &&
@@ -96,6 +110,10 @@ class _EpubJsReaderState extends State<EpubJsReader> {
             oldWidget.state.preferences.textAlign !=
                 widget.state.preferences.textAlign)) {
       _applyThemeSafely(widget.state);
+    }
+    if (_isLoaded &&
+        oldWidget.passageDiscussions != widget.passageDiscussions) {
+      _syncDiscussionIndicators();
     }
   }
 
@@ -118,7 +136,6 @@ class _EpubJsReaderState extends State<EpubJsReader> {
                 : 'left',
           },
           '::selection': selectionCss,
-          '::-moz-selection': selectionCss,
         },
       ),
     );
@@ -135,7 +152,7 @@ class _EpubJsReaderState extends State<EpubJsReader> {
     }
   }
 
-  Future<void> _runControllerCall(Future<void> Function() call) async {
+  Future<void> _runControllerCall(FutureOr<void> Function() call) async {
     if (!mounted || !_isLoaded) return;
     try {
       await call();
@@ -144,6 +161,29 @@ class _EpubJsReaderState extends State<EpubJsReader> {
     } catch (error) {
       AppLogger.w('EpubJsReader', 'Reader controller call failed: $error');
     }
+  }
+
+  void _syncDiscussionIndicators() {
+    // Group discussions by CFI to compute per-passage message counts.
+    final cfiCounts = <String, int>{};
+    for (final discussion in widget.passageDiscussions) {
+      final cfi = discussion.highlightId;
+      if (cfi.startsWith('epubcfi(')) {
+        cfiCounts[cfi] = (cfiCounts[cfi] ?? 0) + 1;
+      }
+    }
+    final cfis = cfiCounts.keys.toSet();
+    for (final oldCfi in _renderedDiscussionCfis.difference(cfis)) {
+      _runControllerCall(() => _controller.removeUnderline(cfi: oldCfi));
+    }
+    for (final cfi in cfis.difference(_renderedDiscussionCfis)) {
+      _runControllerCall(
+        () => _controller.addUnderline(cfi: cfi, count: cfiCounts[cfi] ?? 1),
+      );
+    }
+    _renderedDiscussionCfis
+      ..clear()
+      ..addAll(cfis);
   }
 
   Future<EpubSource> _loadSource() async {
@@ -159,10 +199,7 @@ class _EpubJsReaderState extends State<EpubJsReader> {
   }
 
   Map<String, String> _selectionCss() {
-    return {
-      'background-color': 'rgba(253, 138, 66, 0.7)',
-      'color': '#121826',
-    };
+    return {'background-color': 'rgba(253, 138, 66, 0.7)', 'color': '#121826'};
   }
 
   EpubDisplaySettings _settings(ReaderLoaded state) {
@@ -188,7 +225,6 @@ class _EpubJsReaderState extends State<EpubJsReader> {
                 : 'left',
           },
           '::selection': _selectionCss(),
-          '::-moz-selection': _selectionCss(),
         },
       ),
     );
@@ -215,6 +251,7 @@ class _EpubJsReaderState extends State<EpubJsReader> {
             // are installed. Reapply the theme so custom selection CSS is
             // present immediately, including after a hot restart.
             _applyThemeSafely(widget.state);
+            _syncDiscussionIndicators();
             final continuous = widget.state.preferences.scroll ?? true;
             AppLogger.i(
               'EpubJsReader',
@@ -243,10 +280,31 @@ class _EpubJsReaderState extends State<EpubJsReader> {
               );
             }
           },
-          onTextSelected: (selection) {
-            // Selection is intentionally owned by EPUB.js, allowing it to be cleared
-            // during scrolling and restored through its CFI range.
-          },
+          selectionContextMenu: EpubContextMenu(
+            items: [
+              EpubContextMenuItem(
+                id: 101,
+                title: 'Discuss',
+                action: () {
+                  final selection = _lastSelection;
+                  if (selection != null)
+                    widget.onDiscussSelection?.call(selection);
+                },
+              ),
+              EpubContextMenuItem(
+                id: 103,
+                title: 'Save quote',
+                action: () {
+                  final selection = _lastSelection;
+                  if (selection != null)
+                    widget.onSaveQuoteSelection?.call(selection);
+                },
+              ),
+            ],
+          ),
+          onTextSelected: (selection) => _lastSelection = selection,
+          onAnnotationClicked: (cfiRange, rect) =>
+              widget.onDiscussionIndicatorTapped?.call(cfiRange),
           onSelectionChanging: () => widget.showControls.value = false,
           onDeselection: () => widget.showControls.value = true,
         );

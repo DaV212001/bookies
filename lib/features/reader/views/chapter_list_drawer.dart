@@ -6,6 +6,7 @@ import 'package:flutter_epub_viewer/flutter_epub_viewer.dart';
 import 'package:bookies/data/models/book.dart';
 import 'package:bookies/data/providers/local_data_service.dart';
 import 'package:bookies/features/discussion/views/discussions_bottom_sheet.dart';
+import 'package:bookies/core/widgets/create_community_dialog.dart';
 
 class ChapterListDrawer extends StatefulWidget {
   final Book book;
@@ -166,6 +167,24 @@ class _ChapterListDrawerState extends State<ChapterListDrawer> {
                           ),
                         ),
                       ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(context); // close drawer
+                        CreateCommunityDialog.show(context, book: book);
+                      },
+                      icon: const Icon(LucideIcons.plus, size: 16),
+                      label: const Text('Create Community'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
                     ),
                   ),
                 ],

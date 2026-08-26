@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>The Reading Room - Immersive Experience</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&amp;family=Literata:ital,wght@0,400;0,700;1,400&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+        }
+        .reading-well-width {
+            max-width: 680px;
+        }
+        .scrim-overlay {
+            background-color: rgba(9, 20, 38, 0.4);
+            backdrop-filter: blur(2px);
+        }
+        .soft-cream {
+            background-color: #FDFCF8;
+        }
+        .highlight-underline {
+            background-image: linear-gradient(120deg, rgba(253, 138, 66, 0.2) 0%, rgba(253, 138, 66, 0.2) 100%);
+            background-repeat: no-repeat;
+            background-size: 100% 0.4em;
+            background-position: 0 88%;
+            cursor: pointer;
+        }
+        @keyframes float-up {
+            0% { transform: translateY(0) scale(0.5); opacity: 0; }
+            20% { opacity: 0.8; }
+            80% { opacity: 0.8; }
+            100% { transform: translateY(-40px) scale(1.2); opacity: 0; }
+        }
+        .reaction-bubble {
+            animation: float-up 3s ease-out forwards;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "inverse-surface": "#213145",
+                        "on-error": "#ffffff",
+                        "on-tertiary-fixed": "#1b1c19",
+                        "outline-variant": "#c5c6cd",
+                        "tertiary-fixed": "#e3e3de",
+                        "secondary-fixed": "#ffdbca",
+                        "tertiary-container": "#282926",
+                        "on-primary": "#ffffff",
+                        "surface-tint": "#545f73",
+                        "on-background": "#0b1c30",
+                        "on-tertiary-fixed-variant": "#464744",
+                        "on-primary-fixed": "#111c2d",
+                        "error": "#ba1a1a",
+                        "inverse-on-surface": "#eaf1ff",
+                        "surface-container-highest": "#d3e4fe",
+                        "surface-container-high": "#dce9ff",
+                        "outline": "#75777d",
+                        "inverse-primary": "#bcc7de",
+                        "secondary-fixed-dim": "#ffb68e",
+                        "surface-container-low": "#eff4ff",
+                        "on-secondary-fixed-variant": "#763300",
+                        "secondary": "#9b4500",
+                        "on-error-container": "#93000a",
+                        "secondary-container": "#fd8a42",
+                        "on-primary-container": "#8590a6",
+                        "surface-dim": "#cbdbf5",
+                        "background": "#f8f9ff",
+                        "error-container": "#ffdad6",
+                        "surface": "#f8f9ff",
+                        "primary-fixed": "#d8e3fb",
+                        "on-secondary-container": "#682c00",
+                        "tertiary-fixed-dim": "#c7c7c2",
+                        "primary-fixed-dim": "#bcc7de",
+                        "surface-container": "#e5eeff",
+                        "on-secondary": "#ffffff",
+                        "primary": "#091426",
+                        "on-tertiary-container": "#90908c",
+                        "surface-container-lowest": "#ffffff",
+                        "on-surface": "#0b1c30",
+                        "on-primary-fixed-variant": "#3c475a",
+                        "primary-container": "#1e293b",
+                        "surface-variant": "#d3e4fe",
+                        "surface-bright": "#f8f9ff",
+                        "tertiary": "#131512",
+                        "on-secondary-fixed": "#331200",
+                        "on-tertiary": "#ffffff",
+                        "on-surface-variant": "#45474c"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "container-max": "1120px",
+                        "unit": "8px",
+                        "gutter": "24px",
+                        "reading-well": "680px",
+                        "margin-desktop": "40px",
+                        "margin-mobile": "20px"
+                    },
+                    "fontFamily": {
+                        "display-lg": ["Playfair Display"],
+                        "body-lg": ["Literata"],
+                        "label-sm": ["Inter"],
+                        "headline-md": ["Playfair Display"],
+                        "label-md": ["Inter"],
+                        "body-md": ["Literata"]
+                    },
+                    "fontSize": {
+                        "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-lg": ["20px", { "lineHeight": "32px", "fontWeight": "400" }],
+                        "label-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "label-md": ["14px", { "lineHeight": "20px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+                        "body-md": ["16px", { "lineHeight": "26px", "fontWeight": "400" }]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface transition-colors duration-500 overflow-x-hidden">
+<!-- Screen Selection Nav (For Demo Purposes) -->
+<div class="fixed top-4 left-4 z-[100] flex gap-2 opacity-10 hover:opacity-100 transition-opacity">
+<button class="px-3 py-1 bg-primary text-on-primary rounded text-xs font-label-md" onclick="showScreen('screen-reader')">Reader</button>
+<button class="px-3 py-1 bg-primary text-on-primary rounded text-xs font-label-md" onclick="showScreen('screen-modal')">Discussion</button>
+<button class="px-3 py-1 bg-primary text-on-primary rounded text-xs font-label-md" onclick="showScreen('screen-live')">Live</button>
+<button class="px-3 py-1 bg-primary text-on-primary rounded text-xs font-label-md" onclick="showScreen('screen-profile')">Profile</button>
+</div>
+<!-- Screen 5: Reader (Core Experience) -->
+<section class="screen-content min-h-screen soft-cream flex flex-col items-center" id="screen-reader">
+<!-- Subtle Progress Bar -->
+<div class="fixed top-0 left-0 w-full h-1 bg-surface-container-low z-50 overflow-hidden">
+<div class="h-full bg-secondary-container w-[45%] relative">
+<!-- Friends Position Dots -->
+<div class="absolute right-0 top-0 w-2 h-2 bg-secondary rounded-full -mr-1 opacity-40 shadow-sm"></div>
+<div class="absolute left-[30%] top-0 w-1.5 h-1.5 bg-secondary rounded-full opacity-20"></div>
+</div>
+</div>
+<article class="reading-well-width px-margin-mobile md:px-0 py-24 md:py-32">
+<header class="mb-12">
+<p class="font-label-md text-label-md text-on-surface-variant mb-2">CHAPTER IV</p>
+<h1 class="font-display-lg text-display-lg text-primary leading-tight">The Architecture of Silence</h1>
+</header>
+<div class="font-body-lg text-body-lg text-on-surface space-y-8 tracking-tight">
+<p>There is a profound stillness that descends upon a library at dusk. The way the light stretches across the spines of old leather-bound volumes, catching the dust motes in a final, <span class="highlight-underline inline-flex items-center gap-1 px-1 rounded-sm">golden dance<span class="text-[10px] font-label-sm bg-secondary/10 text-secondary px-1 rounded-full ml-0.5">3</span></span>, suggests a world that exists entirely within its own temporal rhythm.</p>
+<div class="relative group cursor-pointer" onclick="showScreen('screen-modal')">
+<!-- Margin Indicator -->
+<div class="absolute -left-4 md:-left-6 top-0 bottom-0 w-0.5 bg-secondary/30 rounded-full"></div>
+<p class="bg-secondary/5 px-2 -mx-2 rounded py-1 leading-relaxed">
+    To read is to engage in a silent dialogue with the dead, the distant, and the yet-to-be-born. It is an act of radical empathy, a conscious decision to surrender one's own ego to the currents of another's thought process.
+    
+    <!-- Discussion Count Badge -->
+<span class="inline-flex items-center gap-1 ml-2 px-2 py-0.5 bg-surface-container-high text-secondary rounded-full text-[10px] font-label-sm uppercase tracking-wider align-middle">
+<span class="material-symbols-outlined text-[12px]">chat_bubble</span>
+      8 notes
+    </span>
+</p>
+</div>
+<p>In the digital age, this silence is often the first casualty. We are bombarded by the noise of the immediate, the shallow chime of notifications that fragment our attention until we can no longer sustain the long-form concentration required to truly inhabit a text.</p>
+<p>Yet, here in the Reading Room, we attempt to reclaim that space. We build digital cathedrals not for speed, but for depth. We invite the presence of others not as a distraction, but as a chorus of silent witnesses to the act of discovery.</p>
+</div>
+</article>
+</section>
+<!-- Screen 6: Highlight Discussion (Modal) -->
+<section class="screen-content hidden fixed inset-0 z-50" id="screen-modal">
+<div class="absolute inset-0 scrim-overlay" onclick="showScreen('screen-reader')"></div>
+<!-- Background Text (Visual only) -->
+<div class="absolute inset-x-0 top-0 pointer-events-none px-margin-mobile md:px-0 py-24 md:py-32 flex justify-center">
+<div class="reading-well-width">
+<p class="font-body-lg text-body-lg text-on-surface mb-8 opacity-40">There is a profound stillness that descends upon a library at dusk. The way the light stretches across the spines of old leather-bound volumes...</p>
+<div class="bg-surface-container-lowest p-6 rounded-lg border border-secondary-container shadow-sm relative z-10">
+<p class="font-body-lg text-body-lg text-primary italic">"To read is to engage in a silent dialogue with the dead, the distant, and the yet-to-be-born. It is an act of radical empathy..."</p>
+</div>
+</div>
+</div>
+<!-- Bottom Sheet Discussion -->
+<div class="absolute bottom-0 inset-x-0 h-[60%] bg-surface-container-lowest rounded-t-3xl shadow-2xl overflow-hidden flex flex-col border-t border-outline-variant">
+<div class="w-12 h-1 bg-outline-variant rounded-full mx-auto my-4 opacity-50"></div>
+<div class="flex-1 overflow-y-auto px-margin-mobile md:px-margin-desktop py-4 max-w-reading-well mx-auto w-full">
+<div class="flex justify-between items-center mb-8 border-b border-surface-container-low pb-4">
+<h2 class="font-headline-md text-headline-md text-primary">8 Perspectives</h2>
+<span class="font-label-sm text-label-sm text-secondary tracking-widest uppercase">Curated Insights</span>
+</div>
+<div class="space-y-10">
+<!-- Thread Item -->
+<div class="group">
+<div class="flex items-center gap-3 mb-2">
+<img class="w-8 h-8 rounded-full bg-surface-container" data-alt="A minimalist black and white headshot portrait of a thoughtful person with soft studio lighting, high contrast, scholarly aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDz_-5K58oanGKbaumY2pwM7XQjdzXuA5Ihk2JAr7DQf7WcJaYNzhZKvIDgvOSxcBZJcvstrnnfxtdXp_jW5SowQ4TTXveh0Z5BlcZvItm0ibJnC9ipuiGS7vn_B6DO8agtXdog762OiclueuqdOM7B-v019j1q_SphvBGmhd7aHHFhOZHbpR-X3dxahKzwkvNrc4oXe5tWsuvFyTFHY3KuJ-uqXwY7lEkRcoAjSBTevfqmUrutOJzA"/>
+<span class="font-label-md text-label-md text-primary">Julian Thorne</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant opacity-60">12m ago</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">The phrasing "radical empathy" reminds me of Martha Nussbaum's work on the narrative imagination. Reading doesn't just inform; it recalibrates our moral compass.</p>
+<div class="mt-2 flex gap-4 text-on-surface-variant">
+<button class="flex items-center gap-1 font-label-sm text-label-sm hover:text-secondary transition-colors">
+<span class="material-symbols-outlined text-sm">keyboard_arrow_up</span> 42
+                            </button>
+<button class="font-label-sm text-label-sm hover:text-secondary transition-colors">Reply</button>
+</div>
+</div>
+<!-- Thread Item -->
+<div class="group">
+<div class="flex items-center gap-3 mb-2">
+<img class="w-8 h-8 rounded-full bg-surface-container" data-alt="A clean, minimalist close-up profile photo of a person reading, warm natural light, soft focus background, intellectual and calm vibe." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAONKAPrgaFDlcGMuTLMBqEXLGSMTP960rZDLlabGQ-_qx7_8qowATRvqAOCNDrfw7D8CWEHw3RRenJlugkQe2-2NAxsVaWEPU2q27BZH2sMqbhPOIw0djKzaEZCYSHy44IszBAVtOJgF24akLZ-reydxXOjYl8_UkXpraeIY3VnvUeQYydBi-R5bzToss-M49W0x4CTPVXZMIe3FbfpK_W30SwbfWxNynTzGcbStRjJP2K_Il9RsMJ"/>
+<span class="font-label-md text-label-md text-primary">Elena Rossi</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant opacity-60">2h ago</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">This "silent dialogue" is why physical books still matter—the margins are where we respond to the author. This digital space feels like a natural evolution of that marginalia tradition.</p>
+<div class="mt-2 flex gap-4 text-on-surface-variant">
+<button class="flex items-center gap-1 font-label-sm text-label-sm hover:text-secondary transition-colors">
+<span class="material-symbols-outlined text-sm">keyboard_arrow_up</span> 28
+                            </button>
+<button class="font-label-sm text-label-sm hover:text-secondary transition-colors">Reply</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Input Sticky -->
+<div class="p-6 border-t border-surface-container-low bg-surface-container-lowest">
+<div class="max-w-reading-well mx-auto flex items-center gap-4">
+<input class="flex-1 bg-transparent border-none border-b border-outline-variant focus:ring-0 focus:border-secondary font-body-md text-body-md px-0 py-2" placeholder="Share your thoughts..." type="text"/>
+<button class="w-10 h-10 rounded-full bg-primary text-on-primary flex items-center justify-center">
+<span class="material-symbols-outlined">send</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Screen 7: Live Reading Session -->
+<section class="screen-content hidden min-h-screen soft-cream flex flex-col items-center" id="screen-live">
+<!-- Live Header -->
+<header class="fixed top-0 left-0 w-full flex justify-between items-center px-margin-mobile md:px-margin-desktop py-6 z-50">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 bg-secondary rounded-full animate-pulse"></span>
+<span class="font-label-md text-label-md text-primary">2 friends reading with you</span>
+</div>
+<div class="flex -space-x-2">
+<img class="w-8 h-8 rounded-full border-2 border-surface" data-alt="Small, soft focus portrait of Julian." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD71UEXLm3no0e2SSlZOFHpwndFBIIEpE6wfQmKIQsnIttiJQHMrfy8qqVZV51QhNQ977NMTMvsWBywLGLyBplRIxyyNsmJplZCLUHTgDl2JlomKz7pzBaE6GiEim7GOoGglIBLKDfD4AlJhk7zPZMZTI7PiOqeXeWyf3HqCW5KzE8MwoiW7r-fSxxPi4hIbbnJb843pyqrWbuZAwrlMPIMK6ENSDMKz4XYHp0c2-GKJn9LPXm0auU4"/>
+<img class="w-8 h-8 rounded-full border-2 border-surface" data-alt="Small, soft focus portrait of Elena." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBpkXCpccfLmIHAhSe925ZTMhJ72gOpuKzXiyAF11woItXVF5v0wT2H1HhevqRmJvWIz6KmtZB_nwolf9avCJz-PcFRJvc1n8mbHNcRF1RxixdbK2dMGhCEaTPP6qz81qRnyDvFukd8pr8_NtqIaxL0q-YnDgpF1cyfH6vfMzq5ldcPYXV-3yigxMdALDNsAgwF6otgOTZrskjUyNAicsdnsEB3wdW18ObPQiEjr6SPMJaXeAfso_hQ"/>
+</div>
+</header>
+<!-- Margin Interaction -->
+<div class="fixed right-margin-desktop top-1/2 -translate-y-1/2 pointer-events-none hidden md:block">
+<div class="reaction-bubble flex flex-col items-center text-secondary">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">favorite</span>
+<span class="font-label-sm text-label-sm mt-1">Elena</span>
+</div>
+</div>
+<article class="reading-well-width px-margin-mobile md:px-0 py-32">
+<div class="font-body-lg text-body-lg text-on-surface space-y-8 opacity-80">
+<p>Perhaps the library is not a place where books are stored, but where they are breathed into life. Every reader acts as a medium, a temporary vessel for a set of ideas that remain dormant until an eye meets a page.</p>
+<p>The collective act of reading, then, becomes a shared ritual. Even when we read in solitude, we are part of a vast, invisible congregation of thinkers.</p>
+<div class="relative">
+<p class="font-bold text-primary">The text is a map; the reader is the explorer. And the conversation is the journal of that exploration.</p>
+<!-- Floating reaction for mobile/tablet inline -->
+<div class="absolute -right-8 top-0 reaction-bubble md:hidden">
+<span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">lightbulb</span>
+</div>
+</div>
+</div>
+</article>
+</section>
+<!-- Screen 8: Profile & Analytics -->
+<section class="screen-content hidden min-h-screen bg-background" id="screen-profile">
+<!-- Top App Bar Mock -->
+<div class="px-margin-mobile md:px-margin-desktop py-12 flex justify-between items-start max-w-container-max mx-auto w-full">
+<div>
+<h1 class="font-display-lg text-display-lg text-primary mb-2">Elias Vance</h1>
+<p class="font-label-md text-label-md text-on-surface-variant flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-base" style="font-variation-settings: 'FILL' 1;">verified</span>
+                    Trusted Reader • Member since 2021
+                </p>
+</div>
+<button class="w-12 h-12 rounded-full border border-outline-variant flex items-center justify-center">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</div>
+<main class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop">
+<!-- Stats Grid -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+<div class="bg-surface-container-lowest p-8 border border-outline-variant/30 rounded-xl">
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest mb-4">Books Finished</p>
+<h3 class="font-display-lg text-headline-md text-primary">42</h3>
+<p class="font-label-sm text-label-sm text-secondary mt-2">+3 this month</p>
+</div>
+<div class="bg-surface-container-lowest p-8 border border-outline-variant/30 rounded-xl">
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest mb-4">Annotations Made</p>
+<h3 class="font-display-lg text-headline-md text-primary">1,204</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant mt-2">Top 5% of community</p>
+</div>
+<div class="bg-surface-container-lowest p-8 border border-outline-variant/30 rounded-xl">
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest mb-4">Reading Hours</p>
+<h3 class="font-display-lg text-headline-md text-primary">218h</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant mt-2">Avg. 45m / day</p>
+</div>
+</div>
+<!-- Reading Pacing Chart -->
+<div class="mb-16">
+<div class="flex justify-between items-end mb-8">
+<div>
+<h2 class="font-headline-md text-headline-md text-primary">Reading Pacing</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">Your intellectual rhythm over the past week.</p>
+</div>
+<div class="flex gap-2">
+<span class="w-3 h-3 bg-secondary rounded-full"></span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Focus Hours</span>
+</div>
+</div>
+<div class="h-64 flex items-end justify-between gap-2 border-b border-outline-variant pb-2">
+<!-- Day Columns -->
+<div class="flex-1 flex flex-col items-center gap-3">
+<div class="w-full bg-surface-container-high rounded-t h-[40%] transition-all hover:bg-secondary/20"></div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Mon</span>
+</div>
+<div class="flex-1 flex flex-col items-center gap-3">
+<div class="w-full bg-surface-container-high rounded-t h-[65%] transition-all hover:bg-secondary/20"></div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Tue</span>
+</div>
+<div class="flex-1 flex flex-col items-center gap-3">
+<div class="w-full bg-secondary rounded-t h-[95%] shadow-lg"></div>
+<span class="font-label-sm text-label-sm text-primary font-bold">Wed</span>
+</div>
+<div class="flex-1 flex flex-col items-center gap-3">
+<div class="w-full bg-surface-container-high rounded-t h-[50%] transition-all hover:bg-secondary/20"></div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Thu</span>
+</div>
+<div class="flex-1 flex flex-col items-center gap-3">
+<div class="w-full bg-surface-container-high rounded-t h-[30%] transition-all hover:bg-secondary/20"></div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Fri</span>
+</div>
+<div class="flex-1 flex flex-col items-center gap-3">
+<div class="w-full bg-surface-container-high rounded-t h-[80%] transition-all hover:bg-secondary/20"></div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Sat</span>
+</div>
+<div class="flex-1 flex flex-col items-center gap-3">
+<div class="w-full bg-surface-container-high rounded-t h-[70%] transition-all hover:bg-secondary/20"></div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Sun</span>
+</div>
+</div>
+</div>
+<!-- Reputation Badges -->
+<div class="mb-24">
+<h2 class="font-headline-md text-headline-md text-primary mb-6">Milestones</h2>
+<div class="flex flex-wrap gap-4">
+<div class="flex items-center gap-3 bg-surface-container-low px-4 py-2 rounded-full border border-outline-variant/30">
+<span class="material-symbols-outlined text-secondary text-xl">menu_book</span>
+<span class="font-label-md text-label-md text-primary">Volume Collector</span>
+</div>
+<div class="flex items-center gap-3 bg-surface-container-low px-4 py-2 rounded-full border border-outline-variant/30">
+<span class="material-symbols-outlined text-secondary text-xl">edit_note</span>
+<span class="font-label-md text-label-md text-primary">Critical Thinker</span>
+</div>
+<div class="flex items-center gap-3 bg-surface-container-low px-4 py-2 rounded-full border border-outline-variant/30 opacity-40">
+<span class="material-symbols-outlined text-on-surface-variant text-xl">forum</span>
+<span class="font-label-md text-label-md text-on-surface-variant">Symposium Host</span>
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom Nav Shell Mapping (Screen 8) -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center h-16 bg-surface border-t border-outline-variant pb-safe">
+<button class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-low transition-all scale-95 active:scale-90" onclick="showScreen('screen-reader')">
+<span class="material-symbols-outlined">library_books</span>
+<span class="font-label-md text-label-md">Library</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-low transition-all scale-95 active:scale-90">
+<span class="material-symbols-outlined">explore</span>
+<span class="font-label-md text-label-md">Discover</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-low transition-all scale-95 active:scale-90">
+<span class="material-symbols-outlined">groups</span>
+<span class="font-label-md text-label-md">Community</span>
+</button>
+<button class="flex flex-col items-center justify-center text-secondary font-bold hover:bg-surface-container-low transition-all scale-95 active:scale-90">
+<span class="material-symbols-outlined">account_circle</span>
+<span class="font-label-md text-label-md">Profile</span>
+</button>
+</nav>
+</section>
+<script>
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen-content').forEach(screen => {
+                screen.classList.add('hidden');
+            });
+            const activeScreen = document.getElementById(screenId);
+            activeScreen.classList.remove('hidden');
+            
+            // Screen specific side effects
+            if(screenId === 'screen-live') {
+                triggerRandomReaction();
+            }
+        }
+
+        function triggerRandomReaction() {
+            // Simple logic to reset animations if needed
+            const bubble = document.querySelector('.reaction-bubble');
+            if(bubble) {
+                bubble.style.animation = 'none';
+                bubble.offsetHeight; /* trigger reflow */
+                bubble.style.animation = null; 
+            }
+        }
+
+        // Initialize first screen
+        showScreen('screen-reader');
+    </script>
+</body></html>

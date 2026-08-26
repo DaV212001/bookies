@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/theme/app_colors.dart';
@@ -25,26 +26,23 @@ class ReadingSettingsModal extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            blurRadius: 20,
-            offset: const Offset(0, -4),
-          ),
-        ],
+    return Material(
+      color: theme.colorScheme.surface,
+      elevation: 8,
+      shadowColor: Colors.black.withOpacity(0.2),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      padding: EdgeInsets.only(
-        left: 20,
-        right: 20,
-        top: 16,
-        bottom: MediaQuery.of(context).padding.bottom + 20,
-      ),
-      child: BlocBuilder<ReaderBloc, ReaderState>(
-        builder: (context, state) {
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 16,
+          bottom: MediaQuery.of(context).padding.bottom + 20,
+        ),
+        child: BlocBuilder<ReaderBloc, ReaderState>(
+          builder: (context, state) {
           if (state is! ReaderLoaded) {
             return const SizedBox.shrink();
           }
@@ -321,7 +319,9 @@ class ReadingSettingsModal extends StatelessWidget {
                         children: [
                           _buildSectionHeader(theme, 'Text Align'),
                           const SizedBox(height: 8),
-                          Row(
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
                             children: [
                               _AlignButton(
                                 icon: LucideIcons.alignLeft,
@@ -331,7 +331,6 @@ class ReadingSettingsModal extends StatelessWidget {
                                   context.read<ReaderBloc>().add(UpdateEPUBPreferences(newPrefs));
                                 },
                               ),
-                              const SizedBox(width: 6),
                               _AlignButton(
                                 icon: LucideIcons.alignJustify,
                                 isSelected: textAlign == TextAlign.justify,
@@ -340,7 +339,6 @@ class ReadingSettingsModal extends StatelessWidget {
                                   context.read<ReaderBloc>().add(UpdateEPUBPreferences(newPrefs));
                                 },
                               ),
-                              const SizedBox(width: 6),
                               _AlignButton(
                                 icon: LucideIcons.alignCenter,
                                 isSelected: textAlign == TextAlign.center,
@@ -372,7 +370,8 @@ class ReadingSettingsModal extends StatelessWidget {
               ],
             ),
           );
-        },
+          },
+        ),
       ),
     );
   }
@@ -435,8 +434,11 @@ class _ModeTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  AutoSizeText(
                     label,
+                    maxLines: 1,
+                    minFontSize: 10,
+                    stepGranularity: 0.5,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: isSelected ? primary : theme.colorScheme.onSurface,

@@ -1,10 +1,14 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import 'package:bookies/data/models/book.dart';
+import 'package:bookies/data/models/community.dart';
 import 'package:bookies/data/providers/local_data_service.dart';
-import 'package:bookies/core/widgets/community_membership_gate.dart';
 import 'package:bookies/features/community/views/community_detail_view.dart';
+import 'package:bookies/core/widgets/create_community_dialog.dart';
 
 class CommunitiesView extends StatefulWidget {
   const CommunitiesView({super.key});
@@ -14,26 +18,34 @@ class CommunitiesView extends StatefulWidget {
 }
 
 class _CommunitiesViewState extends State<CommunitiesView> {
-  String _selectedFilter = 'All Circles';
+  final _searchController = TextEditingController();
+  bool _popularFirst = false;
 
-  void _navigateToDetail(String bookId, String communityName, String description) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => CommunityDetailView(
-          bookId: bookId,
-          communityName: communityName,
-          description: description,
-        ),
-      ),
-    );
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final secondary = theme.colorScheme.secondary;
-    final localData = context.watch<LocalDataService>();
+    final data = context.watch<LocalDataService>();
+    final books = data.getBooks();
+    final communities = <({Community community, Book? book})>[
+      for (final community in data.communities)
+        (community: community, book: _bookFor(books, community.bookId)),
+    ];
+    final query = _searchController.text.trim().toLowerCase();
+    final filtered = communities.where((item) {
+      if (query.isEmpty) return true;
+      return item.community.name.toLowerCase().contains(query) ||
+          item.community.description.toLowerCase().contains(query) ||
+          (item.book?.title.toLowerCase().contains(query) ?? false);
+    }).toList()
+      ..sort((a, b) => _popularFirst
+          ? b.community.memberCount.compareTo(a.community.memberCount)
+          : 0);
 
     return Scaffold(
       appBar: AppBar(
@@ -48,684 +60,349 @@ class _CommunitiesViewState extends State<CommunitiesView> {
               ),
             ),
             Text(
-              'Reading Clubs & Discussion Circles',
+              'Find your people around a book',
               style: theme.textTheme.labelSmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(LucideIcons.plus),
-            tooltip: 'Create Circle',
-            onPressed: () => _showCreateCircleDialog(context, theme),
-          ),
-        ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showCreateCircleDialog(context, theme),
-        backgroundColor: secondary,
-        foregroundColor: theme.colorScheme.onSecondary,
-        icon: const Icon(LucideIcons.plus),
-        label: const Text('Create Circle'),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        children: [
-          // Filter Chips Row
-          _buildFilterRow(theme),
-
-          const SizedBox(height: 20),
-
-          // Active Reading Clubs Section
-          if (_selectedFilter == 'All Circles' ||
-              _selectedFilter == 'My Clubs') ...[
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      body: communities.isEmpty
+          ? _emptyState(theme)
+          : ListView(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
               children: [
-                Text(
-                  'Your Reading Circles',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
+        _CommunityIntro(theme: theme, communities: communities),
+        const SizedBox(height: 16),
+        TextField(
+          controller: _searchController,
+          onChanged: (_) => setState(() {}),
+          decoration: InputDecoration(
+            hintText: 'Search communities or books',
+            prefixIcon: const Icon(LucideIcons.search, size: 19),
+            suffixIcon: query.isEmpty
+                ? null
+                : IconButton(
+                    tooltip: 'Clear search',
+                    icon: const Icon(LucideIcons.x, size: 18),
+                    onPressed: () {
+                      _searchController.clear();
+                      setState(() {});
+                    },
                   ),
-                ),
-                Text(
-                  'Active Clubs',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: secondary,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
+            filled: true,
+            fillColor: theme.colorScheme.surfaceContainerLow,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
             ),
-            const SizedBox(height: 12),
-
-            _buildClubCard(
-              theme,
-              localData,
-              title: 'Modern Classics Society',
-              description:
-                  'Currently exploring 20th century literary masterpieces.',
-              membersCount: 342,
-              targetChapter: 'Chapter 12: The Descent',
-              activeBook: 'The Secret History',
-              bookId: 'mock-book-1',
-              progress: 0.65,
-              tag: 'Private Circle',
-            ),
-            const SizedBox(height: 14),
-
-            _buildClubCard(
-              theme,
-              localData,
-              title: 'Deep Sci-Fi Collective',
-              description:
-                  'Deep analytical reads of speculative fiction and space epics.',
-              membersCount: 189,
-              targetChapter: 'Chapter 4: First Contact',
-              activeBook: 'Dune Messiah',
-              bookId: 'mock-book-2',
-              progress: 0.35,
-              tag: 'Public Circle',
-            ),
-            const SizedBox(height: 14),
-
-            _buildClubCard(
-              theme,
-              localData,
-              title: 'Philosophy & Mind',
-              description:
-                  'Explorations into classical philosophy and consciousness.',
-              membersCount: 512,
-              targetChapter: 'Book II: The Cave Metaphor',
-              activeBook: "Plato's Republic",
-              bookId: 'mock-book-3',
-              progress: 0.80,
-              tag: 'Public Circle',
-            ),
-
-            const SizedBox(height: 28),
-          ],
-
-          // Spoiler Guarded Discussions Section Header
-          if (_selectedFilter == 'All Circles' ||
-              _selectedFilter == 'Spoiler Threads') ...[
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Recent Chapter & Passage Threads',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-
-            _buildThreadTile(
-              theme,
-              localData,
-              chapterTitle: 'Chapter 12: The Descent',
-              bookTitle: 'The Secret History',
-              bookId: 'mock-book-1',
-              authorName: 'Julian Morrow',
-              excerpt:
-                  "The psychological toll of Henry's decision becomes evident in the opening pages of this section...",
-              timeAgo: '12m ago',
-              isUnlocked: true,
-              repliesCount: 24,
-            ),
-            _buildThreadTile(
-              theme,
-              localData,
-              chapterTitle: 'Chapter 15: The Epilogue',
-              bookTitle: 'The Secret History',
-              bookId: 'mock-book-1',
-              authorName: 'Richard Papen',
-              excerpt:
-                  '[SPOILER PROTECTED] Reach Chapter 15 in your reader to automatically unlock this discussion thread.',
-              timeAgo: '1h ago',
-              isUnlocked: false,
-              repliesCount: 58,
-            ),
-            _buildThreadTile(
-              theme,
-              localData,
-              chapterTitle: 'Chapter 4: First Contact',
-              bookTitle: 'Dune Messiah',
-              bookId: 'mock-book-2',
-              authorName: 'Paul Atreides',
-              excerpt:
-                  'Analyzing the political maneuvering between the Bene Gesserit and Spacing Guild...',
-              timeAgo: '3h ago',
-              isUnlocked: true,
-              repliesCount: 15,
-            ),
-          ],
-
-          const SizedBox(height: 60),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFilterRow(ThemeData theme) {
-    final filters = ['All Circles', 'My Clubs', 'Spoiler Threads'];
-
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: filters.map((filter) {
-          final isSelected = filter == _selectedFilter;
-          return Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: ChoiceChip(
-              label: Text(
-                filter,
-                style: TextStyle(
-                  color: isSelected
-                      ? theme.colorScheme.onSecondary
-                      : theme.colorScheme.onSurfaceVariant,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                  fontSize: 13,
-                ),
-              ),
-              selected: isSelected,
-              onSelected: (selected) {
-                if (selected) {
-                  setState(() {
-                    _selectedFilter = filter;
-                  });
-                }
-              },
-              selectedColor: theme.colorScheme.secondary,
-              backgroundColor: theme.colorScheme.surfaceContainerHighest
-                  .withOpacity(0.4),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-                side: BorderSide(
-                  color: isSelected
-                      ? theme.colorScheme.secondary
-                      : theme.colorScheme.outlineVariant.withOpacity(0.5),
-                ),
-              ),
-              showCheckmark: false,
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-
-  Widget _buildClubCard(
-    ThemeData theme,
-    LocalDataService localData, {
-    required String title,
-    required String description,
-    required int membersCount,
-    required String targetChapter,
-    required String activeBook,
-    required String bookId,
-    required double progress,
-    required String tag,
-  }) {
-    final secondary = theme.colorScheme.secondary;
-    final isMember = localData.isMemberOfCommunity(title) ||
-        localData.isMemberOfCommunity(activeBook);
-
-    return InkWell(
-      onTap: () => _navigateToDetail(bookId, title, description),
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: theme.colorScheme.outlineVariant.withOpacity(0.6),
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.03),
-              blurRadius: 8,
-              offset: const Offset(0, 3),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Text('Browse', style: theme.textTheme.labelLarge),
+            const SizedBox(width: 10),
+            ChoiceChip(
+              label: const Text('All rooms'),
+              selected: !_popularFirst,
+              onSelected: (_) => setState(() => _popularFirst = false),
+            ),
+            const SizedBox(width: 8),
+            ChoiceChip(
+              label: const Text('Most readers'),
+              selected: _popularFirst,
+              onSelected: (_) => setState(() => _popularFirst = true),
             ),
           ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    title,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.primaryContainer.withOpacity(0.6),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        LucideIcons.users,
-                        size: 12,
-                        color: theme.colorScheme.primary,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '$membersCount',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.primary,
-                          fontWeight: FontWeight.bold,
+        const SizedBox(height: 18),
+        if (filtered.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 36),
+            child: Center(child: Text('No communities match your search.')),
+          ),
+        ...filtered.map(
+                  (item) => _CommunityBookCard(
+                    community: item.community,
+                    book: item.book,
+                    onTap: () => Navigator.of(context, rootNavigator: true).push(
+                      MaterialPageRoute(
+                        builder: (_) => CommunityDetailView(
+                          bookId: item.community.bookId,
+                          communityId: item.community.id,
+                          communityName: item.community.name,
+                          description: item.community.description,
                         ),
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 4),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          CreateCommunityDialog.show(
+            context,
+            availableBooks: books,
+          );
+        },
+        backgroundColor: theme.colorScheme.secondary,
+        foregroundColor: theme.colorScheme.onSecondary,
+        child: const Icon(LucideIcons.plus),
+        tooltip: 'Create Community',
+      ),
+    );
+  }
+
+  static Book? _bookFor(List<Book> books, String bookId) {
+    for (final book in books) {
+      if (book.id == bookId) return book;
+    }
+    return null;
+  }
+
+  Widget _emptyState(ThemeData theme) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              LucideIcons.library,
+              size: 46,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(height: 14),
             Text(
-              description,
+              'No book communities yet',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Communities focus on one book, and anyone can create a new community around the same book.',
+              textAlign: TextAlign.center,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHighest.withOpacity(
-                  0.35,
-                ),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: theme.colorScheme.outlineVariant.withOpacity(0.4),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(LucideIcons.bookOpen, size: 16, color: secondary),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              activeBook,
-                              style: theme.textTheme.labelMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            Text(
-                              targetChapter,
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      if (isMember)
-                        ElevatedButton.icon(
-                          onPressed: () {
-                            _navigateToDetail(bookId, title, description);
-                          },
-                          icon: const Icon(LucideIcons.messagesSquare, size: 14),
-                          label: const Text('Open Circle'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: secondary,
-                            foregroundColor: theme.colorScheme.onSecondary,
-                            padding: const EdgeInsets.symmetric(horizontal: 10),
-                            minimumSize: const Size(0, 32),
-                          ),
-                        )
-                      else
-                        OutlinedButton.icon(
-                          onPressed: () async {
-                            await localData.joinCommunity(title);
-                            await localData.joinCommunity(activeBook);
-                            setState(() {});
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Joined $title! Discussions unlocked.'),
-                                ),
-                              );
-                            }
-                          },
-                          icon: const Icon(LucideIcons.userPlus, size: 14),
-                          label: const Text('Join Circle'),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 10),
-                            minimumSize: const Size(0, 32),
-                            side: BorderSide(color: secondary.withOpacity(0.8)),
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Your Reading Progress',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                          fontSize: 11,
-                        ),
-                      ),
-                      Text(
-                        '${(progress * 100).toInt()}%',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.primary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(3),
-                    child: LinearProgressIndicator(
-                      value: progress,
-                      minHeight: 4,
-                      backgroundColor: theme.colorScheme.surfaceContainerHigh,
-                      color: secondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
           ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildThreadTile(
-    ThemeData theme,
-    LocalDataService localData, {
-    required String chapterTitle,
-    required String bookTitle,
-    required String bookId,
-    required String authorName,
-    required String excerpt,
-    required String timeAgo,
-    required bool isUnlocked,
-    required int repliesCount,
-  }) {
-    final secondary = theme.colorScheme.secondary;
-    final isMember = localData.isMemberOfCommunity(bookTitle);
+class _CommunityIntro extends StatelessWidget {
+  final ThemeData theme;
+  final List<({Community community, Book? book})> communities;
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-        side: BorderSide(
-          color: theme.colorScheme.outlineVariant.withOpacity(0.5),
-        ),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: () {
-          if (!isMember) {
-            _showGateBottomSheet(context, bookTitle);
-          } else {
-            _navigateToDetail(bookId, '$bookTitle Society', 'Discussion hub for $bookTitle');
-          }
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(
-                    !isMember
-                        ? LucideIcons.lock
-                        : (isUnlocked ? LucideIcons.lockOpen : LucideIcons.shieldAlert),
-                    size: 16,
-                    color: isMember && isUnlocked
-                        ? secondary
-                        : theme.colorScheme.outline,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      chapterTitle,
-                      style: theme.textTheme.labelLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isMember && isUnlocked
-                          ? secondary.withOpacity(0.12)
-                          : theme.colorScheme.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      !isMember
-                          ? 'Join Circle to View'
-                          : (isUnlocked ? 'Unlocked' : 'Spoiler Guarded'),
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: isMember && isUnlocked
-                            ? secondary
-                            : theme.colorScheme.outline,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    timeAgo,
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '$bookTitle • by $authorName',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                !isMember
-                    ? '[LOCKED] Join or create a circle for "$bookTitle" to view and post chapter threads.'
-                    : excerpt,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: isMember && isUnlocked
-                      ? theme.colorScheme.onSurface
-                      : theme.colorScheme.outline,
-                  fontStyle: isMember && isUnlocked
-                      ? FontStyle.normal
-                      : FontStyle.italic,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Icon(
-                    LucideIcons.messageSquare,
-                    size: 13,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    '$repliesCount discussions',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                      fontSize: 11,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
+  const _CommunityIntro({required this.theme, required this.communities});
+
+  @override
+  Widget build(BuildContext context) {
+    final readers = communities.fold<int>(
+      0,
+      (sum, item) => sum + item.community.memberCount,
     );
-  }
-
-  void _showGateBottomSheet(BuildContext context, String bookTitle) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Padding(
-        padding: const EdgeInsets.all(16),
-        child: CommunityMembershipGate(
-          bookTitle: bookTitle,
-          circleName: '$bookTitle Society',
-          onJoined: () async {
-            Navigator.pop(context);
-            final localData = context.read<LocalDataService>();
-            await localData.joinCommunity(bookTitle);
-            setState(() {});
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Joined $bookTitle circle!')),
-              );
-            }
-          },
-          onCreateCircle: () {
-            Navigator.pop(context);
-            _showCreateCircleDialog(context, Theme.of(context));
-          },
-        ),
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primaryContainer,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: theme.colorScheme.primary.withOpacity(0.18)),
       ),
-    );
-  }
-
-  void _showCreateCircleDialog(BuildContext context, ThemeData theme) {
-    final titleController = TextEditingController();
-    final bookController = TextEditingController();
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: theme.colorScheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) {
-        return Padding(
-          padding: EdgeInsets.only(
-            top: 24,
-            left: 20,
-            right: 20,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
+              Icon(LucideIcons.messagesSquare, color: theme.colorScheme.primary),
+              const SizedBox(width: 9),
               Text(
-                'Create Reading Circle',
-                style: theme.textTheme.titleLarge?.copyWith(
+                'Reading rooms',
+                style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(height: 4),
-              Text(
-                'Start a synchronous book club with friends or public readers.',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Join a conversation with its own pace, personality, and point of view.',
+            style: theme.textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              _Stat(
+                label: communities.length == 1 ? 'COMMUNITY' : 'COMMUNITIES',
+                value: '${communities.length}',
+                theme: theme,
               ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: titleController,
-                decoration: InputDecoration(
-                  labelText: 'Circle Name',
-                  hintText: 'e.g., Modern Philosophy Salon',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+              const SizedBox(width: 24),
+              _Stat(label: 'READERS', value: '$readers', theme: theme),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Stat extends StatelessWidget {
+  final String label;
+  final String value;
+  final ThemeData theme;
+
+  const _Stat({required this.label, required this.value, required this.theme});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(value, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+        Text(label, style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant, letterSpacing: 0.8)),
+      ],
+    );
+  }
+}
+
+class _CommunityBookCard extends StatelessWidget {
+  final Community community;
+  final Book? book;
+  final VoidCallback onTap;
+
+  const _CommunityBookCard({
+    required this.community,
+    required this.book,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 0,
+      color: theme.colorScheme.surfaceContainerLow,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 54,
+                height: 76,
+                clipBehavior: Clip.antiAlias,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: theme.colorScheme.outlineVariant),
                 ),
+                child: _buildCover(theme, book),
               ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: bookController,
-                decoration: InputDecoration(
-                  labelText: 'Active Book',
-                  hintText: 'e.g., Dune Messiah',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () async {
-                    final circleName = titleController.text.trim();
-                    final bookName = bookController.text.trim();
-                    if (circleName.isNotEmpty) {
-                      final localData = context.read<LocalDataService>();
-                      await localData.createCommunity(
-                        name: circleName,
-                        description: 'Reading circle for $bookName',
-                        bookId: bookName,
-                      );
-                      setState(() {});
-                    }
-                    if (context.mounted) {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Reading Circle created!'),
-                        ),
-                      );
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: theme.colorScheme.primary,
-                    foregroundColor: theme.colorScheme.onPrimary,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      community.name,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                  child: const Text('Create Circle'),
+                    const SizedBox(height: 3),
+                    Text(
+                      book?.title ?? 'Book community',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: theme.colorScheme.secondary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    if (book?.author.isNotEmpty == true) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        book!.author,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.secondary,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 7),
+                    Text(
+                      community.description,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 9),
+                    Row(
+                      children: [
+                        const Icon(LucideIcons.users, size: 14),
+                        const SizedBox(width: 5),
+                        Text(
+                          '${community.memberCount} readers',
+                          style: theme.textTheme.labelSmall,
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
+              ),
+              const Padding(
+                padding: EdgeInsets.only(top: 27),
+                child: Icon(LucideIcons.chevronRight, size: 18),
               ),
             ],
           ),
-        );
-      },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCover(ThemeData theme, Book? book) {
+    final path = book?.coverUrl?.trim();
+    if (path == null || path.isEmpty) {
+      return Icon(
+        LucideIcons.bookOpen,
+        color: theme.colorScheme.onSurfaceVariant,
+      );
+    }
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+      return Image.network(
+        path,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => Icon(
+          LucideIcons.bookOpen,
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+      );
+    }
+    final file = File(path);
+    if (!file.existsSync()) {
+      return Icon(
+        LucideIcons.bookOpen,
+        color: theme.colorScheme.onSurfaceVariant,
+      );
+    }
+    return Image.file(
+      file,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) =>
+          Icon(LucideIcons.bookOpen, color: theme.colorScheme.onSurfaceVariant),
     );
   }
 }

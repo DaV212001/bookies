@@ -1,135 +1,153 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-
 import 'package:bookies/data/models/quote_rating.dart';
 
 class QuoteCardRatingWidget extends StatelessWidget {
   final QuoteRating quote;
   final VoidCallback onUpvote;
+  final VoidCallback? onDiscussion;
+  final VoidCallback? onContext;
 
   const QuoteCardRatingWidget({
     super.key,
     required this.quote,
     required this.onUpvote,
+    this.onDiscussion,
+    this.onContext,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8F9FF),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: theme.colorScheme.outline.withOpacity(0.15),
-        ),
+        color: theme.colorScheme.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Quote Icon Header & Chapter Source
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  const Icon(
-                    LucideIcons.quote,
-                    size: 16,
-                    color: Color(0xFFB45309), // Ochre
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    quote.chapterTitle,
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: const Color(0xFFB45309),
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
+              CircleAvatar(
+                radius: 16,
+                backgroundColor: theme.colorScheme.primaryContainer,
+                child: Icon(
+                  LucideIcons.user,
+                  size: 17,
+                  color: theme.colorScheme.onPrimaryContainer,
+                ),
               ),
-              Row(
-                children: [
-                  Icon(LucideIcons.star, size: 14, color: Colors.amber[700]),
-                  const SizedBox(width: 4),
-                  Text(
-                    quote.averageRating.toStringAsFixed(1),
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      quote.addedByUsername,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
+                    Text(
+                      quote.chapterTitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Flexible(
+                child: Text(
+                  'Community Quote',
+                  textAlign: TextAlign.end,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.secondary,
+                    fontWeight: FontWeight.bold,
                   ),
-                ],
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
-
-          // Quote Body (Literata serif style)
-          Text(
-            '"${quote.quoteText}"',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontStyle: FontStyle.italic,
-              fontSize: 15,
-              height: 1.4,
+          const SizedBox(height: 18),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.only(left: 14),
+            decoration: BoxDecoration(
+              border: Border(
+                left: BorderSide(color: theme.colorScheme.secondary, width: 2),
+              ),
+            ),
+            child: Text(
+              '"${quote.quoteText}"',
+              style: theme.textTheme.bodyLarge?.copyWith(
+                fontStyle: FontStyle.italic,
+                height: 1.5,
+              ),
             ),
           ),
+          const SizedBox(height: 14),
+          Text(
+            '- ${quote.authorName}',
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Divider(height: 1, color: theme.colorScheme.outlineVariant),
           const SizedBox(height: 12),
-
-          // Footer: Author attribution, Saved By user & Upvote Button
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            spacing: 14,
+            runSpacing: 8,
             children: [
-              Text(
-                '— ${quote.authorName} (shared by ${quote.addedByUsername})',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                  fontSize: 12,
-                ),
-              ),
               InkWell(
                 onTap: onUpvote,
-                borderRadius: BorderRadius.circular(20),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: quote.isUpvotedByMe
-                        ? const Color(0xFFB45309).withOpacity(0.15)
-                        : theme.colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: quote.isUpvotedByMe
-                          ? const Color(0xFFB45309)
-                          : Colors.transparent,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      quote.isUpvotedByMe
+                          ? LucideIcons.heartHandshake
+                          : LucideIcons.heart,
+                      size: 18,
+                      color: theme.colorScheme.secondary,
                     ),
-                  ),
+                    const SizedBox(width: 5),
+                    Text('${quote.upvotes}', style: theme.textTheme.labelSmall),
+                  ],
+                ),
+              ),
+              if (onDiscussion != null)
+                InkWell(
+                  onTap: onDiscussion,
                   child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
-                        quote.isUpvotedByMe ? LucideIcons.heartHandshake : LucideIcons.heart,
-                        size: 14,
-                        color: quote.isUpvotedByMe
-                            ? const Color(0xFFB45309)
-                            : theme.colorScheme.onSurfaceVariant,
-                      ),
+                      const Icon(LucideIcons.messagesSquare, size: 18),
                       const SizedBox(width: 6),
                       Text(
-                        '${quote.upvotes}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: quote.isUpvotedByMe
-                              ? const Color(0xFFB45309)
-                              : theme.colorScheme.onSurfaceVariant,
+                        'Join Discussion',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
                   ),
                 ),
-              ),
+              if (onContext != null)
+                TextButton(
+                  onPressed: onContext,
+                  child: const Text('View Context'),
+                ),
             ],
           ),
         ],

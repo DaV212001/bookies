@@ -1,0 +1,278 @@
+<!DOCTYPE html><html class="dark" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Community Quotes - The Architecture of Silence</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Literata:ital,wght@0,400;0,600;1,400&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Config -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "primary-fixed-dim": "#bcc7de",
+                    "surface-dim": "#cbdbf5",
+                    "tertiary-fixed-dim": "#c7c7c2",
+                    "on-primary-fixed-variant": "#3c475a",
+                    "on-tertiary": "#ffffff",
+                    "on-secondary-fixed": "#331200",
+                    "on-tertiary-container": "#90908c",
+                    "error": "#ba1a1a",
+                    "on-secondary-container": "#682c00",
+                    "primary-container": "#1e293b",
+                    "on-secondary": "#ffffff",
+                    "primary": "#091426",
+                    "surface-container-lowest": "#ffffff",
+                    "inverse-on-surface": "#eaf1ff",
+                    "surface-container": "#e5eeff",
+                    "secondary": "#9b4500",
+                    "background": "#f8f9ff",
+                    "on-secondary-fixed-variant": "#763300",
+                    "surface-bright": "#f8f9ff",
+                    "inverse-surface": "#213145",
+                    "surface-tint": "#545f73",
+                    "on-surface-variant": "#45474c",
+                    "secondary-fixed": "#ffdbca",
+                    "error-container": "#ffdad6",
+                    "surface": "#f8f9ff",
+                    "outline-variant": "#c5c6cd",
+                    "on-error": "#ffffff",
+                    "on-tertiary-fixed": "#1b1c19",
+                    "surface-variant": "#d3e4fe",
+                    "secondary-container": "#fd8a42",
+                    "tertiary": "#131512",
+                    "on-error-container": "#93000a",
+                    "surface-container-highest": "#d3e4fe",
+                    "surface-container-low": "#eff4ff",
+                    "surface-container-high": "#dce9ff",
+                    "inverse-primary": "#bcc7de",
+                    "on-primary-container": "#8590a6",
+                    "on-primary-fixed": "#111c2d",
+                    "tertiary-fixed": "#e3e3de",
+                    "secondary-fixed-dim": "#ffb68e",
+                    "on-tertiary-fixed-variant": "#464744",
+                    "on-surface": "#0b1c30",
+                    "primary-fixed": "#d8e3fb",
+                    "on-primary": "#ffffff",
+                    "on-background": "#0b1c30",
+                    "outline": "#75777d",
+                    "tertiary-container": "#282926"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "reading-well": "680px",
+                    "container-max": "1120px",
+                    "margin-desktop": "40px",
+                    "unit": "8px",
+                    "gutter": "24px",
+                    "margin-mobile": "20px"
+            },
+            "fontFamily": {
+                    "body-lg": [
+                            "Literata"
+                    ],
+                    "body-md": [
+                            "Literata"
+                    ],
+                    "label-sm": [
+                            "Inter"
+                    ],
+                    "display-lg-mobile": [
+                            "Playfair Display"
+                    ],
+                    "headline-md": [
+                            "Playfair Display"
+                    ],
+                    "display-lg": [
+                            "Playfair Display"
+                    ],
+                    "label-md": [
+                            "Inter"
+                    ]
+            },
+            "fontSize": {
+                    "body-lg": [
+                            "20px",
+                            {
+                                    "lineHeight": "32px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "body-md": [
+                            "16px",
+                            {
+                                    "lineHeight": "26px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "label-sm": [
+                            "12px",
+                            {
+                                    "lineHeight": "16px",
+                                    "letterSpacing": "0.05em",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "display-lg-mobile": [
+                            "32px",
+                            {
+                                    "lineHeight": "40px",
+                                    "letterSpacing": "-0.01em",
+                                    "fontWeight": "700"
+                            }
+                    ],
+                    "headline-md": [
+                            "24px",
+                            {
+                                    "lineHeight": "32px",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "display-lg": [
+                            "48px",
+                            {
+                                    "lineHeight": "56px",
+                                    "letterSpacing": "-0.02em",
+                                    "fontWeight": "700"
+                            }
+                    ],
+                    "label-md": [
+                            "14px",
+                            {
+                                    "lineHeight": "20px",
+                                    "letterSpacing": "0.02em",
+                                    "fontWeight": "500"
+                            }
+                    ]
+            }
+    },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+          font-variation-settings:
+          'FILL' 0,
+          'wght' 300,
+          'GRAD' 0,
+          'opsz' 24
+        }
+        .material-symbols-outlined.fill {
+            font-variation-settings: 'FILL' 1;
+        }
+        
+        /* Subtle tonal background */
+        body {
+            background-color: theme('colors.surface');
+            color: theme('colors.on-surface');
+        }
+        
+        /* Hide scrollbar for tabs */
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-surface text-on-surface antialiased min-h-screen flex flex-col pt-16 pb-20 md:pb-0">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-surface border-b border-outline-variant">
+<div class="flex items-center justify-between px-margin-mobile md:px-margin-desktop h-16 max-w-container-max mx-auto">
+<button class="text-on-surface-variant hover:text-primary transition-colors duration-200">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<h1 class="font-display-lg-mobile text-display-lg-mobile text-primary tracking-tight">The Reading Room</h1>
+<button class="text-on-surface-variant hover:text-primary transition-colors duration-200">
+<span class="material-symbols-outlined">search</span>
+</button>
+</div>
+<!-- Desktop Nav Cluster (Hidden on Mobile) -->
+<nav class="hidden md:flex justify-center border-t border-outline-variant/50 bg-surface-container-lowest">
+<div class="flex space-x-8 px-margin-desktop py-3">
+<a class="text-label-md font-label-md text-on-surface-variant hover:text-primary transition-colors" href="#">Library</a>
+<a class="text-label-md font-label-md text-on-surface-variant hover:text-primary transition-colors" href="#">Discover</a>
+<a class="text-label-md font-label-md text-primary font-bold border-b-2 border-secondary pb-1" href="#">Community</a>
+<a class="text-label-md font-label-md text-on-surface-variant hover:text-primary transition-colors" href="#">Profile</a>
+</div>
+</nav>
+</header>
+<main class="flex-grow w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop mt-8 md:mt-24 mb-12 flex flex-col items-center">
+<!-- Page Context Header -->
+<div class="w-full max-w-reading-well text-center mb-10">
+<h2 class="text-label-md font-label-md text-secondary uppercase tracking-widest mb-2">The Architecture of Silence</h2>
+<h3 class="text-headline-md font-headline-md text-primary mb-4">Top Community Quotes</h3>
+<p class="text-body-md font-body-md text-on-surface-variant">The most resonant passages selected and discussed by readers.</p>
+</div>
+<!-- Community Hub Tabs -->
+<div class="w-full max-w-reading-well mb-8">
+<div class="flex overflow-x-auto hide-scrollbar border-b border-outline-variant"><a class="whitespace-nowrap py-3 px-4 text-label-md font-label-md text-on-surface-variant hover:text-primary transition-colors" href="#">Global</a><a class="whitespace-nowrap py-3 px-4 text-label-md font-label-md text-on-surface-variant hover:text-primary transition-colors" href="#">Chapters</a><a class="whitespace-nowrap py-3 px-4 text-label-md font-label-md text-on-surface-variant hover:text-primary transition-colors" href="#">Highlights</a><a class="whitespace-nowrap py-3 px-4 text-label-md font-label-md text-primary border-b-2 border-primary font-semibold" href="#">Quotes</a></div>
+</div>
+<!-- Controls Row -->
+<div class="w-full max-w-reading-well flex justify-between items-center mb-6">
+<div class="text-label-sm font-label-sm text-on-surface-variant">
+                Showing 124 Quotes
+            </div>
+<div class="relative">
+<select class="appearance-none bg-transparent border border-outline-variant text-label-md font-label-md text-primary py-2 pl-4 pr-10 rounded-DEFAULT focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary cursor-pointer bg-surface-container-lowest"><option>Top Quotes</option><option>Recent</option><option>Trending</option></select>
+<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-primary">
+<span class="material-symbols-outlined text-[20px]">expand_more</span>
+</div>
+</div>
+</div>
+<!-- Quotes Feed (Bento/Card Layout) -->
+<div class="w-full max-w-reading-well space-y-6">
+<!-- Quote Card 1 -->
+<article class="bg-surface-container-lowest border border-outline-variant rounded-lg p-6 md:p-8 hover:bg-surface-container-low transition-colors duration-300"><div class="flex items-start justify-between mb-4"><div class="flex items-center space-x-3"><div class="w-8 h-8 rounded-full bg-primary-fixed-dim flex items-center justify-center overflow-hidden border border-outline-variant"><span class="material-symbols-outlined text-primary text-[18px]">person</span></div><div><p class="text-label-sm font-label-sm text-primary">Elena R.</p><p class="text-[11px] font-label-sm text-on-surface-variant">Chapter 4 • 2 days ago</p></div></div><span class="px-2 py-1 bg-secondary-container text-on-secondary-container text-[10px] font-bold uppercase tracking-wider rounded-full">Creator Pick</span></div><blockquote class="text-body-lg font-body-lg text-primary leading-relaxed mb-6 pl-4 border-l-2 border-secondary italic">"We build walls not just to keep the storm out, but to preserve the fragile illusion that the quiet within was ours to command."</blockquote><div class="flex items-center justify-between border-t border-outline-variant/50 pt-4 mt-2"><div class="flex space-x-4"><button class="flex items-center space-x-1 text-on-surface-variant hover:text-secondary transition-colors group"><span class="material-symbols-outlined text-[20px] group-hover:fill transition-all">favorite</span><span class="text-label-sm font-label-sm">342</span></button><button class="flex items-center space-x-2 text-primary hover:text-secondary transition-colors"><span class="material-symbols-outlined text-[20px]">forum</span><span class="text-label-sm font-label-sm font-semibold">Join Discussion</span></button></div><button class="text-label-sm font-label-sm text-on-surface-variant hover:text-primary transition-colors">View Context</button></div></article>
+<!-- Quote Card 2 -->
+<article class="bg-surface-container-lowest border border-outline-variant rounded-lg p-6 md:p-8 hover:bg-surface-container-low transition-colors duration-300"><div class="flex items-start justify-between mb-4"><div class="flex items-center space-x-3"><div class="w-8 h-8 rounded-full bg-surface-variant flex items-center justify-center overflow-hidden border border-outline-variant"><span class="material-symbols-outlined text-primary text-[18px]">person</span></div><div><p class="text-label-sm font-label-sm text-primary">Marcus T.</p><p class="text-[11px] font-label-sm text-on-surface-variant">Chapter 12 • 5 days ago</p></div></div><span class="px-2 py-1 bg-surface-variant text-on-surface-variant text-[10px] font-bold uppercase tracking-wider rounded-full">Community Voted</span></div><blockquote class="text-body-lg font-body-lg text-primary leading-relaxed mb-6 pl-4 border-l-2 border-outline-variant italic">"Silence is rarely empty; it is merely the dense, unutterable space where all our unmade choices wait."</blockquote><div class="flex items-center justify-between border-t border-outline-variant/50 pt-4 mt-2"><div class="flex space-x-4"><button class="flex items-center space-x-1 text-secondary transition-colors group"><span class="material-symbols-outlined fill text-[20px]">favorite</span><span class="text-label-sm font-label-sm">289</span></button><button class="flex items-center space-x-2 text-primary hover:text-secondary transition-colors"><span class="material-symbols-outlined text-[20px]">forum</span><span class="text-label-sm font-label-sm font-semibold">Join Discussion</span></button></div><button class="text-label-sm font-label-sm text-on-surface-variant hover:text-primary transition-colors">View Context</button></div></article>
+<!-- Load More Button -->
+<div class="w-full text-center pt-8">
+<button class="px-8 py-3 border border-primary text-label-md font-label-md text-primary rounded-DEFAULT hover:bg-primary-fixed-dim transition-colors duration-200">
+                    Load More Quotes
+                </button>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full flex justify-around items-center py-2 px-margin-mobile bg-surface border-t border-outline-variant pb-safe z-50">
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-colors duration-200 w-16" href="#">
+<span class="material-symbols-outlined mb-1">library_books</span>
+<span class="text-label-sm font-label-sm">Library</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-colors duration-200 w-16" href="#">
+<span class="material-symbols-outlined mb-1">explore</span>
+<span class="text-label-sm font-label-sm">Discover</span>
+</a>
+<a class="flex flex-col items-center justify-center text-secondary font-bold scale-95 transition-transform duration-150 w-16" href="#">
+<span class="material-symbols-outlined mb-1 fill">forum</span>
+<span class="text-label-sm font-label-sm">Community</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-colors duration-200 w-16" href="#">
+<span class="material-symbols-outlined mb-1">person</span>
+<span class="text-label-sm font-label-sm">Profile</span>
+</a>
+</nav>
+
+
+</body></html>

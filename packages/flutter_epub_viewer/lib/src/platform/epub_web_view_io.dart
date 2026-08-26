@@ -168,6 +168,7 @@ class _IoEpubViewState extends State<_IoEpubView> {
     allowsLinkPreview: false,
     verticalScrollBarEnabled: false,
     selectionGranularity: SelectionGranularity.CHARACTER,
+    clearCache: true, // Force cache clear to ensure JS updates are picked up
   )..disableVerticalScroll = widget.config.disableVerticalScroll;
 
   @override
@@ -199,8 +200,9 @@ class _IoEpubViewState extends State<_IoEpubView> {
     final config = widget.config;
     final isMacOs = defaultTargetPlatform == TargetPlatform.macOS;
     final port = _localhostServer?.port ?? 8080;
+    // Version the host page so WebView cache cannot retain an older annotation renderer.
     final url =
-        'http://localhost:$port/packages/flutter_epub_viewer/lib/assets/webpage/html/swipe.html';
+        'http://localhost:$port/packages/flutter_epub_viewer/lib/assets/webpage/html/swipe.html?v=discussion-indicators-3';
 
     return Container(
       decoration: config.backgroundDecoration,

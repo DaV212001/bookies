@@ -11,6 +11,7 @@ import 'package:bookies/core/widgets/primary_button.dart';
 import 'package:bookies/core/utils/app_logger.dart';
 import 'package:bookies/data/providers/local_data_service.dart';
 import 'package:bookies/data/models/book.dart';
+import 'package:bookies/core/widgets/create_community_dialog.dart';
 
 enum LibraryViewMode { grid, list }
 
@@ -761,6 +762,13 @@ class _LibraryViewState extends State<LibraryView> {
                       ),
                     ),
                   ),
+                  
+                  // Context Menu
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: _buildBookContextMenu(context, theme, book),
+                  ),
                 ],
               ),
             ),
@@ -895,6 +903,8 @@ class _LibraryViewState extends State<LibraryView> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
+              const SizedBox(width: 8),
+              _buildBookContextMenu(context, theme, book),
             ],
           ),
         ),
@@ -963,6 +973,40 @@ class _LibraryViewState extends State<LibraryView> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildBookContextMenu(BuildContext context, ThemeData theme, Book book) {
+    return PopupMenuButton<String>(
+      icon: Container(
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface.withOpacity(0.8),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          LucideIcons.moreVertical,
+          size: 18,
+          color: theme.colorScheme.onSurface,
+        ),
+      ),
+      onSelected: (value) {
+        if (value == 'create_community') {
+          CreateCommunityDialog.show(context, book: book);
+        }
+      },
+      itemBuilder: (context) => [
+        const PopupMenuItem(
+          value: 'create_community',
+          child: Row(
+            children: [
+              Icon(LucideIcons.users, size: 18),
+              SizedBox(width: 12),
+              Text('Create Community'),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

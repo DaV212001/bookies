@@ -20,12 +20,8 @@ class LocalDataService extends ChangeNotifier {
   List<Discussion> _discussions = [];
   List<QuoteRating> _favoriteQuotes = [];
   List<Community> communities = [];
-  List<String> _joinedCommunityIds = [
-    'comm-1',
-    'The Secret History',
-    'Modern Classics Society',
-    'Sci-Fi Enthusiasts',
-  ];
+  List<String> _joinedCommunityIds = [];
+  Map<String, String> _selectedCommunityIdsByBook = {};
 
   Future<LocalDataService> init() async {
     _prefs = await SharedPreferences.getInstance();
@@ -40,8 +36,8 @@ class LocalDataService extends ChangeNotifier {
     communities.add(
       Community(
         id: 'comm-1',
-        name: 'Sci-Fi Enthusiasts',
-        description: 'Discussing the best of science fiction.',
+        name: 'The Secret History',
+        description: 'A reading community for The Secret History.',
         bookId: 'mock-book-1',
         memberCount: 142,
       ),
@@ -53,37 +49,46 @@ class LocalDataService extends ChangeNotifier {
   }
 
   void _loadData() {
+    final communitiesJson = _prefs.getStringList('communities');
+    if (communitiesJson != null) {
+      communities = communitiesJson
+          .map((jsonStr) => Community.fromJson(jsonDecode(jsonStr)))
+          .toList();
+    }
     final booksJson = _prefs.getStringList('books') ?? [];
-    _books =
-        booksJson
-            .map((jsonStr) => Book.fromJson(jsonDecode(jsonStr)))
-            .toList();
+    _books = booksJson
+        .map((jsonStr) => Book.fromJson(jsonDecode(jsonStr)))
+        .toList();
 
     final highlightsJson = _prefs.getStringList('highlights') ?? [];
-    _highlights =
-        highlightsJson
-            .map((jsonStr) => Highlight.fromJson(jsonDecode(jsonStr)))
-            .toList();
+    _highlights = highlightsJson
+        .map((jsonStr) => Highlight.fromJson(jsonDecode(jsonStr)))
+        .toList();
 
     final discussionsJson = _prefs.getStringList('discussions') ?? [];
-    _discussions =
-        discussionsJson
-            .map((jsonStr) => Discussion.fromJson(jsonDecode(jsonStr)))
-            .toList();
+    _discussions = discussionsJson
+        .map((jsonStr) => Discussion.fromJson(jsonDecode(jsonStr)))
+        .toList();
 
     final quotesJson = _prefs.getStringList('favorite_quotes') ?? [];
-    _favoriteQuotes =
-        quotesJson
-            .map((jsonStr) => QuoteRating.fromJson(jsonDecode(jsonStr)))
-            .toList();
+    _favoriteQuotes = quotesJson
+        .map((jsonStr) => QuoteRating.fromJson(jsonDecode(jsonStr)))
+        .toList();
 
-    _joinedCommunityIds =
-        _prefs.getStringList('joined_communities') ?? [
-          'comm-1',
-          'The Secret History',
-          'Modern Classics Society',
-          'Sci-Fi Enthusiasts',
-        ];
+    final knownIds = communities.map((community) => community.id).toSet();
+    final storedMemberships = _prefs.getStringList('joined_communities');
+    _joinedCommunityIds = (storedMemberships ?? const ['comm-1'])
+        .where(knownIds.contains)
+        .toSet()
+        .toList();
+
+    final selectionsJson = _prefs.getString('selected_communities_by_book');
+    if (selectionsJson != null) {
+      final decoded = jsonDecode(selectionsJson) as Map<String, dynamic>;
+      _selectedCommunityIdsByBook = decoded.map(
+        (bookId, communityId) => MapEntry(bookId, communityId as String),
+      );
+    }
   }
 
   void _seedInitialDataIfNeeded() {
@@ -93,6 +98,7 @@ class LocalDataService extends ChangeNotifier {
           id: 'disc-1',
           highlightId: 'cfi-passage-1',
           bookId: 'mock-book-1',
+          communityId: 'comm-1',
           userId: 'user-2',
           user: User(
             id: 'user-2',
@@ -116,6 +122,7 @@ class LocalDataService extends ChangeNotifier {
           id: 'disc-2',
           highlightId: 'chapter-1',
           bookId: 'mock-book-1',
+          communityId: 'comm-1',
           userId: 'user-3',
           user: User(
             id: 'user-3',
@@ -137,6 +144,7 @@ class LocalDataService extends ChangeNotifier {
           id: 'disc-3',
           highlightId: 'book-overall',
           bookId: 'mock-book-1',
+          communityId: 'comm-1',
           userId: 'user-4',
           user: User(
             id: 'user-4',
@@ -193,26 +201,43 @@ class LocalDataService extends ChangeNotifier {
     await _prefs.setStringList('joined_communities', _joinedCommunityIds);
   }
 
+  Future<void> _saveSelectedCommunities() async {
+    await _prefs.setString(
+      'selected_communities_by_book',
+      jsonEncode(_selectedCommunityIdsByBook),
+    );
+  }
+
+  Future<void> _saveCommunities() async {
+    await _prefs.setStringList(
+      'communities',
+      communities.map((item) => jsonEncode(item.toJson())).toList(),
+    );
+  }
+
   Future<void> _saveBooks() async {
     final booksJson = _books.map((b) => jsonEncode(b.toJson())).toList();
     await _prefs.setStringList('books', booksJson);
   }
 
   Future<void> _saveHighlights() async {
-    final highlightsJson =
-        _highlights.map((h) => jsonEncode(h.toJson())).toList();
+    final highlightsJson = _highlights
+        .map((h) => jsonEncode(h.toJson()))
+        .toList();
     await _prefs.setStringList('highlights', highlightsJson);
   }
 
   Future<void> _saveDiscussions() async {
-    final discussionsJson =
-        _discussions.map((d) => jsonEncode(d.toJson())).toList();
+    final discussionsJson = _discussions
+        .map((d) => jsonEncode(d.toJson()))
+        .toList();
     await _prefs.setStringList('discussions', discussionsJson);
   }
 
   Future<void> _saveQuotes() async {
-    final quotesJson =
-        _favoriteQuotes.map((q) => jsonEncode(q.toJson())).toList();
+    final quotesJson = _favoriteQuotes
+        .map((q) => jsonEncode(q.toJson()))
+        .toList();
     await _prefs.setStringList('favorite_quotes', quotesJson);
   }
 
@@ -267,6 +292,7 @@ class LocalDataService extends ChangeNotifier {
   Future<Highlight> addHighlight(Highlight highlight) async {
     _highlights.add(highlight);
     await _saveHighlights();
+    notifyListeners();
     return highlight;
   }
 
@@ -275,21 +301,36 @@ class LocalDataService extends ChangeNotifier {
     return _discussions.where((d) => d.highlightId == highlightId).toList();
   }
 
-  List<Discussion> getDiscussionsForCfi(String cfi) {
-    return _discussions.where((d) => d.highlightId == cfi).toList();
+  List<Discussion> getDiscussionsForCfi(String cfi, {String? communityId}) {
+    return _discussions
+        .where(
+          (d) =>
+              d.highlightId == cfi &&
+              (communityId == null ||
+                  d.communityId.isEmpty ||
+                  d.communityId == communityId),
+        )
+        .toList();
   }
 
-  List<Discussion> getDiscussionsByScope(String bookId, ThreadScope? scope) {
-    if (scope == null) {
-      return List.unmodifiable(_discussions);
-    }
-    return _discussions.where((d) => d.scope == scope).toList();
-  }
-
-  List<Discussion> getChapterDiscussions(
+  List<Discussion> getDiscussionsByScope(
     String bookId,
-    String chapterTitle,
-  ) {
+    ThreadScope? scope, {
+    String? communityId,
+  }) {
+    return _discussions
+        .where(
+          (discussion) =>
+              (discussion.bookId == bookId || discussion.bookId.isEmpty) &&
+              (communityId == null ||
+                  discussion.communityId.isEmpty ||
+                  discussion.communityId == communityId) &&
+              (scope == null || discussion.scope == scope),
+        )
+        .toList();
+  }
+
+  List<Discussion> getChapterDiscussions(String bookId, String chapterTitle) {
     return _discussions
         .where(
           (d) =>
@@ -303,6 +344,7 @@ class LocalDataService extends ChangeNotifier {
   Future<Discussion> createThread({
     required String highlightId,
     required String bookId,
+    String communityId = '',
     required String title,
     required String content,
     required ThreadScope scope,
@@ -315,6 +357,7 @@ class LocalDataService extends ChangeNotifier {
       id: _uuid.v4(),
       highlightId: highlightId,
       bookId: bookId,
+      communityId: communityId,
       userId: currentUser.id,
       user: currentUser,
       title: title.isEmpty ? scope.label : title,
@@ -328,13 +371,11 @@ class LocalDataService extends ChangeNotifier {
     );
     _discussions.insert(0, newDiscussion);
     await _saveDiscussions();
+    notifyListeners();
     return newDiscussion;
   }
 
-  Future<Discussion> addDiscussion(
-    String highlightId,
-    String content,
-  ) async {
+  Future<Discussion> addDiscussion(String highlightId, String content) async {
     return createThread(
       highlightId: highlightId,
       bookId: '',
@@ -349,12 +390,13 @@ class LocalDataService extends ChangeNotifier {
     if (index != -1) {
       _discussions[index].upvotes += 1;
       await _saveDiscussions();
+      notifyListeners();
     }
   }
 
   // --- Favorite Quotes & Ratings ---
   List<QuoteRating> getFavoriteQuotes(String bookId) {
-    return List.unmodifiable(_favoriteQuotes);
+    return _favoriteQuotes.where((quote) => quote.bookId == bookId).toList();
   }
 
   Future<QuoteRating> addFavoriteQuote({
@@ -377,6 +419,7 @@ class LocalDataService extends ChangeNotifier {
     );
     _favoriteQuotes.insert(0, quote);
     await _saveQuotes();
+    notifyListeners();
     return quote;
   }
 
@@ -392,28 +435,32 @@ class LocalDataService extends ChangeNotifier {
         item.isUpvotedByMe = true;
       }
       await _saveQuotes();
+      notifyListeners();
     }
   }
 
   // --- Community Membership ---
-  bool isMemberOfCommunity(String key) {
-    if (key.isEmpty) return true; // fallback
-    final keyLower = key.toLowerCase();
-    return _joinedCommunityIds.any((id) => id.toLowerCase() == keyLower);
+  bool isMemberOfCommunity(String communityId) {
+    return _joinedCommunityIds.contains(communityId);
   }
 
-  Future<void> joinCommunity(String key) async {
-    if (!isMemberOfCommunity(key)) {
-      _joinedCommunityIds.add(key);
+  Future<void> joinCommunity(String communityId) async {
+    if (!communities.any((community) => community.id == communityId)) return;
+    if (!isMemberOfCommunity(communityId)) {
+      _joinedCommunityIds.add(communityId);
       await _saveJoinedCommunities();
+      notifyListeners();
     }
   }
 
-  Future<void> leaveCommunity(String key) async {
-    _joinedCommunityIds.removeWhere(
-      (id) => id.toLowerCase() == key.toLowerCase(),
+  Future<void> leaveCommunity(String communityId) async {
+    _joinedCommunityIds.remove(communityId);
+    _selectedCommunityIdsByBook.removeWhere(
+      (bookId, selectedId) => selectedId == communityId,
     );
     await _saveJoinedCommunities();
+    await _saveSelectedCommunities();
+    notifyListeners();
   }
 
   Future<Community> createCommunity({
@@ -429,11 +476,53 @@ class LocalDataService extends ChangeNotifier {
       memberCount: 1,
     );
     communities.add(newComm);
+    await _saveCommunities();
     await joinCommunity(newComm.id);
-    await joinCommunity(name);
-    if (bookId.isNotEmpty) {
-      await joinCommunity(bookId);
-    }
+    notifyListeners();
     return newComm;
+  }
+
+  List<Community> getCommunitiesForBook(String bookId) => communities
+      .where((community) => community.bookId == bookId)
+      .toList(growable: false);
+
+  List<Community> getJoinedCommunitiesForBook(String bookId) =>
+      getCommunitiesForBook(bookId)
+          .where((community) => isMemberOfCommunity(community.id))
+          .toList(growable: false);
+
+  Community? getDefaultCommunityForBook(String bookId) {
+    final joined = getJoinedCommunitiesForBook(bookId);
+    if (joined.isEmpty) return null;
+    for (final joinedId in _joinedCommunityIds) {
+      for (final community in joined) {
+        if (community.id.toLowerCase() == joinedId.toLowerCase()) {
+          return community;
+        }
+      }
+    }
+    return joined.first;
+  }
+
+  Community? getSelectedCommunityForBook(String bookId) {
+    final selectedId = _selectedCommunityIdsByBook[bookId];
+    if (selectedId != null) {
+      for (final community in getJoinedCommunitiesForBook(bookId)) {
+        if (community.id == selectedId) return community;
+      }
+    }
+    return getDefaultCommunityForBook(bookId);
+  }
+
+  Future<void> selectCommunityForBook({
+    required String bookId,
+    required String communityId,
+  }) async {
+    final isJoinedForBook = getJoinedCommunitiesForBook(bookId)
+        .any((community) => community.id == communityId);
+    if (!isJoinedForBook) return;
+    _selectedCommunityIdsByBook[bookId] = communityId;
+    await _saveSelectedCommunities();
+    notifyListeners();
   }
 }

@@ -3,6 +3,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_readium/flutter_readium.dart';
 
 import '../../../data/models/discussion.dart';
+import '../../../data/models/thread_scope.dart';
 import '../../../data/providers/local_data_service.dart';
 
 part 'discussion_event.dart';
@@ -42,7 +43,10 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
       if (isSpoiler) {
         emit(DiscussionSpoilerWarning(event.cfi));
       } else {
-        final discussions = _dataService.getDiscussionsForCfi(event.cfi);
+        final discussions = _dataService.getDiscussionsForCfi(
+          event.cfi,
+          communityId: event.communityId,
+        );
         emit(DiscussionLoaded(event.cfi, discussions));
       }
     } catch (e) {
@@ -55,7 +59,14 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
       final currentState = state as DiscussionLoaded;
       emit(DiscussionLoading());
       try {
-        final newDiscussion = await _dataService.addDiscussion(currentState.cfi, event.text);
+        final newDiscussion = await _dataService.createThread(
+          highlightId: currentState.cfi,
+          bookId: event.bookId,
+          communityId: event.communityId,
+          title: 'Reply',
+          content: event.text,
+          scope: ThreadScope.passage,
+        );
         final updatedComments = List<Discussion>.from(currentState.comments)
           ..add(newDiscussion);
         emit(DiscussionLoaded(currentState.cfi, updatedComments));

@@ -5,6 +5,7 @@ class Discussion {
   final String id;
   final String highlightId; // Also used as CFI or passage anchor
   final String bookId;
+  final String communityId;
   final String userId;
   final User? user;
   final String title;
@@ -22,6 +23,7 @@ class Discussion {
     required this.id,
     required this.highlightId,
     this.bookId = '',
+    this.communityId = '',
     required this.userId,
     this.user,
     this.title = '',
@@ -41,6 +43,7 @@ class Discussion {
       id: json['id'] as String,
       highlightId: json['highlightId'] as String,
       bookId: json['bookId'] as String? ?? '',
+      communityId: json['communityId'] as String? ?? '',
       userId: json['userId'] as String,
       user: json['user'] != null
           ? User.fromJson(json['user'] as Map<String, dynamic>)
@@ -67,6 +70,7 @@ class Discussion {
       'id': id,
       'highlightId': highlightId,
       'bookId': bookId,
+      'communityId': communityId,
       'userId': userId,
       'user': user?.toJson(),
       'title': title,

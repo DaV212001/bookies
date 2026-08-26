@@ -1,0 +1,262 @@
+<!DOCTYPE html><html lang="en" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>The Reading Room - Community Hub</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Literata:wght@400;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "tertiary-container": "#282926",
+                        "on-secondary-fixed-variant": "#763300",
+                        "tertiary-fixed-dim": "#c7c7c2",
+                        "inverse-primary": "#bcc7de",
+                        "on-primary-fixed-variant": "#3c475a",
+                        "on-primary-fixed": "#111c2d",
+                        "secondary-container": "#fd8a42",
+                        "surface-container": "#e5eeff",
+                        "primary-container": "#1e293b",
+                        "primary-fixed-dim": "#bcc7de",
+                        "primary-fixed": "#d8e3fb",
+                        "on-tertiary-fixed": "#1b1c19",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-low": "#eff4ff",
+                        "surface-container-highest": "#d3e4fe",
+                        "background": "#f8f9ff",
+                        "inverse-on-surface": "#eaf1ff",
+                        "on-error": "#ffffff",
+                        "tertiary-fixed": "#e3e3de",
+                        "on-tertiary-container": "#90908c",
+                        "on-surface-variant": "#45474c",
+                        "error-container": "#ffdad6",
+                        "outline": "#75777d",
+                        "inverse-surface": "#213145",
+                        "tertiary": "#131512",
+                        "error": "#ba1a1a",
+                        "secondary": "#9b4500",
+                        "surface-tint": "#545f73",
+                        "on-error-container": "#93000a",
+                        "primary": "#091426",
+                        "on-tertiary-fixed-variant": "#464744",
+                        "on-primary-container": "#8590a6",
+                        "on-surface": "#0b1c30",
+                        "on-secondary": "#ffffff",
+                        "surface-bright": "#f8f9ff",
+                        "surface-dim": "#cbdbf5",
+                        "secondary-fixed": "#ffdbca",
+                        "on-tertiary": "#ffffff",
+                        "surface-variant": "#d3e4fe",
+                        "secondary-fixed-dim": "#ffb68e",
+                        "surface-container-high": "#dce9ff",
+                        "on-secondary-fixed": "#331200",
+                        "surface": "#f8f9ff",
+                        "on-background": "#0b1c30",
+                        "on-secondary-container": "#682c00",
+                        "on-primary": "#ffffff",
+                        "outline-variant": "#c5c6cd"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "reading-well": "680px",
+                        "gutter": "24px",
+                        "margin-desktop": "40px",
+                        "unit": "8px",
+                        "container-max": "1120px",
+                        "margin-mobile": "20px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Literata"],
+                        "headline-md": ["Playfair Display"],
+                        "label-sm": ["Inter"],
+                        "display-lg": ["Playfair Display"],
+                        "body-lg": ["Literata"],
+                        "label-md": ["Inter"],
+                        "display-lg-mobile": ["Playfair Display"]
+                    },
+                    "fontSize": {
+                        "body-md": ["16px", { "lineHeight": "26px", "fontWeight": "400" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "label-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-lg": ["20px", { "lineHeight": "32px", "fontWeight": "400" }],
+                        "label-md": ["14px", { "lineHeight": "20px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+                        "display-lg-mobile": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-background text-on-background font-body-md antialiased pt-16 pb-24 selection:bg-surface-variant selection:text-on-surface">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-surface dark:bg-surface border-b border-outline-variant dark:border-outline flex justify-between items-center px-margin-mobile md:px-margin-desktop h-16 transition-colors duration-300">
+<div class="flex items-center gap-4 cursor-pointer active:opacity-70 group">
+<span class="material-symbols-outlined text-primary dark:text-primary-fixed hover:text-secondary dark:hover:text-secondary-fixed transition-colors duration-200">menu</span>
+</div>
+<div class="font-headline-md text-headline-md-mobile md:text-headline-md font-bold text-primary dark:text-primary-fixed truncate">
+            The Reading Room
+        </div>
+<div class="flex items-center gap-4 cursor-pointer active:opacity-70 group">
+<span class="material-symbols-outlined text-primary dark:text-primary-fixed hover:text-secondary dark:hover:text-secondary-fixed transition-colors duration-200">search</span>
+</div>
+</header>
+<main class="max-w-reading-well mx-auto px-margin-mobile md:px-0">
+<!-- Book Header -->
+<section class="py-12 text-center border-b border-outline-variant/30 mb-8">
+<div class="mb-6 flex justify-center"><img src="https://lh3.googleusercontent.com/aida/AEtjO1UH333rzrxApZmc50-zt8r528kXEESfKDAFbdR0HIIsPsZPQIZst8P1i7mjOr-axwJR2Dc14z5TZeRJOoc1-dVoXSPgzI3_iE6XQyv7G3FVevr8Q6RLkjBtxe_Z10Ktmxo49bh0WA2jpdhVGRrr33dXxuoRbelHh0bSGN1WgRf3-esQRd1M6WwYbH9mY1ZLsIh1rZ45KR3JTSdV6lh0atlTyJQS-jand2SXoiBibyKjpX486M4N0XLUpWI" alt="The Architecture of Silence Cover" class="w-32 h-48 object-cover rounded-lg shadow-lg border border-outline-variant/30"></div><h1 class="font-display-lg-mobile md:font-display-lg text-primary mb-2">The Architecture of Silence</h1>
+<p class="font-body-lg text-on-surface-variant mb-6 italic">by Elias Thorne</p>
+<div class="flex justify-center items-center gap-6 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-secondary">group</span>
+<span class="">14 Active Friends</span>
+</div>
+
+
+</div>
+</section>
+<!-- Navigation Tabs -->
+<nav aria-label="Community Tabs" class="flex overflow-x-auto hide-scrollbar border-b border-outline-variant/50 mb-10 pb-1"><button aria-current="page" class="flex-shrink-0 px-6 py-2 font-label-md text-label-md font-semibold text-primary border-b-2 border-primary mr-2">Global Discussion</button><button class="flex-shrink-0 px-6 py-2 font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors mr-2">Chapter Discussions</button><button class="flex-shrink-0 px-6 py-2 font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors mr-2">Highlights</button><button class="flex-shrink-0 px-6 py-2 font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors">Quotes</button></nav>
+<!-- Tab Content: Global -->
+<div class="animate-fade-in" id="tab-global">
+<!-- General Chat Card (Bento Style) -->
+<div class="bg-surface-container-lowest rounded-xl p-6 mb-10 border border-outline-variant hover:border-outline transition-colors cursor-pointer group shadow-[0_4px_24px_-8px_rgba(0,0,0,0.04)]">
+<div class="flex justify-between items-start mb-6">
+<div>
+<h2 class="font-headline-md text-[20px] leading-[28px] text-primary mb-1 flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary">forum</span>
+                            General Chat
+                        </h2>
+<p class="font-label-sm text-on-surface-variant uppercase">342 online now</p>
+</div>
+<span class="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors">arrow_forward</span>
+</div>
+<div class="bg-surface-container-low rounded-lg p-4 space-y-4">
+<div class="flex gap-3 items-start">
+<div class="w-8 h-8 rounded-full bg-primary-fixed-dim flex items-center justify-center flex-shrink-0 font-label-sm text-on-primary-fixed">E</div>
+<div>
+<p class="font-label-sm text-on-surface-variant mb-1">Eleanor <span class="text-outline font-normal ml-2">2m ago</span></p>
+<p class="font-body-md text-sm text-primary">I'm struggling with Thorne's interpretation of negative space in Chapter 4. Does anyone else feel like he's contradicting his earlier point?</p>
+</div>
+</div>
+<div class="flex gap-3 items-start">
+<div class="w-8 h-8 rounded-full bg-secondary-fixed-dim flex items-center justify-center flex-shrink-0 font-label-sm text-on-secondary-fixed">M</div>
+<div>
+<p class="font-label-sm text-on-surface-variant mb-1">Marcus <span class="text-outline font-normal ml-2">Just now</span></p>
+<p class="font-body-md text-sm text-primary">I think it's intentional paradox. Look back at page 89 where he mentions the "weight of nothingness".</p>
+</div>
+</div>
+</div>
+<div class="mt-4 flex justify-between items-center border-t border-outline-variant/30 pt-4">
+<div class="flex -space-x-2">
+<img alt="User Avatar" class="w-6 h-6 rounded-full border border-surface-container-lowest object-cover" data-alt="A macro photograph of a textured, off-white watercolor paper surface under warm side lighting, casting delicate micro-shadows. The paper grain is deeply tactile, conveying a sense of premium analog materials in a digital sanctuary context. Soft, low-contrast shadows emphasize the physical quality of the surface. 8k resolution, minimalist editorial aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDhsgOjEJj5fgRf_BlEGDQagl_CwyECXBsbH0Ypy3wX3jxQ_R3gALRUV26PwhudH51iC2iLwZXgDulNo38fQ7-mHqIQ_D828lwapbQCa2AZhD-_56JsFOBQx3KgGOJbeUL6HPiLnldX7rilCKKNW39T-y27qPDJzVQo1r28UBfFtLschrtfLolcyuZu2QA1Hnkgz4yPfXtfSWqLCtIRu2rePvgpMf5rtDKTTTm7_G0ukfkW6PpK9Dl6">
+<img alt="User Avatar" class="w-6 h-6 rounded-full border border-surface-container-lowest object-cover" data-alt="A macro photograph of a smooth, slate-grey linen book cover material, illuminated by soft, diffused natural window light. The weave is tight and precise, suggesting high-quality bookbinding. Subtle gradients of cool grey and charcoal add depth without sharp contrasts. High-end product photography style, calm and intellectual." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAnl_xBlNiDFMbKO6vpeGBVbDDnCU2MQEP9gC7QvVF1JfEnibCBSJOY2p4aQS_in7KPSrc1EVbMuzCkvGFWUA2PQ3t4BTMfDBYwJReaIe272MBFXuVgL4fLAiH--1ITWvjZzaw00a49ucAomQu06qLemtn40pbc_1DOIcUJ1FvjaJDDEKDIzbmw7Rdqqjt5hl3djGjMOIQZ9XU-p5Ms1cRc9HE5fQWHDmvktCtRPl5ktoVK4ZcRY2HO">
+<img alt="User Avatar" class="w-6 h-6 rounded-full border border-surface-container-lowest object-cover" data-alt="A close-up abstract shot of layered vellum paper sheets, slightly translucent, with a warm ochre light shining through from behind. The overlapping layers create subtle opacity variations and soft geometric shapes. The mood is serene, academic, and modern minimalist. Clean edges and gentle tonal transitions." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBiMSrQwsnK83g5MNBv-sMTY4PsdWMDfhL9-okKJkP8U5RYCnc1WgMjAFJyL-S4Psf6BrcGpgnXua6WntONJkmdGkthCOYeMehg3ECEjNwA2ITMlfll1-tnwigv0kX3YYcfw20ZB42bRc8UAKDBzci_sRlScDGLZ2sfAgrYkNHzAX4NvWMdiAjKVwpGMBRZheDnHRuvZsvCiA4E43dvsdagD68m3E3rWD9suDYJ_h0mBLDzNUNFtJJC">
+<div class="w-6 h-6 rounded-full bg-surface-container-high border border-surface-container-lowest flex items-center justify-center font-label-sm text-[8px] text-on-surface-variant">+12</div>
+</div>
+<button class="font-label-sm text-secondary hover:text-secondary-container transition-colors uppercase tracking-wider">Join Conversation</button>
+</div>
+</div>
+<!-- Discussion Categories -->
+<div>
+<h3 class="font-label-md text-label-md text-on-surface-variant uppercase tracking-widest mb-6 px-2">Discussion Categories</h3>
+<div class="space-y-4">
+<!-- Expandable Category -->
+<div class="border border-outline-variant rounded-lg overflow-hidden bg-surface-container-lowest">
+<button class="w-full px-6 py-4 flex items-center justify-between bg-surface-container-lowest hover:bg-surface-container-low transition-colors" onclick="this.nextElementSibling.classList.toggle('hidden'); this.querySelector('.icon').textContent = this.nextElementSibling.classList.contains('hidden') ? 'expand_more' : 'expand_less';">
+<span class="font-headline-md text-[18px] text-primary">Character Development</span>
+<div class="flex items-center gap-4">
+<span class="font-label-sm text-outline">24 Topics</span>
+<span class="material-symbols-outlined icon text-outline-variant">expand_less</span>
+</div>
+</button>
+<div class="px-6 pb-4 pt-2 border-t border-outline-variant/30 bg-surface-container-lowest">
+<ul class="space-y-3">
+<li class="flex items-start gap-3 p-2 hover:bg-surface-container-low rounded-md transition-colors cursor-pointer group">
+<span class="material-symbols-outlined text-[18px] text-secondary mt-1">subdirectory_arrow_right</span>
+<div>
+<p class="font-label-md text-primary group-hover:text-secondary transition-colors">The Protagonist's Silence</p>
+<p class="font-body-md text-sm text-on-surface-variant">Analyzing the lack of dialogue in Part I.</p>
+</div>
+</li>
+<li class="flex items-start gap-3 p-2 hover:bg-surface-container-low rounded-md transition-colors cursor-pointer group">
+<span class="material-symbols-outlined text-[18px] text-outline mt-1">subdirectory_arrow_right</span>
+<div>
+<p class="font-label-md text-primary group-hover:text-secondary transition-colors">Secondary Characters as Mirrors</p>
+<p class="font-body-md text-sm text-on-surface-variant">How the architect reflects the city's decay.</p>
+</div>
+</li>
+</ul>
+</div>
+</div>
+<!-- Standard Category -->
+<div class="border border-outline-variant rounded-lg bg-surface-container-lowest">
+<button class="w-full px-6 py-4 flex items-center justify-between bg-surface-container-lowest hover:bg-surface-container-low transition-colors rounded-lg">
+<span class="font-headline-md text-[18px] text-primary">World Building</span>
+<div class="flex items-center gap-4">
+<span class="font-label-sm text-outline">18 Topics</span>
+<span class="material-symbols-outlined text-outline-variant">expand_more</span>
+</div>
+</button>
+</div>
+<!-- Standard Category -->
+<div class="border border-outline-variant rounded-lg bg-surface-container-lowest">
+<button class="w-full px-6 py-4 flex items-center justify-between bg-surface-container-lowest hover:bg-surface-container-low transition-colors rounded-lg">
+<span class="font-headline-md text-[18px] text-primary">Pacing &amp; Structure</span>
+<div class="flex items-center gap-4">
+<span class="font-label-sm text-outline">9 Topics</span>
+<span class="material-symbols-outlined text-outline-variant">expand_more</span>
+</div>
+</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 w-full z-50 bg-surface dark:bg-surface border-t border-outline-variant dark:border-outline flex justify-around items-center h-16 pb-safe transition-colors duration-300 md:hidden">
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant hover:text-secondary dark:hover:text-secondary-fixed transition-colors duration-200 active:scale-95" href="#">
+<span class="material-symbols-outlined text-[24px] mb-1">library_books</span>
+<span class="font-label-sm text-[10px]">Library</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant hover:text-secondary dark:hover:text-secondary-fixed transition-colors duration-200 active:scale-95" href="#">
+<span class="material-symbols-outlined text-[24px] mb-1">explore</span>
+<span class="font-label-sm text-[10px]">Discover</span>
+</a>
+<a class="flex flex-col items-center justify-center text-secondary dark:text-secondary-fixed font-bold hover:text-secondary dark:hover:text-secondary-fixed transition-colors duration-200 active:scale-95" href="#">
+<span class="material-symbols-outlined text-[24px] mb-1" style="font-variation-settings: 'FILL' 1;">forum</span>
+<span class="font-label-sm text-[10px]">Community</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant hover:text-secondary dark:hover:text-secondary-fixed transition-colors duration-200 active:scale-95" href="#">
+<span class="material-symbols-outlined text-[24px] mb-1">person</span>
+<span class="font-label-sm text-[10px]">Profile</span>
+</a>
+</nav>
+<style>
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+    </style>
+
+
+</body></html>

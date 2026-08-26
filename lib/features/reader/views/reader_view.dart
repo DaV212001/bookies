@@ -9,6 +9,8 @@ import 'package:flutter/services.dart';
 
 import 'package:bookies/data/models/book.dart';
 import 'package:bookies/data/models/thread_scope.dart';
+import 'package:bookies/data/models/community.dart';
+import 'package:bookies/data/models/highlight.dart';
 import 'package:bookies/data/providers/local_data_service.dart';
 import 'package:bookies/features/reader/bloc/reader_bloc.dart';
 import 'package:bookies/features/discussion/views/discussions_bottom_sheet.dart';
@@ -17,6 +19,8 @@ import 'package:bookies/core/widgets/ambient_progress_bar.dart';
 import 'package:bookies/features/reader/views/reading_settings_modal.dart';
 import 'package:bookies/features/reader/views/chapter_list_drawer.dart';
 import 'package:bookies/features/reader/widgets/epub_js_reader.dart';
+import 'package:bookies/core/widgets/create_thread_dialog.dart';
+import 'package:bookies/core/widgets/create_community_dialog.dart';
 
 class ReaderView extends StatefulWidget {
   final Book? book;
@@ -46,6 +50,154 @@ class _ReaderViewState extends State<ReaderView> {
   String? _currentChapterTitle;
   String? _chapterTarget;
   int _drawerOpenCount = 0;
+  Community? _activeCommunity(LocalDataService data, String bookId) {
+    return data.getSelectedCommunityForBook(bookId);
+  }
+
+  Future<Community?> _chooseCommunity(String bookId) async {
+    final data = context.read<LocalDataService>();
+    final communities = data.getJoinedCommunitiesForBook(bookId);
+    
+    return showModalBottomSheet<Community>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.all(16),
+          children: [
+            Text(
+              communities.isEmpty ? 'Book Communities' : 'Switch community',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 8),
+            ...communities.map(
+              (community) => ListTile(
+                title: Text(community.name),
+                leading: const Icon(LucideIcons.users),
+                trailing: community.id == _activeCommunity(data, bookId)?.id
+                    ? const Icon(LucideIcons.check)
+                    : null,
+                onTap: () => Navigator.pop(context, community),
+              ),
+            ),
+            if (communities.isNotEmpty) const Divider(),
+            ListTile(
+              title: const Text('Create new community'),
+              leading: const Icon(LucideIcons.plus),
+              onTap: () async {
+                Navigator.pop(context); // Close bottom sheet
+                if (widget.book != null) {
+                  CreateCommunityDialog.show(context, book: widget.book!);
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _switchCommunity(String bookId) async {
+    final community = await _chooseCommunity(bookId);
+    if (community == null || !mounted) return;
+    await context.read<LocalDataService>().selectCommunityForBook(
+      bookId: bookId,
+      communityId: community.id,
+    );
+  }
+
+  Future<void> _discussSelection(
+    ReaderLoaded state,
+    EpubTextSelection selection,
+  ) async {
+    final data = context.read<LocalDataService>();
+    final community = _activeCommunity(data, state.book.id);
+    if (!mounted) return;
+    if (community == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Join or create a community for this book first.'),
+        ),
+      );
+      return;
+    }
+    final text = selection.selectedText.trim();
+    if (text.isEmpty) return;
+    final existing = data
+        .getHighlightsForBook(state.book.id)
+        .any((highlight) => highlight.cfi == selection.selectionCfi);
+    if (!existing) {
+      await data.addHighlight(
+        Highlight(
+          id: DateTime.now().microsecondsSinceEpoch.toString(),
+          bookId: state.book.id,
+          userId: data.currentUser.id,
+          text: text,
+          cfi: selection.selectionCfi,
+          createdAt: DateTime.now(),
+        ),
+      );
+    }
+    showDialog(
+      context: context,
+      builder: (_) => CreateThreadDialog(
+        bookId: state.book.id,
+        communityId: community.id,
+        communityName: community.name,
+        initialScope: ThreadScope.passage,
+        initialQuoteText: selection.selectedText,
+        initialHighlightId: selection.selectionCfi,
+        initialChapterTitle: _currentChapterTitle,
+        onThreadCreated: () => setState(() {}),
+      ),
+    );
+  }
+
+  Future<void> _highlightSelection(
+    ReaderLoaded state,
+    EpubTextSelection selection,
+  ) async {
+    final text = selection.selectedText.trim();
+    if (text.isEmpty || selection.selectionCfi.trim().isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Select some passage text before highlighting.'),
+          ),
+        );
+      }
+      return;
+    }
+    final data = context.read<LocalDataService>();
+    await data.addHighlight(
+      Highlight(
+        id: DateTime.now().microsecondsSinceEpoch.toString(),
+        bookId: state.book.id,
+        userId: data.currentUser.id,
+        text: text,
+        cfi: selection.selectionCfi,
+        createdAt: DateTime.now(),
+      ),
+    );
+    if (mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Highlight saved.')));
+    }
+  }
+
+  Future<void> _saveQuoteSelection(
+    ReaderLoaded state,
+    EpubTextSelection selection,
+  ) async {
+    await context.read<LocalDataService>().addFavoriteQuote(
+      bookId: state.book.id,
+      bookTitle: state.book.title,
+      chapterTitle: _currentChapterTitle ?? 'Current passage',
+      quoteText: selection.selectedText,
+      authorName: state.book.author,
+    );
+  }
 
   @override
   void initState() {
@@ -156,13 +308,27 @@ class _ReaderViewState extends State<ReaderView> {
     BuildContext context,
     String bookId,
     String? currentCfi,
+    Community? community,
   ) {
+    final quoteText = context
+        .read<LocalDataService>()
+        .getDiscussionsForCfi(currentCfi ?? '')
+        .map((discussion) => discussion.quoteText)
+        .firstWhere(
+          (text) => text?.trim().isNotEmpty == true,
+          orElse: () => null,
+        );
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) =>
-          DiscussionsBottomSheet(bookId: bookId, cfi: currentCfi ?? ''),
+      builder: (_) => DiscussionsBottomSheet(
+        bookId: bookId,
+        cfi: currentCfi ?? '',
+        communityId: community?.id,
+        communityName: community?.name,
+        quoteText: quoteText,
+      ),
     );
   }
 
@@ -206,7 +372,9 @@ class _ReaderViewState extends State<ReaderView> {
                     '${currentBook.id}:$_currentChapterTitle:$_drawerOpenCount',
                   ),
                   book: currentBook,
-                  chapters: _chaptersBookId == currentBook.id ? _chapters : const [],
+                  chapters: _chaptersBookId == currentBook.id
+                      ? _chapters
+                      : const [],
                   currentChapterTitle: _currentChapterTitle,
                   onChapterSelected: (chapter) {
                     setState(() {
@@ -254,6 +422,27 @@ class _ReaderViewState extends State<ReaderView> {
                     },
                   ),
                   actions: [
+                    if (state is ReaderLoaded)
+                      Builder(
+                        builder: (context) {
+                          final community = _activeCommunity(
+                            context.watch<LocalDataService>(),
+                            state.book.id,
+                          );
+                          if (community == null) return const SizedBox.shrink();
+                          return ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 156),
+                            child: TextButton.icon(
+                              onPressed: () => _switchCommunity(state.book.id),
+                              icon: const Icon(LucideIcons.users, size: 17),
+                              label: Text(
+                                community.name,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
                     IconButton(
                       icon: const Icon(LucideIcons.slidersHorizontal),
                       tooltip: 'Reading Settings',
@@ -271,7 +460,11 @@ class _ReaderViewState extends State<ReaderView> {
                           _showDiscussions(
                             context,
                             state.book.id,
-                    state.currentCfi,
+                            state.currentCfi,
+                            _activeCommunity(
+                              context.read<LocalDataService>(),
+                              state.book.id,
+                            ),
                           );
                         }
                       },
@@ -288,9 +481,16 @@ class _ReaderViewState extends State<ReaderView> {
             }
 
             if (state is ReaderLoaded) {
-              final activeDiscussions = context
-                  .watch<LocalDataService>()
-                  .getDiscussionsByScope(state.book.id, ThreadScope.passage);
+              final dataService = context.watch<LocalDataService>();
+              final activeCommunity = _activeCommunity(
+                dataService,
+                state.book.id,
+              );
+              final activeDiscussions = dataService.getDiscussionsByScope(
+                state.book.id,
+                ThreadScope.passage,
+                communityId: activeCommunity?.id,
+              );
 
               return Listener(
                 onPointerDown: _handlePointerDown,
@@ -302,10 +502,7 @@ class _ReaderViewState extends State<ReaderView> {
                     Column(
                       children: [
                         if (!_isFullScreen)
-                          AmbientProgressBar(
-                            progress:
-                                  state.progression,
-                          ),
+                          AmbientProgressBar(progress: state.progression),
                         Expanded(
                           child: ReadingWell(
                             child: EpubJsReader(
@@ -322,7 +519,9 @@ class _ReaderViewState extends State<ReaderView> {
                                   _chapters = chapters;
                                   _currentChapterTitle = _chapters.isEmpty
                                       ? null
-                                      : _firstNavigableChapter(_chapters)?.title;
+                                      : _firstNavigableChapter(
+                                          _chapters,
+                                        )?.title;
                                   _chapterTarget = null;
                                 });
                               },
@@ -338,66 +537,23 @@ class _ReaderViewState extends State<ReaderView> {
                                   });
                                 }
                               },
+                              passageDiscussions: activeDiscussions,
+                              onDiscussSelection: (selection) =>
+                                  _discussSelection(state, selection),
+                              onSaveQuoteSelection: (selection) =>
+                                  _saveQuoteSelection(state, selection),
+                              onDiscussionIndicatorTapped: (cfi) =>
+                                  _showDiscussions(
+                                    context,
+                                    state.book.id,
+                                    cfi,
+                                    activeCommunity,
+                                  ),
                             ),
                           ),
                         ),
                       ],
                     ),
-
-                    // Subtle Passage Discussion Marker Overlay (Warm Ochre indicator)
-                    if (activeDiscussions.isNotEmpty)
-                      Positioned(
-                        bottom: 24,
-                        right: 20,
-                        child: GestureDetector(
-                          onTap: () {
-                            _showDiscussions(
-                              context,
-                              state.book.id,
-                              'cfi-passage-1',
-                            );
-                          },
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 300),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFB45309), // Ochre
-                              borderRadius: BorderRadius.circular(20),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(
-                                    0xFFB45309,
-                                  ).withValues(alpha: 0.3),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 3),
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(
-                                  LucideIcons.messageSquare,
-                                  size: 14,
-                                  color: Colors.white,
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  '${activeDiscussions.length} Passage Discussions',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
 
                     // Zoom indicator toast overlay
                     if (_isZooming && _displayFontSizeRatio != null)

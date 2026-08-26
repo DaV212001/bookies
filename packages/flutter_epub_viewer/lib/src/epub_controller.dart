@@ -40,25 +40,25 @@ class EpubController {
   }
 
   ///Move epub view to specific area using Cfi string, XPath/XPointer, or chapter href
-  display({
+  Future<void> display({
     ///Cfi String, XPath/XPointer string, or chapter href of the desired location
     ///If the string starts with '/', it will be treated as XPath/XPointer
     required String cfi,
-  }) {
+  }) async {
     checkEpubLoaded();
-    webViewController?.callMethod('toCfi', [cfi]);
+    await webViewController?.callMethod('toCfi', [cfi]);
   }
 
   ///Moves to next page in epub view
-  next() {
+  Future<void> next() async {
     checkEpubLoaded();
-    webViewController?.callMethod('next');
+    await webViewController?.callMethod('next');
   }
 
   ///Moves to previous page in epub view
-  prev() {
+  Future<void> prev() async {
     checkEpubLoaded();
-    webViewController?.callMethod('previous');
+    await webViewController?.callMethod('previous');
   }
 
   ///Returns current location of epub viewer
@@ -100,7 +100,7 @@ class EpubController {
   }
 
   ///Adds a highlight to epub viewer
-  addHighlight({
+  Future<void> addHighlight({
     ///Cfi string of the desired location
     required String cfi,
 
@@ -109,35 +109,35 @@ class EpubController {
 
     ///Opacity of the highlight
     double opacity = 0.3,
-  }) {
+  }) async {
     var colorHex = color.toHex();
     var opacityString = opacity.toString();
     checkEpubLoaded();
-    webViewController?.callMethod('addHighlight', [cfi, colorHex, opacityString]);
+    await webViewController?.callMethod('addHighlight', [cfi, colorHex, opacityString]);
   }
 
-  ///Adds a underline annotation
-  addUnderline({required String cfi}) {
+  ///Adds a underline annotation with an optional discussion count badge
+  Future<void> addUnderline({required String cfi, int count = 1}) async {
     checkEpubLoaded();
-    webViewController?.callMethod('addUnderLine', [cfi]);
+    await webViewController?.callMethod('addUnderLine', [cfi, count]);
   }
 
   ///Removes a highlight from epub viewer
-  removeHighlight({required String cfi}) {
+  Future<void> removeHighlight({required String cfi}) async {
     checkEpubLoaded();
-    webViewController?.callMethod('removeHighlight', [cfi]);
+    await webViewController?.callMethod('removeHighlight', [cfi]);
   }
 
   ///Removes a underline from epub viewer
-  removeUnderline({required String cfi}) {
+  Future<void> removeUnderline({required String cfi}) async {
     checkEpubLoaded();
-    webViewController?.callMethod('removeUnderLine', [cfi]);
+    await webViewController?.callMethod('removeUnderLine', [cfi]);
   }
 
   ///Clears any active text selection in the epub viewer
-  clearSelection() {
+  Future<void> clearSelection() async {
     checkEpubLoaded();
-    webViewController?.callMethod('clearSelection');
+    await webViewController?.callMethod('clearSelection');
   }
 
   ///Set [EpubSpread] value
@@ -209,23 +209,23 @@ class EpubController {
 
   ///Given a percentage moves to the corresponding page
   ///Progress percentage should be between 0.0 and 1.0
-  toProgressPercentage(double progressPercent) {
+  Future<void> toProgressPercentage(double progressPercent) async {
     assert(
       progressPercent >= 0.0 && progressPercent <= 1.0,
       'Progress percentage must be between 0.0 and 1.0',
     );
     checkEpubLoaded();
-    webViewController?.callMethod('toProgress', [progressPercent]);
+    await webViewController?.callMethod('toProgress', [progressPercent]);
   }
 
   ///Moves to the first page of the epub
-  moveToFistPage() {
-    toProgressPercentage(0.0);
+  Future<void> moveToFistPage() async {
+    await toProgressPercentage(0.0);
   }
 
   ///Moves to the last page of the epub
-  moveToLastPage() {
-    toProgressPercentage(1.0);
+  Future<void> moveToLastPage() async {
+    await toProgressPercentage(1.0);
   }
 
   checkEpubLoaded() {
