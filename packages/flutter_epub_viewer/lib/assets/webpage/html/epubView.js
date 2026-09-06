@@ -14,6 +14,20 @@ var selectionTimeout = null;
 var hasSentSelection = false; // Track if we've actually sent a selection event to Flutter
 var lastTapCoords = null; // Store the last tap coordinates for onTouchDown/onTouchUp callbacks
 
+// Safely derives a CFI from a DOM range while ignoring injected discussion wrappers
+function _cfiFromRangeSafe(contents, range) {
+  if (!contents || typeof contents.cfiFromRange !== 'function' || !range) return null;
+  try {
+    return contents.cfiFromRange(range, 'bookies-ignore');
+  } catch (e) {
+    try {
+      return contents.cfiFromRange(range);
+    } catch (e2) {
+      return null;
+    }
+  }
+}
+
 // Loads and renders a book. `opts` is a settings object (see the Dart
 // EpubViewer.loadBook for the exact keys) — replaces the old 16 positional args.
 function loadBook(data, opts) {
@@ -201,10 +215,9 @@ function loadBook(data, opts) {
 
       // Try to get CFI from range using epub.js API
       try {
-        if (typeof contents.cfiFromRange === 'function') {
-          var cfiRange = contents.cfiFromRange(range);
-          if (cfiRange) {
-            lastCfiRange = cfiRange;
+        var cfiRange = _cfiFromRangeSafe(contents, range);
+        if (cfiRange) {
+          lastCfiRange = cfiRange;
             isSelecting = true;
             // Clear any existing timeout
             if (selectionTimeout) {
@@ -240,10 +253,9 @@ function loadBook(data, opts) {
             }, 200);
             return true;
           }
+        } catch (e) {
+          // Ignore errors
         }
-      } catch (e) {
-        // Ignore errors
-      }
     } catch (e) {
       // Ignore errors
     }
@@ -461,12 +473,10 @@ function loadBook(data, opts) {
             var currentRange = currentSelection.getRangeAt(0);
             if (currentRange && !currentRange.collapsed) {
               // Get the current CFI from the current selection
-              if (typeof actualContents.cfiFromRange === 'function') {
-                var currentCfi = actualContents.cfiFromRange(currentRange);
-                if (currentCfi) {
-                  // Update lastCfiRange with the current CFI
-                  lastCfiRange = currentCfi;
-                }
+              var currentCfi = _cfiFromRangeSafe(actualContents, currentRange);
+              if (currentCfi) {
+                // Update lastCfiRange with the current CFI
+                lastCfiRange = currentCfi;
               }
             }
           }
@@ -516,12 +526,10 @@ function loadBook(data, opts) {
             if (finalSelection && finalSelection.rangeCount > 0) {
               var finalRange = finalSelection.getRangeAt(0);
               if (finalRange && !finalRange.collapsed) {
-                if (typeof finalContents.cfiFromRange === 'function') {
-                  var updatedCfi = finalContents.cfiFromRange(finalRange);
-                  if (updatedCfi) {
-                    finalCfi = updatedCfi;
-                    lastCfiRange = updatedCfi;
-                  }
+                var updatedCfi = _cfiFromRangeSafe(finalContents, finalRange);
+                if (updatedCfi) {
+                  finalCfi = updatedCfi;
+                  lastCfiRange = updatedCfi;
                 }
               }
             }
@@ -2089,8 +2097,19 @@ function addHighlight(cfiRange, color, opacity) {
 
 // ── Discussion indicator system ──────────────────────────────────────────
 // Stores CFI → { count, isParagraph } for re-injection on content reload.
+// ── Discussion indicator system ──────────────────────────────────────────
+// Stores CFI → { count, isParagraph, quoteText } for re-injection on content reload.
 var _discussionMeta = {};
 var _discussionHookRegistered = false;
+
+function _getHeatLevel(count) {
+  if (!count || count <= 2) return 1;
+  if (count <= 9) return 2;
+  if (count <= 29) return 3;
+  if (count <= 99) return 4;
+  if (count <= 499) return 5;
+  return 6;
+}
 
 function _formatDiscussionCount(n) {
   if (n >= 1000000) {
@@ -2104,9 +2123,6 @@ function _formatDiscussionCount(n) {
   return String(n);
 }
 
-// Chat bubble SVG icon (inline, 12×12 matching Material Symbols chat_bubble)
-var _chatSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
-
 // Injects the shared discussion indicator stylesheet into a content iframe.
 function _ensureDiscussionStylesheet(doc) {
   if (!doc) return;
@@ -2116,63 +2132,117 @@ function _ensureDiscussionStylesheet(doc) {
   style.id = 'bookies-discussion-css';
   style.textContent = [
     ':root {',
-    '  --di-phrase-badge-bg: rgba(155, 69, 0, 0.1);',
-    '  --di-badge-text: #9B4500;',
-    '  --di-bar-color: rgba(253, 138, 66, 0.2);',
-    '  --di-para-bg: rgba(253, 138, 66, 0.05);',
-    '  --di-para-badge-bg: #dce9ff;',
+    '  --di-bar-color: transparent;',
+    '  --di-bar-active: rgba(253, 138, 66, 0.16);',
+    '  --di-badge-active-color: #d9651a;',
+    '  --di-para-border: rgba(253, 138, 66, 0.35);',
+    '  --di-heat-1-line: rgba(253, 138, 66, 0.35);',
+    '  --di-heat-1-dot-bg: rgba(253, 138, 66, 0.35);',
+    '  --di-heat-1-dot-border: rgba(253, 138, 66, 0.45);',
+    '  --di-heat-2-line: rgba(245, 120, 40, 0.50);',
+    '  --di-heat-2-dot-bg: rgba(245, 120, 40, 0.52);',
+    '  --di-heat-2-dot-border: rgba(240, 105, 30, 0.65);',
+    '  --di-heat-3-line: rgba(235, 100, 25, 0.68);',
+    '  --di-heat-3-dot-bg: rgba(235, 100, 25, 0.70);',
+    '  --di-heat-3-dot-border: rgba(225, 90, 15, 0.80);',
+    '  --di-heat-4-line: rgba(220, 85, 12, 0.84);',
+    '  --di-heat-4-dot-bg: rgba(220, 85, 12, 0.86);',
+    '  --di-heat-4-dot-border: rgba(205, 75, 8, 0.95);',
+    '  --di-heat-5-line: #c2410c;',
+    '  --di-heat-5-dot-bg: #c2410c;',
+    '  --di-heat-5-dot-border: #9a3412;',
+    '  --di-heat-6-line: #ea580c;',
+    '  --di-heat-6-dot-bg: #ea580c;',
+    '  --di-heat-6-dot-border: #c2410c;',
+    '  --di-heat-6-glow: 0 0 4px rgba(234, 88, 12, 0.55);',
     '}',
     '.bookies-di-phrase-wrap {',
-    '  background-image: linear-gradient(120deg, var(--di-bar-color, rgba(253, 138, 66, 0.2)) 0%, var(--di-bar-color, rgba(253, 138, 66, 0.2)) 100%) !important;',
-    '  background-repeat: no-repeat !important;',
-    '  background-size: 100% 0.4em !important;',
-    '  background-position: 0 88% !important;',
+    '  background-color: transparent !important;',
+    '  border-bottom: 1.2px dotted var(--di-heat-1-line) !important;',
+    '  border-radius: 1px !important;',
+    '  padding: 0 !important;',
     '  cursor: pointer !important;',
+    '  transition: background-color 0.18s ease, border-color 0.18s ease !important;',
+    '  -webkit-tap-highlight-color: transparent !important;',
+    '}',
+    '.bookies-di-phrase-wrap[data-heat="1"] { border-bottom-color: var(--di-heat-1-line) !important; }',
+    '.bookies-di-phrase-wrap[data-heat="2"] { border-bottom-color: var(--di-heat-2-line) !important; }',
+    '.bookies-di-phrase-wrap[data-heat="3"] { border-bottom-color: var(--di-heat-3-line) !important; }',
+    '.bookies-di-phrase-wrap[data-heat="4"] { border-bottom-color: var(--di-heat-4-line) !important; }',
+    '.bookies-di-phrase-wrap[data-heat="5"] { border-bottom-color: var(--di-heat-5-line) !important; }',
+    '.bookies-di-phrase-wrap[data-heat="6"] { border-bottom-color: var(--di-heat-6-line) !important; border-bottom-style: dashed !important; }',
+    '.bookies-di-phrase-wrap:hover,',
+    '.bookies-di-phrase-wrap:active {',
+    '  background-color: var(--di-bar-active, rgba(253, 138, 66, 0.16)) !important;',
+    '  border-bottom-color: var(--di-badge-active-color, #d9651a) !important;',
     '}',
     '.bookies-di-para-wrap {',
-    '  border-left: 3px solid var(--di-bar-color, rgba(253, 138, 66, 0.4)) !important;',
-    '  background-color: var(--di-para-bg, rgba(253, 138, 66, 0.05)) !important;',
-    '  padding-left: 10px !important;',
-    '  margin-left: -13px !important;',
-    '  padding-right: 4px !important;',
-    '  padding-top: 2px !important;',
-    '  padding-bottom: 2px !important;',
-    '  border-radius: 4px !important;',
+    '  border-left: 1.5px solid var(--di-heat-1-line) !important;',
+    '  padding-left: 8px !important;',
+    '  margin-left: -10px !important;',
     '  cursor: pointer !important;',
+    '  transition: border-color 0.2s ease !important;',
+    '  -webkit-tap-highlight-color: transparent !important;',
+    '}',
+    '.bookies-di-para-wrap[data-heat="1"] { border-left-color: var(--di-heat-1-line) !important; }',
+    '.bookies-di-para-wrap[data-heat="2"] { border-left-color: var(--di-heat-2-line) !important; }',
+    '.bookies-di-para-wrap[data-heat="3"] { border-left-color: var(--di-heat-3-line) !important; }',
+    '.bookies-di-para-wrap[data-heat="4"] { border-left-color: var(--di-heat-4-line) !important; }',
+    '.bookies-di-para-wrap[data-heat="5"] { border-left-color: var(--di-heat-5-line) !important; }',
+    '.bookies-di-para-wrap[data-heat="6"] { border-left-color: var(--di-heat-6-line) !important; }',
+    '.bookies-di-para-wrap:hover,',
+    '.bookies-di-para-wrap:active {',
+    '  border-left-color: var(--di-badge-active-color, #d9651a) !important;',
     '}',
     '.bookies-di-badge {',
-    '  display: inline-flex !important;',
-    '  align-items: center !important;',
-    '  border-radius: 9999px !important;',
-    '  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;',
-    '  font-weight: 600 !important;',
+    '  display: inline-block !important;',
+    '  width: 7px !important;',
+    '  height: 7px !important;',
+    '  min-width: 7px !important;',
+    '  max-width: 7px !important;',
+    '  border-radius: 50% !important;',
+    '  box-sizing: border-box !important;',
+    '  vertical-align: 0.28em !important;',
+    '  margin-left: 3px !important;',
+    '  margin-right: 1px !important;',
     '  cursor: pointer !important;',
     '  user-select: none !important;',
     '  -webkit-user-select: none !important;',
-    '  vertical-align: middle !important;',
-    '  white-space: nowrap !important;',
-    '  line-height: 1 !important;',
-    '  text-decoration: none !important;',
+    '  position: relative !important;',
+    '  background-color: var(--di-heat-1-dot-bg) !important;',
+    '  border: 1px solid var(--di-heat-1-dot-border) !important;',
+    '  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease !important;',
+    '  -webkit-tap-highlight-color: transparent !important;',
+    '}',
+    '.bookies-di-badge::before {',
+    '  content: "" !important;',
+    '  position: absolute !important;',
+    '  top: -10px !important;',
+    '  bottom: -10px !important;',
+    '  left: -10px !important;',
+    '  right: -10px !important;',
+    '}',
+    '.bookies-di-badge[data-heat="1"] { background-color: var(--di-heat-1-dot-bg) !important; border-color: var(--di-heat-1-dot-border) !important; }',
+    '.bookies-di-badge[data-heat="2"] { background-color: var(--di-heat-2-dot-bg) !important; border-color: var(--di-heat-2-dot-border) !important; }',
+    '.bookies-di-badge[data-heat="3"] { background-color: var(--di-heat-3-dot-bg) !important; border-color: var(--di-heat-3-dot-border) !important; }',
+    '.bookies-di-badge[data-heat="4"] { background-color: var(--di-heat-4-dot-bg) !important; border-color: var(--di-heat-4-dot-border) !important; }',
+    '.bookies-di-badge[data-heat="5"] { background-color: var(--di-heat-5-dot-bg) !important; border-color: var(--di-heat-5-dot-border) !important; }',
+    '.bookies-di-badge[data-heat="6"] { background-color: var(--di-heat-6-dot-bg) !important; border-color: var(--di-heat-6-dot-border) !important; box-shadow: var(--di-heat-6-glow) !important; }',
+    '.bookies-di-badge:hover,',
+    '.bookies-di-badge:active,',
+    '.bookies-di-phrase-wrap:active .bookies-di-badge,',
+    '.bookies-di-phrase-wrap:hover .bookies-di-badge,',
+    '.bookies-di-para-wrap:active .bookies-di-badge,',
+    '.bookies-di-para-wrap:hover .bookies-di-badge {',
+    '  transform: scale(1.35) !important;',
+    '  background-color: var(--di-badge-active-color, #d9651a) !important;',
+    '  border-color: var(--di-badge-active-color, #d9651a) !important;',
     '}',
     '.bookies-di-badge--phrase {',
-    '  margin-left: 2px !important;',
-    '  padding: 1px 4px !important;',
-    '  font-size: 10px !important;',
-    '  background-color: var(--di-phrase-badge-bg, rgba(155, 69, 0, 0.1)) !important;',
-    '  color: var(--di-badge-text, #9B4500) !important;',
-    '  border-radius: 9999px !important;',
-    '  line-height: 14px !important;',
-    '  vertical-align: baseline !important;',
+    '  margin-left: 3px !important;',
     '}',
     '.bookies-di-badge--para {',
-    '  margin-left: 8px !important;',
-    '  padding: 2px 8px !important;',
-    '  font-size: 10px !important;',
-    '  letter-spacing: 0.05em !important;',
-    '  text-transform: uppercase !important;',
-    '  background-color: var(--di-para-badge-bg, #dce9ff) !important;',
-    '  color: var(--di-badge-text, #9B4500) !important;',
-    '  gap: 4px !important;',
+    '  margin-left: 6px !important;',
     '}'
   ].join('\n');
   (doc.head || doc.documentElement).appendChild(style);
@@ -2205,27 +2275,81 @@ function _updateDiscussionCssVars() {
   var vars;
   if (isDark) {
     vars = {
-      '--di-phrase-badge-bg': 'rgba(253,138,66,0.15)',
-      '--di-badge-text': '#FD8A42',
-      '--di-bar-color': 'rgba(253,138,66,0.25)',
-      '--di-para-bg': 'rgba(253,138,66,0.06)',
-      '--di-para-badge-bg': 'rgba(30,41,59,0.9)'
+      '--di-bar-color': 'transparent',
+      '--di-bar-active': 'rgba(253, 138, 66, 0.20)',
+      '--di-badge-active-color': '#FD8A42',
+      '--di-para-border': 'rgba(253, 138, 66, 0.35)',
+      '--di-heat-1-line': 'rgba(253, 138, 66, 0.30)',
+      '--di-heat-1-dot-bg': 'rgba(253, 138, 66, 0.30)',
+      '--di-heat-1-dot-border': 'rgba(253, 138, 66, 0.40)',
+      '--di-heat-2-line': 'rgba(253, 138, 66, 0.48)',
+      '--di-heat-2-dot-bg': 'rgba(253, 138, 66, 0.50)',
+      '--di-heat-2-dot-border': 'rgba(253, 138, 66, 0.62)',
+      '--di-heat-3-line': 'rgba(254, 155, 90, 0.65)',
+      '--di-heat-3-dot-bg': 'rgba(254, 155, 90, 0.70)',
+      '--di-heat-3-dot-border': 'rgba(254, 165, 105, 0.80)',
+      '--di-heat-4-line': 'rgba(253, 138, 66, 0.82)',
+      '--di-heat-4-dot-bg': 'rgba(253, 138, 66, 0.88)',
+      '--di-heat-4-dot-border': 'rgba(255, 170, 112, 0.95)',
+      '--di-heat-5-line': '#FD8A42',
+      '--di-heat-5-dot-bg': '#FD8A42',
+      '--di-heat-5-dot-border': '#ffaa70',
+      '--di-heat-6-line': '#ff7b2b',
+      '--di-heat-6-dot-bg': '#ff7b2b',
+      '--di-heat-6-dot-border': '#ffc299',
+      '--di-heat-6-glow': '0 0 5px rgba(255, 123, 43, 0.65)'
     };
   } else if (isSepia) {
     vars = {
-      '--di-phrase-badge-bg': 'rgba(155,69,0,0.12)',
-      '--di-badge-text': '#9B4500',
-      '--di-bar-color': 'rgba(253,138,66,0.35)',
-      '--di-para-bg': 'rgba(155,69,0,0.05)',
-      '--di-para-badge-bg': 'rgba(234,224,197,0.9)'
+      '--di-bar-color': 'transparent',
+      '--di-bar-active': 'rgba(180, 83, 9, 0.18)',
+      '--di-badge-active-color': '#9B4500',
+      '--di-para-border': 'rgba(180, 83, 9, 0.35)',
+      '--di-heat-1-line': 'rgba(180, 83, 9, 0.30)',
+      '--di-heat-1-dot-bg': 'rgba(180, 83, 9, 0.30)',
+      '--di-heat-1-dot-border': 'rgba(180, 83, 9, 0.40)',
+      '--di-heat-2-line': 'rgba(180, 83, 9, 0.48)',
+      '--di-heat-2-dot-bg': 'rgba(180, 83, 9, 0.48)',
+      '--di-heat-2-dot-border': 'rgba(180, 83, 9, 0.60)',
+      '--di-heat-3-line': 'rgba(165, 75, 5, 0.65)',
+      '--di-heat-3-dot-bg': 'rgba(165, 75, 5, 0.68)',
+      '--di-heat-3-dot-border': 'rgba(150, 65, 0, 0.78)',
+      '--di-heat-4-line': 'rgba(155, 69, 0, 0.82)',
+      '--di-heat-4-dot-bg': 'rgba(155, 69, 0, 0.85)',
+      '--di-heat-4-dot-border': 'rgba(140, 60, 0, 0.95)',
+      '--di-heat-5-line': '#9B4500',
+      '--di-heat-5-dot-bg': '#9B4500',
+      '--di-heat-5-dot-border': '#7c3500',
+      '--di-heat-6-line': '#b44c00',
+      '--di-heat-6-dot-bg': '#b44c00',
+      '--di-heat-6-dot-border': '#8c3a00',
+      '--di-heat-6-glow': '0 0 4px rgba(180, 76, 0, 0.55)'
     };
   } else {
     vars = {
-      '--di-phrase-badge-bg': 'rgba(155,69,0,0.1)',
-      '--di-badge-text': '#9B4500',
-      '--di-bar-color': 'rgba(253,138,66,0.3)',
-      '--di-para-bg': 'rgba(155,69,0,0.05)',
-      '--di-para-badge-bg': '#dce9ff'
+      '--di-bar-color': 'transparent',
+      '--di-bar-active': 'rgba(253, 138, 66, 0.16)',
+      '--di-badge-active-color': '#d9651a',
+      '--di-para-border': 'rgba(253, 138, 66, 0.35)',
+      '--di-heat-1-line': 'rgba(253, 138, 66, 0.35)',
+      '--di-heat-1-dot-bg': 'rgba(253, 138, 66, 0.35)',
+      '--di-heat-1-dot-border': 'rgba(253, 138, 66, 0.45)',
+      '--di-heat-2-line': 'rgba(245, 120, 40, 0.50)',
+      '--di-heat-2-dot-bg': 'rgba(245, 120, 40, 0.52)',
+      '--di-heat-2-dot-border': 'rgba(240, 105, 30, 0.65)',
+      '--di-heat-3-line': 'rgba(235, 100, 25, 0.68)',
+      '--di-heat-3-dot-bg': 'rgba(235, 100, 25, 0.70)',
+      '--di-heat-3-dot-border': 'rgba(225, 90, 15, 0.80)',
+      '--di-heat-4-line': 'rgba(220, 85, 12, 0.84)',
+      '--di-heat-4-dot-bg': 'rgba(220, 85, 12, 0.86)',
+      '--di-heat-4-dot-border': 'rgba(205, 75, 8, 0.95)',
+      '--di-heat-5-line': '#c2410c',
+      '--di-heat-5-dot-bg': '#c2410c',
+      '--di-heat-5-dot-border': '#9a3412',
+      '--di-heat-6-line': '#ea580c',
+      '--di-heat-6-dot-bg': '#ea580c',
+      '--di-heat-6-dot-border': '#c2410c',
+      '--di-heat-6-glow': '0 0 4px rgba(234, 88, 12, 0.55)'
     };
   }
 
@@ -2377,55 +2501,219 @@ function _getSpineIndexForContents(contents) {
 // Unwraps ALL discussion indicator wrappers and badges in a document, and normalizes text nodes
 function _unwrapAllDiscussionIndicators(doc) {
   if (!doc) return;
-  var els = doc.querySelectorAll('.bookies-di-badge, .bookies-di-phrase-wrap, .bookies-di-para-wrap');
-  if (els.length === 0) return;
+  // 1. Remove all badges first so they aren't moved into the parent element
+  var badges = doc.querySelectorAll('.bookies-di-badge, .bookies-ignore.bookies-di-badge');
+  for (var b = 0; b < badges.length; b++) {
+    badges[b].remove();
+  }
+
+  // 2. Reset paragraph wrappers
+  var paras = doc.querySelectorAll('.bookies-di-para-wrap');
+  for (var pIdx = 0; pIdx < paras.length; pIdx++) {
+    paras[pIdx].classList.remove('bookies-di-para-wrap', 'bookies-ignore');
+    paras[pIdx].removeAttribute('data-di-cfi');
+  }
+
+  // 3. Unwrap all phrase wrappers
+  var phrases = doc.querySelectorAll('.bookies-di-phrase-wrap');
   var parents = [];
-  els.forEach(function(el) {
-    if (el.classList.contains('bookies-di-para-wrap')) {
-      el.classList.remove('bookies-di-para-wrap');
-      el.removeAttribute('data-di-cfi');
-    } else if (el.classList.contains('bookies-di-badge')) {
-      el.remove();
-    } else if (el.classList.contains('bookies-di-phrase-wrap')) {
-      var p = el.parentNode;
-      if (p) {
-        while (el.firstChild) p.insertBefore(el.firstChild, el);
-        p.removeChild(el);
-        if (parents.indexOf(p) === -1) parents.push(p);
+  for (var pr = 0; pr < phrases.length; pr++) {
+    var el = phrases[pr];
+    var p = el.parentNode;
+    if (p) {
+      while (el.firstChild) {
+        p.insertBefore(el.firstChild, el);
       }
+      p.removeChild(el);
+      if (parents.indexOf(p) === -1) parents.push(p);
     }
-  });
-  parents.forEach(function(p) {
-    try { p.normalize(); } catch(e) {}
-  });
+  }
+
+  // 4. Normalize all modified parents to merge all sibling text nodes back together
+  for (var norm = 0; norm < parents.length; norm++) {
+    try { parents[norm].normalize(); } catch(e) {}
+  }
 }
 
 // Unwraps a specific CFI and normalizes
 function _unwrapCfi(doc, cfiString) {
   if (!doc) return;
-  var els = doc.querySelectorAll('[data-di-cfi="' + cfiString + '"]');
-  if (els.length === 0) return;
+  var badges = doc.querySelectorAll('.bookies-di-badge[data-di-cfi="' + cfiString + '"]');
+  for (var b = 0; b < badges.length; b++) {
+    badges[b].remove();
+  }
+  var paras = doc.querySelectorAll('.bookies-di-para-wrap[data-di-cfi="' + cfiString + '"]');
+  for (var pIdx = 0; pIdx < paras.length; pIdx++) {
+    paras[pIdx].classList.remove('bookies-di-para-wrap', 'bookies-ignore');
+    paras[pIdx].removeAttribute('data-di-cfi');
+  }
+  var phrases = doc.querySelectorAll('.bookies-di-phrase-wrap[data-di-cfi="' + cfiString + '"]');
   var parents = [];
-  els.forEach(function(el) {
-    if (el.classList.contains('bookies-di-para-wrap')) {
-      el.classList.remove('bookies-di-para-wrap');
-      el.removeAttribute('data-di-cfi');
-      var badge = el.querySelector('.bookies-di-badge[data-di-cfi="' + cfiString + '"]');
-      if (badge) badge.remove();
-    } else if (el.classList.contains('bookies-di-badge')) {
-      el.remove();
-    } else {
-      var p = el.parentNode;
-      if (p) {
-        while (el.firstChild) p.insertBefore(el.firstChild, el);
-        p.removeChild(el);
-        if (parents.indexOf(p) === -1) parents.push(p);
+  for (var pr = 0; pr < phrases.length; pr++) {
+    var el = phrases[pr];
+    var p = el.parentNode;
+    if (p) {
+      while (el.firstChild) {
+        p.insertBefore(el.firstChild, el);
+      }
+      p.removeChild(el);
+      if (parents.indexOf(p) === -1) parents.push(p);
+    }
+  }
+  for (var norm = 0; norm < parents.length; norm++) {
+    try { parents[norm].normalize(); } catch(e) {}
+  }
+}
+
+// Computes an approximate character offset in the document for disambiguating duplicate quotes
+function _getApproximateDocOffset(doc, cfiString, partialRange) {
+  if (!doc) return null;
+  if (partialRange && partialRange.startContainer) {
+    try {
+      var probe = doc.createRange();
+      probe.setStart(doc.body || doc.documentElement, 0);
+      probe.setEnd(partialRange.startContainer, partialRange.startOffset || 0);
+      return probe.toString().length;
+    } catch(e) {}
+  }
+  if (cfiString && typeof ePub !== 'undefined' && ePub.CFI) {
+    try {
+      var cfi = new ePub.CFI(cfiString);
+      var steps = (cfi.path && cfi.path.steps) ? cfi.path.steps : [];
+      if (cfi.start && cfi.start.steps) {
+        steps = steps.concat(cfi.start.steps);
+      }
+      var node = doc.documentElement;
+      for (var i = 0; i < steps.length; i++) {
+        var step = steps[i];
+        if (step.type === 'element') {
+          if (step.id) {
+            var el = doc.getElementById(step.id);
+            if (el) node = el;
+          } else if (node.children && node.children[step.index]) {
+            node = node.children[step.index];
+          } else {
+            break;
+          }
+        }
+      }
+      if (node && node !== doc.documentElement) {
+        var probe = doc.createRange();
+        probe.setStart(doc.body || doc.documentElement, 0);
+        probe.setEnd(node, 0);
+        return probe.toString().length;
+      }
+    } catch(e) {}
+  }
+  return null;
+}
+
+// Searches for a quote string across all text nodes in the document body.
+// When multiple instances of the quote exist in the chapter, uses approxDocOffset
+// (derived from the CFI element steps or partially resolved range) to pick the closest instance.
+function _findQuoteRangeInDoc(doc, quote, approxDocOffset) {
+  if (!doc || !doc.body || !quote || typeof quote !== 'string') return null;
+  var rawQuote = quote.trim();
+  if (rawQuote.length === 0) return null;
+
+  var walker = doc.createTreeWalker(doc.body, 4 /* NodeFilter.SHOW_TEXT */, null, false);
+  var textNodes = [];
+  var fullText = '';
+  var tn;
+  while (tn = walker.nextNode()) {
+    var val = tn.nodeValue;
+    if (val && val.length > 0) {
+      textNodes.push({
+        node: tn,
+        start: fullText.length,
+        end: fullText.length + val.length
+      });
+      fullText += val;
+    }
+  }
+
+  if (fullText.length === 0) return null;
+
+  var candidates = [];
+  var sIdx = fullText.indexOf(rawQuote);
+  while (sIdx !== -1) {
+    candidates.push({ start: sIdx, len: rawQuote.length });
+    sIdx = fullText.indexOf(rawQuote, sIdx + 1);
+  }
+
+  // If exact substring not found, try collapsing whitespace
+  if (candidates.length === 0) {
+    var target = rawQuote.replace(/\s+/g, ' ');
+    var normalizedDoc = '';
+    var mapIndices = [];
+    for (var i = 0; i < fullText.length; i++) {
+      var ch = fullText[i];
+      if (/\s/.test(ch)) {
+        if (normalizedDoc.length === 0 || normalizedDoc[normalizedDoc.length - 1] !== ' ') {
+          mapIndices.push(i);
+          normalizedDoc += ' ';
+        }
+      } else {
+        mapIndices.push(i);
+        normalizedDoc += ch;
       }
     }
-  });
-  parents.forEach(function(p) {
-    try { p.normalize(); } catch(e) {}
-  });
+
+    var normMatch = normalizedDoc.indexOf(target);
+    while (normMatch !== -1) {
+      var matchStart = mapIndices[normMatch];
+      var endNormIdx = normMatch + target.length - 1;
+      var endRawIdx = (endNormIdx < mapIndices.length) ? mapIndices[endNormIdx] + 1 : fullText.length;
+      candidates.push({ start: matchStart, len: endRawIdx - matchStart });
+      normMatch = normalizedDoc.indexOf(target, normMatch + 1);
+    }
+  }
+
+  if (candidates.length === 0) return null;
+
+  // Disambiguation: if multiple occurrences exist, pick the one closest to approxDocOffset
+  var bestMatch = candidates[0];
+  if (candidates.length > 1 && typeof approxDocOffset === 'number' && !isNaN(approxDocOffset)) {
+    var bestDist = Math.abs(candidates[0].start - approxDocOffset);
+    for (var m = 1; m < candidates.length; m++) {
+      var dist = Math.abs(candidates[m].start - approxDocOffset);
+      if (dist < bestDist) {
+        bestDist = dist;
+        bestMatch = candidates[m];
+      }
+    }
+  }
+
+  var matchIdx = bestMatch.start;
+  var matchLen = bestMatch.len;
+  var matchEnd = matchIdx + matchLen;
+  var startNode = null, startOffset = 0;
+  var endNode = null, endOffset = 0;
+
+  for (var n = 0; n < textNodes.length; n++) {
+    var item = textNodes[n];
+    if (!startNode && matchIdx >= item.start && matchIdx < item.end) {
+      startNode = item.node;
+      startOffset = matchIdx - item.start;
+    }
+    if (matchEnd > item.start && matchEnd <= item.end) {
+      endNode = item.node;
+      endOffset = matchEnd - item.start;
+      break;
+    }
+  }
+
+  if (startNode && endNode) {
+    try {
+      var r = doc.createRange();
+      r.setStart(startNode, startOffset);
+      r.setEnd(endNode, endOffset);
+      return r;
+    } catch (e) {
+      return null;
+    }
+  }
+  return null;
 }
 
 // Finds the nearest block-level container for a node
@@ -2435,7 +2723,10 @@ function _findBlockElement(doc, node) {
   var el = node;
   while (el && el !== doc.body) {
     var tag = el.tagName ? el.tagName.toUpperCase() : '';
-    if (tag === 'P' || tag === 'DIV' || tag === 'BLOCKQUOTE' || tag === 'LI' || tag === 'SECTION' || tag === 'ARTICLE' || tag === 'H1' || tag === 'H2' || tag === 'H3' || tag === 'H4' || tag === 'H5' || tag === 'H6') {
+    if (tag === 'P' || tag === 'BLOCKQUOTE' || tag === 'LI' || tag === 'H1' || tag === 'H2' || tag === 'H3' || tag === 'H4' || tag === 'H5' || tag === 'H6') {
+      return el;
+    }
+    if (tag === 'DIV' && !el.querySelector('p, blockquote, li, h1, h2, h3, h4, h5, h6')) {
       return el;
     }
     el = el.parentElement;
@@ -2445,14 +2736,164 @@ function _findBlockElement(doc, node) {
 
 // Calculates character offset of a point (container, offset) relative to block's plain text
 function _getCharOffsetInBlock(doc, blockEl, targetContainer, targetOffset) {
-  var range = doc.createRange();
-  range.selectNodeContents(blockEl);
+  if (!blockEl || !targetContainer) return 0;
   try {
-    range.setEnd(targetContainer, targetOffset);
-    return range.toString().length;
-  } catch(e) {
-    return 0;
+    var probeRange = doc.createRange();
+    probeRange.setStart(blockEl, 0);
+    probeRange.setEnd(targetContainer, targetOffset);
+    return probeRange.toString().length;
+  } catch (e) {
+    var walker = doc.createTreeWalker(blockEl, 4 /* NodeFilter.SHOW_TEXT */, null, false);
+    var currentOffset = 0;
+    var tn;
+    while (tn = walker.nextNode()) {
+      if (tn === targetContainer) {
+        return currentOffset + targetOffset;
+      }
+      currentOffset += (tn.nodeValue ? tn.nodeValue.length : 0);
+    }
+    return currentOffset;
   }
+}
+
+// Attaches click and long-press (tap-and-hold) event handlers to discussion elements.
+function _attachDiscussionEvents(el, cfi, count, isPara) {
+  var pressTimer = null;
+  var isLongPress = false;
+  var startX = 0;
+  var startY = 0;
+
+  function getBoundingRect() {
+    try {
+      var r = el.getBoundingClientRect();
+      return {
+        top: r.top,
+        bottom: r.bottom,
+        left: r.left,
+        right: r.right,
+        width: r.width,
+        height: r.height
+      };
+    } catch(e) {
+      return null;
+    }
+  }
+
+  function triggerLongPress() {
+    isLongPress = true;
+    pressTimer = null;
+    if (window.flutter_inappwebview && window.flutter_inappwebview.callHandler) {
+      window.flutter_inappwebview.callHandler('markLongPressed', cfi, getBoundingRect());
+    }
+  }
+
+  function onTouchStart(e) {
+    if (isPara && e.target !== el && (e.target.closest('.bookies-di-phrase-wrap') || e.target.closest('.bookies-di-badge'))) {
+      return;
+    }
+    isLongPress = false;
+    if (e.touches && e.touches[0]) {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+    }
+    if (pressTimer) clearTimeout(pressTimer);
+    pressTimer = setTimeout(triggerLongPress, 420);
+  }
+
+  function onTouchMove(e) {
+    if (!pressTimer) return;
+    if (e.touches && e.touches[0]) {
+      var dx = Math.abs(e.touches[0].clientX - startX);
+      var dy = Math.abs(e.touches[0].clientY - startY);
+      if (dx > 8 || dy > 8) {
+        clearTimeout(pressTimer);
+        pressTimer = null;
+      }
+    }
+  }
+
+  function onTouchEnd(e) {
+    if (pressTimer) {
+      clearTimeout(pressTimer);
+      pressTimer = null;
+    }
+    if (isLongPress) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }
+
+  function onTouchCancel() {
+    if (pressTimer) {
+      clearTimeout(pressTimer);
+      pressTimer = null;
+    }
+    isLongPress = false;
+  }
+
+  el.addEventListener('touchstart', onTouchStart, { passive: true });
+  el.addEventListener('touchmove', onTouchMove, { passive: true });
+  el.addEventListener('touchend', onTouchEnd, { passive: false });
+  el.addEventListener('touchcancel', onTouchCancel, { passive: true });
+
+  el.addEventListener('mousedown', function(e) {
+    if (e.button !== 0) return;
+    if (isPara && e.target !== el && (e.target.closest('.bookies-di-phrase-wrap') || e.target.closest('.bookies-di-badge'))) {
+      return;
+    }
+    isLongPress = false;
+    startX = e.clientX;
+    startY = e.clientY;
+    if (pressTimer) clearTimeout(pressTimer);
+    pressTimer = setTimeout(triggerLongPress, 420);
+  });
+
+  el.addEventListener('mousemove', function(e) {
+    if (!pressTimer) return;
+    var dx = Math.abs(e.clientX - startX);
+    var dy = Math.abs(e.clientY - startY);
+    if (dx > 8 || dy > 8) {
+      clearTimeout(pressTimer);
+      pressTimer = null;
+    }
+  });
+
+  el.addEventListener('mouseup', function(e) {
+    if (pressTimer) {
+      clearTimeout(pressTimer);
+      pressTimer = null;
+    }
+    if (isLongPress) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  });
+
+  el.addEventListener('mouseleave', function() {
+    if (pressTimer) {
+      clearTimeout(pressTimer);
+      pressTimer = null;
+    }
+  });
+
+  el.onclick = function(e) {
+    if (isPara && e.target !== el && (e.target.closest('.bookies-di-phrase-wrap') || e.target.closest('.bookies-di-badge'))) {
+      return;
+    }
+    if (isLongPress) {
+      e.preventDefault();
+      e.stopPropagation();
+      isLongPress = false;
+      return;
+    }
+    e.stopPropagation();
+    if (window.flutter_inappwebview && window.flutter_inappwebview.callHandler) {
+      window.flutter_inappwebview.callHandler('markClicked', cfi, getBoundingRect());
+    }
+  };
+
+  var chatWord = (count === 1) ? 'chat' : 'chats';
+  el.setAttribute('title', count + ' ' + chatWord + ' • Tap to open, hold for preview');
 }
 
 // Atomically renders phrase highlights into a block element using character interval slicing
@@ -2513,45 +2954,39 @@ function _renderPhrasesInBlock(doc, blockEl, highlights) {
       var globalStart = nStart + sIdx;
       var globalEnd = nStart + eIdx;
 
+      // Find the most specific highlight containing this slice
       var activeHl = null;
       for (var h3 = 0; h3 < highlights.length; h3++) {
-        if (highlights[h3].start <= globalStart && highlights[h3].end >= globalEnd) {
-          activeHl = highlights[h3];
-          break;
+        var cand = highlights[h3];
+        if (cand.start <= globalStart && cand.end >= globalEnd) {
+          if (!activeHl || (cand.end - cand.start < activeHl.end - activeHl.start)) {
+            activeHl = cand;
+          }
         }
       }
 
       if (activeHl) {
+        var hlCount = activeHl.count || 1;
         var span = doc.createElement('span');
-        span.className = 'bookies-di-phrase-wrap';
+        span.className = 'bookies-di-phrase-wrap bookies-ignore';
         span.setAttribute('data-di-cfi', activeHl.cfi);
+        span.setAttribute('data-heat', _getHeatLevel(hlCount));
         span.textContent = sliceText;
+        _attachDiscussionEvents(span, activeHl.cfi, hlCount, false);
 
-        (function(cStr) {
-          span.onclick = function(e) {
-            e.stopPropagation();
-            if (window.flutter_inappwebview && window.flutter_inappwebview.callHandler) {
-              window.flutter_inappwebview.callHandler('markClicked', cStr, null);
-            }
-          };
-        })(activeHl.cfi);
-
-        // If this slice reaches or exceeds the end of the highlight, append the badge
-        if (globalEnd >= activeHl.end) {
-          var countLabel = _formatDiscussionCount(activeHl.count || 1);
-          var badge = doc.createElement('span');
-          badge.className = 'bookies-di-badge bookies-di-badge--phrase';
-          badge.setAttribute('data-di-cfi', activeHl.cfi);
-          badge.textContent = countLabel;
-          (function(cStr) {
-            badge.onclick = function(e) {
-              e.stopPropagation();
-              if (window.flutter_inappwebview && window.flutter_inappwebview.callHandler) {
-                window.flutter_inappwebview.callHandler('markClicked', cStr, null);
-              }
-            };
-          })(activeHl.cfi);
-          span.appendChild(badge);
+        // Render badge for all highlights that end at this slice boundary
+        for (var hb = 0; hb < highlights.length; hb++) {
+          var hlTerm = highlights[hb];
+          if (hlTerm.end === globalEnd) {
+            var termCount = hlTerm.count || 1;
+            var badge = doc.createElement('span');
+            badge.className = 'bookies-di-badge bookies-di-badge--phrase bookies-ignore';
+            badge.setAttribute('data-di-cfi', hlTerm.cfi);
+            badge.setAttribute('data-heat', _getHeatLevel(termCount));
+            // No numerical text content - boldness indicates chat count!
+            _attachDiscussionEvents(badge, hlTerm.cfi, termCount, false);
+            span.appendChild(badge);
+          }
         }
 
         frag.appendChild(span);
@@ -2599,18 +3034,52 @@ function _reinjectDiscussionBadges(contents) {
   // 2. Un-wrap existing indicators so the DOM is 100% clean and pristine
   _unwrapAllDiscussionIndicators(doc);
 
-  // 3. Resolve ALL ranges on the pristine DOM and partition phrases by block element
+  // 3. Resolve ALL ranges on the pristine DOM in memory (Phase 1: pure read)
   var blockMap = [];
+  var paraList = [];
+
   for (var j = 0; j < chapterCfis.length; j++) {
     var cfiString = chapterCfis[j];
     var meta = _discussionMeta[cfiString] || { count: 1 };
-    var range;
+    var range = null;
+
     try {
-      range = contents.range(cfiString);
-    } catch(e) {
-      continue;
+      range = contents.range(cfiString, 'bookies-ignore');
+    } catch(e) {}
+    if (!range) {
+      try {
+        range = contents.range(cfiString);
+      } catch(e2) {}
     }
-    if (!range) continue;
+
+    // Verify whether the resolved range matches the stored quoteText
+    var quote = meta.quoteText;
+    var rangeValid = false;
+    if (range) {
+      var rangeText = (range.toString() || '').trim();
+      if (quote) {
+        var cleanRangeText = rangeText.replace(/\s+/g, ' ');
+        var cleanQuote = quote.replace(/\s+/g, ' ');
+        if (cleanRangeText.length > 0 && (cleanRangeText === cleanQuote || cleanRangeText.indexOf(cleanQuote) !== -1 || cleanQuote.indexOf(cleanRangeText) !== -1)) {
+          rangeValid = true;
+        }
+      } else if (rangeText.length > 0) {
+        rangeValid = true;
+      }
+    }
+
+    // Self-heal: if CFI didn't resolve or resolved to wrong text, search chapter document for the quote
+    if (!rangeValid && quote) {
+      var approxOffset = _getApproximateDocOffset(doc, cfiString, range);
+      var foundRange = _findQuoteRangeInDoc(doc, quote, approxOffset);
+      if (foundRange) {
+        range = foundRange;
+        rangeValid = true;
+      }
+    }
+
+    // If still invalid, skip rendering this CFI rather than placing it at an arbitrary offset
+    if (!rangeValid || !range) continue;
 
     var text = (range.toString() || '').trim();
     var isParagraph = text.length > 250;
@@ -2632,7 +3101,6 @@ function _reinjectDiscussionBadges(contents) {
     meta.isParagraph = isParagraph;
 
     if (isParagraph) {
-      // ── Paragraph indicator ──
       var node = range.commonAncestorContainer;
       if (node.nodeType === 3) node = node.parentElement;
       var blockEl = node;
@@ -2642,35 +3110,13 @@ function _reinjectDiscussionBadges(contents) {
         blockEl = blockEl.parentElement;
       }
       if (blockEl && blockEl !== doc.body) {
-        blockEl.classList.add('bookies-di-para-wrap');
-        blockEl.setAttribute('data-di-cfi', cfiString);
-
-        (function(cStr) {
-          blockEl.onclick = function(e) {
-            e.stopPropagation();
-            if (window.flutter_inappwebview && window.flutter_inappwebview.callHandler) {
-              window.flutter_inappwebview.callHandler('markClicked', cStr, null);
-            }
-          };
-        })(cfiString);
-
-        var countLabel = _formatDiscussionCount(meta.count || 1);
-        var badge = doc.createElement('span');
-        badge.className = 'bookies-di-badge bookies-di-badge--para';
-        badge.setAttribute('data-di-cfi', cfiString);
-        badge.innerHTML = _chatSvg + ' ' + countLabel + (meta.count === 1 ? ' note' : ' notes');
-        (function(cStr) {
-          badge.onclick = function(e) {
-            e.stopPropagation();
-            if (window.flutter_inappwebview && window.flutter_inappwebview.callHandler) {
-              window.flutter_inappwebview.callHandler('markClicked', cStr, null);
-            }
-          };
-        })(cfiString);
-        blockEl.appendChild(badge);
+        paraList.push({
+          blockEl: blockEl,
+          cfi: cfiString,
+          count: meta.count || 1
+        });
       }
     } else {
-      // ── Phrase indicator ──
       var bEl = _findBlockElement(doc, range.commonAncestorContainer);
       var startChar = _getCharOffsetInBlock(doc, bEl, range.startContainer, range.startOffset);
       var endChar = _getCharOffsetInBlock(doc, bEl, range.endContainer, range.endOffset);
@@ -2697,7 +3143,27 @@ function _reinjectDiscussionBadges(contents) {
     }
   }
 
-  // 4. Render all phrase blocks atomically using interval slicing
+  // 4. Render all indicators (Phase 2: pure mutation)
+  // 4a. Paragraph indicators
+  for (var p = 0; p < paraList.length; p++) {
+    var pItem = paraList[p];
+    var pBlock = pItem.blockEl;
+    var pCount = pItem.count || 1;
+    pBlock.classList.add('bookies-di-para-wrap', 'bookies-ignore');
+    pBlock.setAttribute('data-di-cfi', pItem.cfi);
+    pBlock.setAttribute('data-heat', _getHeatLevel(pCount));
+    _attachDiscussionEvents(pBlock, pItem.cfi, pCount, true);
+
+    var badge = doc.createElement('span');
+    badge.className = 'bookies-di-badge bookies-di-badge--para bookies-ignore';
+    badge.setAttribute('data-di-cfi', pItem.cfi);
+    badge.setAttribute('data-heat', _getHeatLevel(pCount));
+    // No numerical text content - boldness indicates chat count!
+    _attachDiscussionEvents(badge, pItem.cfi, pCount, false);
+    pBlock.appendChild(badge);
+  }
+
+  // 4b. Phrase indicators
   for (var bIdx = 0; bIdx < blockMap.length; bIdx++) {
     var entry = blockMap[bIdx];
     _renderPhrasesInBlock(doc, entry.blockEl, entry.highlights);
@@ -2742,10 +3208,14 @@ function _ensureDiscussionContentHook() {
   }
 }
 
-function addUnderLine(cfiString, count) {
+function addUnderLine(cfiString, count, quoteText) {
   count = (typeof count === 'number' && count > 0) ? count : 1;
   _ensureDiscussionContentHook();
-  _discussionMeta[cfiString] = { count: count, isParagraph: false };
+  _discussionMeta[cfiString] = {
+    count: count,
+    isParagraph: false,
+    quoteText: (typeof quoteText === 'string' && quoteText.trim().length > 0) ? quoteText.trim() : null
+  };
   _reinjectAllContentsBadges();
   setTimeout(_reinjectAllContentsBadges, 50);
   setTimeout(_reinjectAllContentsBadges, 200);
@@ -3099,10 +3569,8 @@ function checkSelectionAfterLongPress() {
             var text = selection.toString();
             if (text && range && !range.collapsed) {
               // Try to get CFI
-              if (typeof contents.cfiFromRange === 'function') {
-                try {
-                  var cfiRange = contents.cfiFromRange(range);
-                  if (cfiRange) {
+              var cfiRange = _cfiFromRangeSafe(contents, range);
+              if (cfiRange) {
                     // Store this CFI to track changes
                     window.lastProcessedCfi = cfiRange.toString();
 
@@ -3165,12 +3633,8 @@ function checkSelectionAfterLongPress() {
                       }
                     }
                   }
-                } catch (e) {
-                  // Ignore errors
                 }
               }
-            }
-          }
         } catch (e) {
           // Ignore errors
         }
@@ -3186,8 +3650,8 @@ function checkSelectionAfterLongPress() {
             allContents.forEach(function (contents, idx) {
               try {
                 var range = parentSel.getRangeAt(0);
-                if (range && !range.collapsed && typeof contents.cfiFromRange === 'function') {
-                  var cfiRange = contents.cfiFromRange(range);
+                if (range && !range.collapsed) {
+                  var cfiRange = _cfiFromRangeSafe(contents, range);
                   if (cfiRange) {
                     if (typeof window.sendSelectionData === 'function') {
                       window.sendSelectionData(cfiRange, contents);
@@ -3226,21 +3690,15 @@ function checkSelectionPeriodically() {
             if (text && range && !range.collapsed) {
               foundSelection = true;
               // Check if this is a new/different selection
-              if (typeof contents.cfiFromRange === 'function') {
-                try {
-                  var cfiRange = contents.cfiFromRange(range);
-                  if (cfiRange) {
-                    var cfiString = cfiRange.toString();
-                    // Only process if CFI changed (selection was modified)
-                    if (cfiString !== window.lastProcessedCfi) {
-                      window.lastProcessedCfi = cfiString;
-                      if (typeof window.sendSelectionData === 'function') {
-                        window.sendSelectionData(cfiRange, contents);
-                      }
-                    }
+              var cfiRange = _cfiFromRangeSafe(contents, range);
+              if (cfiRange) {
+                var cfiString = cfiRange.toString();
+                // Only process if CFI changed (selection was modified)
+                if (cfiString !== window.lastProcessedCfi) {
+                  window.lastProcessedCfi = cfiString;
+                  if (typeof window.sendSelectionData === 'function') {
+                    window.sendSelectionData(cfiRange, contents);
                   }
-                } catch (e) {
-                  // Ignore errors
                 }
               }
             }
@@ -3261,8 +3719,8 @@ function checkSelectionPeriodically() {
             allContents.forEach(function (contents, idx) {
               try {
                 var range = parentSel.getRangeAt(0);
-                if (range && !range.collapsed && typeof contents.cfiFromRange === 'function') {
-                  var cfiRange = contents.cfiFromRange(range);
+                if (range && !range.collapsed) {
+                  var cfiRange = _cfiFromRangeSafe(contents, range);
                   if (cfiRange) {
                     var cfiString = cfiRange.toString();
                     if (cfiString !== window.lastProcessedCfi) {

@@ -40,6 +40,7 @@ class EpubViewer extends StatefulWidget {
     this.displaySettings,
     this.selectionContextMenu,
     this.onAnnotationClicked,
+    this.onAnnotationLongPressed,
     this.onSelection,
     this.onSelectionChanging,
     this.onDeselection,
@@ -96,6 +97,10 @@ class EpubViewer extends StatefulWidget {
   ///Provides the CFI range and the selection rect (same format as onSelection)
   final void Function(String cfiRange, Map<String, dynamic>? rect)?
   onAnnotationClicked;
+
+  ///Callback for handling annotation long press / tap-and-hold
+  final void Function(String cfiRange, Map<String, dynamic>? rect)?
+  onAnnotationLongPressed;
 
   /// Context menu for text selection.
   /// If null, the default context menu will be used.
@@ -437,6 +442,22 @@ class _EpubViewerState extends State<EpubViewer> {
         rect = null;
       }
       widget.onAnnotationClicked?.call(cfi, rect);
+    });
+
+    controller.addHandler("markLongPressed", (data) {
+      String cfi = data[0];
+      Map<String, dynamic>? rect;
+      try {
+        if (data.length > 1 && data[1] != null) {
+          rect = Map<String, dynamic>.from(data[1] as Map);
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('Error parsing annotation rect on long press: $e');
+        }
+        rect = null;
+      }
+      widget.onAnnotationLongPressed?.call(cfi, rect);
     });
 
     // Note: request/response calls (getCurrentLocation, search, extractText,

@@ -62,6 +62,15 @@ void main() {
       expect(call.args[1], '#ff0000');
     });
 
+    test('addUnderline passes cfi + count + quoteText', () {
+      controller.addUnderline(cfi: 'cfi1', count: 3, quoteText: 'Sample quote');
+      final call = bridge.calls.single;
+      expect(call.name, 'addUnderLine');
+      expect(call.args[0], 'cfi1');
+      expect(call.args[1], 3);
+      expect(call.args[2], 'Sample quote');
+    });
+
     test('setSpread/setFlow use enum .name', () async {
       await controller.setSpread(spread: EpubSpread.always);
       await controller.setFlow(flow: EpubFlow.scrolled);

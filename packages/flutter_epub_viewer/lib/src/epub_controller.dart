@@ -116,10 +116,10 @@ class EpubController {
     await webViewController?.callMethod('addHighlight', [cfi, colorHex, opacityString]);
   }
 
-  ///Adds a underline annotation with an optional discussion count badge
-  Future<void> addUnderline({required String cfi, int count = 1}) async {
+  ///Adds a underline annotation with an optional discussion count badge and quote text
+  Future<void> addUnderline({required String cfi, int count = 1, String? quoteText}) async {
     checkEpubLoaded();
-    await webViewController?.callMethod('addUnderLine', [cfi, count]);
+    await webViewController?.callMethod('addUnderLine', [cfi, count, quoteText]);
   }
 
   ///Removes a highlight from epub viewer

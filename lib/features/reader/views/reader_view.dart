@@ -14,6 +14,7 @@ import 'package:bookies/data/models/highlight.dart';
 import 'package:bookies/data/providers/local_data_service.dart';
 import 'package:bookies/features/reader/bloc/reader_bloc.dart';
 import 'package:bookies/features/discussion/views/discussions_bottom_sheet.dart';
+import 'package:bookies/features/discussion/views/discussion_details_sheet.dart';
 import 'package:bookies/core/widgets/reading_well.dart';
 import 'package:bookies/core/widgets/ambient_progress_bar.dart';
 import 'package:bookies/features/reader/views/reading_settings_modal.dart';
@@ -332,6 +333,34 @@ class _ReaderViewState extends State<ReaderView> {
     );
   }
 
+  void _showDiscussionDetails(
+    BuildContext context,
+    String bookId,
+    String? currentCfi,
+    Community? community,
+  ) {
+    if (currentCfi == null || currentCfi.isEmpty) return;
+    HapticFeedback.mediumImpact();
+    final discussions = context
+        .read<LocalDataService>()
+        .getDiscussionsForCfi(currentCfi);
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => DiscussionDetailsSheet(
+        discussions: discussions,
+        communityName: community?.name,
+        onOpenFullDiscussion: () => _showDiscussions(
+          context,
+          bookId,
+          currentCfi,
+          community,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<ReaderBloc, ReaderState>(
@@ -544,6 +573,13 @@ class _ReaderViewState extends State<ReaderView> {
                                   _saveQuoteSelection(state, selection),
                               onDiscussionIndicatorTapped: (cfi) =>
                                   _showDiscussions(
+                                    context,
+                                    state.book.id,
+                                    cfi,
+                                    activeCommunity,
+                                  ),
+                              onDiscussionIndicatorLongPressed: (cfi, rect) =>
+                                  _showDiscussionDetails(
                                     context,
                                     state.book.id,
                                     cfi,

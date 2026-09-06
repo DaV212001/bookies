@@ -1563,10 +1563,10 @@ class EpubCFI {
     if (anchor.nodeType === TEXT_NODE) {
       isText = true;
       parent = anchor.parentNode;
-      needsIgnoring = anchor.parentNode.classList.contains(ignoreClass);
+      needsIgnoring = parent && parent.classList && parent.classList.contains(ignoreClass);
     } else {
       isText = false;
-      needsIgnoring = anchor.classList.contains(ignoreClass);
+      needsIgnoring = anchor && anchor.classList && anchor.classList.contains(ignoreClass);
     }
     if (needsIgnoring && isText) {
       previousSibling = parent.previousSibling;
@@ -1600,13 +1600,13 @@ class EpubCFI {
     var totalOffset = offset;
 
     // If the parent is a ignored node, get offset from it's start
-    if (anchor.parentNode.classList.contains(ignoreClass)) {
+    if (anchor.parentNode && anchor.parentNode.classList && anchor.parentNode.classList.contains(ignoreClass)) {
       curr = anchor.parentNode;
     }
     while (curr.previousSibling) {
       if (curr.previousSibling.nodeType === ELEMENT_NODE) {
         // Originally a text node, so join
-        if (curr.previousSibling.classList.contains(ignoreClass)) {
+        if (curr.previousSibling.classList && curr.previousSibling.classList.contains(ignoreClass)) {
           totalOffset += curr.previousSibling.textContent.length;
         } else {
           break; // Normal node, dont join
@@ -1630,7 +1630,7 @@ class EpubCFI {
       currNodeType = children[i].nodeType;
 
       // Check if needs ignoring
-      if (currNodeType === ELEMENT_NODE && children[i].classList.contains(ignoreClass)) {
+      if (currNodeType === ELEMENT_NODE && children[i].classList && children[i].classList.contains(ignoreClass)) {
         currNodeType = TEXT_NODE;
       }
       if (i > 0 && currNodeType === TEXT_NODE && prevNodeType === TEXT_NODE) {
@@ -1666,7 +1666,7 @@ class EpubCFI {
     } else {
       children = anchor.parentNode.childNodes;
       // Inside an ignored node
-      if (anchor.parentNode.classList.contains(ignoreClass)) {
+      if (anchor.parentNode && anchor.parentNode.classList && anchor.parentNode.classList.contains(ignoreClass)) {
         anchor = anchor.parentNode;
         children = anchor.parentNode.childNodes;
       }
@@ -1722,7 +1722,7 @@ class EpubCFI {
     return Array.prototype.slice.call(container.childNodes).filter(function (node) {
       if (node.nodeType === TEXT_NODE) {
         return true;
-      } else if (ignoreClass && node.classList.contains(ignoreClass)) {
+      } else if (ignoreClass && node.classList && node.classList.contains(ignoreClass)) {
         return true;
       }
       return false;
@@ -1744,10 +1744,13 @@ class EpubCFI {
           container = doc.getElementById(step.id);
         } else {
           children = container.children || Object(_utils_core__WEBPACK_IMPORTED_MODULE_0__["findChildren"])(container);
-          container = children[step.index];
+          container = children ? children[step.index] : null;
         }
       } else if (step.type === "text") {
-        container = this.textNodes(container, ignoreClass)[step.index];
+        var tNodes = this.textNodes(container, ignoreClass);
+        container = (tNodes && tNodes.length > 0)
+          ? tNodes[step.index]
+          : null;
       }
       if (!container) {
         //Break the for loop as due to incorrect index we can get error if
@@ -1763,27 +1766,37 @@ class EpubCFI {
     var container;
     var xpath;
     if (!ignoreClass && typeof doc.evaluate != "undefined") {
-      xpath = this.stepsToXpath(steps);
-      container = doc.evaluate(xpath, doc, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-    } else if (ignoreClass) {
+      try {
+        xpath = this.stepsToXpath(steps);
+        container = doc.evaluate(xpath, doc, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+      } catch (e) {
+        container = null;
+      }
+    }
+    if (!container) {
       container = this.walkToNode(steps, doc, ignoreClass);
-    } else {
-      container = this.walkToNode(steps, doc);
     }
     return container;
   }
   fixMiss(steps, offset, _doc, ignoreClass) {
     var container = this.findNode(steps.slice(0, -1), _doc, ignoreClass);
+    if (!container) {
+      return {
+        container: (_doc || document).body || (_doc || document).documentElement,
+        offset: 0
+      };
+    }
     var children = container.childNodes;
     var map = this.normalizedMap(children, TEXT_NODE, ignoreClass);
     var child;
     var len;
-    var lastStepIndex = steps[steps.length - 1].index;
+    var lastStep = steps[steps.length - 1];
+    var lastStepIndex = lastStep ? lastStep.index : 0;
     for (let childIndex in map) {
       if (!map.hasOwnProperty(childIndex)) return;
       if (map[childIndex] === lastStepIndex) {
         child = children[childIndex];
-        len = child.textContent.length;
+        len = child.textContent ? child.textContent.length : 0;
         if (offset > len) {
           offset = offset - len;
         } else {
@@ -1835,30 +1848,34 @@ class EpubCFI {
     }
     if (startContainer) {
       try {
-        if (start.terminal.offset != null) {
-          range.setStart(startContainer, start.terminal.offset);
-        } else {
-          range.setStart(startContainer, 0);
-        }
+        var startMax = (startContainer.nodeType === 3 && startContainer.textContent) ? startContainer.textContent.length : null;
+        var startOff = (start.terminal.offset != null)
+          ? (startMax != null ? Math.min(start.terminal.offset, startMax) : start.terminal.offset)
+          : 0;
+        range.setStart(startContainer, startOff);
       } catch (e) {
         missed = this.fixMiss(startSteps, start.terminal.offset, doc, needsIgnoring ? ignoreClass : null);
-        range.setStart(missed.container, missed.offset);
+        if (missed && missed.container) {
+          range.setStart(missed.container, missed.offset || 0);
+        }
       }
     } else {
-      console.log("No startContainer found for", this.toString());
+      console.debug("No startContainer found for", this.toString());
       // No start found
       return null;
     }
     if (endContainer) {
       try {
-        if (end.terminal.offset != null) {
-          range.setEnd(endContainer, end.terminal.offset);
-        } else {
-          range.setEnd(endContainer, 0);
-        }
+        var endMax = (endContainer.nodeType === 3 && endContainer.textContent) ? endContainer.textContent.length : null;
+        var endOff = (end.terminal.offset != null)
+          ? (endMax != null ? Math.min(end.terminal.offset, endMax) : end.terminal.offset)
+          : 0;
+        range.setEnd(endContainer, endOff);
       } catch (e) {
         missed = this.fixMiss(endSteps, cfi.end.terminal.offset, doc, needsIgnoring ? ignoreClass : null);
-        range.setEnd(missed.container, missed.offset);
+        if (missed && missed.container) {
+          range.setEnd(missed.container, missed.offset || 0);
+        }
       }
     }
 

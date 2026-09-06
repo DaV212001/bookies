@@ -118,12 +118,22 @@ class _ComponentGalleryScreenState extends State<ComponentGalleryScreen> {
                   const SizedBox(height: AppSpacing.l),
 
                   // MarginDiscussionIndicator & DiscussionModal
-                  Text('MarginDiscussionIndicator & DiscussionModal', style: Theme.of(context).textTheme.labelLarge),
+                  Text('MarginDiscussionIndicator (boldness tiers) & DiscussionModal', style: Theme.of(context).textTheme.labelLarge),
                   const SizedBox(height: AppSpacing.xs),
                   Row(
                     children: [
-                      const MarginDiscussionIndicator(),
-                      const SizedBox(width: AppSpacing.s),
+                      const MarginDiscussionIndicator(count: 1),
+                      const SizedBox(width: AppSpacing.xs),
+                      const MarginDiscussionIndicator(count: 5),
+                      const SizedBox(width: AppSpacing.xs),
+                      const MarginDiscussionIndicator(count: 20),
+                      const SizedBox(width: AppSpacing.xs),
+                      const MarginDiscussionIndicator(count: 75),
+                      const SizedBox(width: AppSpacing.xs),
+                      const MarginDiscussionIndicator(count: 250),
+                      const SizedBox(width: AppSpacing.xs),
+                      const MarginDiscussionIndicator(count: 650),
+                      const SizedBox(width: AppSpacing.m),
                       PrimaryButton(
                         label: 'Show Modal',
                         onPressed: () {

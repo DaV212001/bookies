@@ -202,7 +202,7 @@ class _IoEpubViewState extends State<_IoEpubView> {
     final port = _localhostServer?.port ?? 8080;
     // Version the host page so WebView cache cannot retain an older annotation renderer.
     final url =
-        'http://localhost:$port/packages/flutter_epub_viewer/lib/assets/webpage/html/swipe.html?v=discussion-indicators-3';
+        'http://localhost:$port/packages/flutter_epub_viewer/lib/assets/webpage/html/swipe.html?v=discussion-indicators-10';
 
     return Container(
       decoration: config.backgroundDecoration,

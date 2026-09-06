@@ -20,6 +20,8 @@ class EpubJsReader extends StatefulWidget {
   final ValueChanged<EpubTextSelection>? onDiscussSelection;
   final ValueChanged<EpubTextSelection>? onSaveQuoteSelection;
   final ValueChanged<String>? onDiscussionIndicatorTapped;
+  final void Function(String cfi, Map<String, dynamic>? rect)?
+      onDiscussionIndicatorLongPressed;
 
   const EpubJsReader({
     super.key,
@@ -32,6 +34,7 @@ class EpubJsReader extends StatefulWidget {
     this.onDiscussSelection,
     this.onSaveQuoteSelection,
     this.onDiscussionIndicatorTapped,
+    this.onDiscussionIndicatorLongPressed,
   });
 
   @override
@@ -164,12 +167,18 @@ class _EpubJsReaderState extends State<EpubJsReader> {
   }
 
   void _syncDiscussionIndicators() {
-    // Group discussions by CFI to compute per-passage message counts.
+    // Group discussions by CFI to compute per-passage message counts and quote texts.
     final cfiCounts = <String, int>{};
+    final cfiQuotes = <String, String>{};
     for (final discussion in widget.passageDiscussions) {
       final cfi = discussion.highlightId;
       if (cfi.startsWith('epubcfi(')) {
         cfiCounts[cfi] = (cfiCounts[cfi] ?? 0) + 1;
+        if (discussion.quoteText != null &&
+            discussion.quoteText!.trim().isNotEmpty &&
+            !cfiQuotes.containsKey(cfi)) {
+          cfiQuotes[cfi] = discussion.quoteText!.trim();
+        }
       }
     }
     final cfis = cfiCounts.keys.toSet();
@@ -178,7 +187,11 @@ class _EpubJsReaderState extends State<EpubJsReader> {
     }
     for (final cfi in cfis.difference(_renderedDiscussionCfis)) {
       _runControllerCall(
-        () => _controller.addUnderline(cfi: cfi, count: cfiCounts[cfi] ?? 1),
+        () => _controller.addUnderline(
+          cfi: cfi,
+          count: cfiCounts[cfi] ?? 1,
+          quoteText: cfiQuotes[cfi],
+        ),
       );
     }
     _renderedDiscussionCfis
@@ -305,6 +318,8 @@ class _EpubJsReaderState extends State<EpubJsReader> {
           onTextSelected: (selection) => _lastSelection = selection,
           onAnnotationClicked: (cfiRange, rect) =>
               widget.onDiscussionIndicatorTapped?.call(cfiRange),
+          onAnnotationLongPressed: (cfiRange, rect) =>
+              widget.onDiscussionIndicatorLongPressed?.call(cfiRange, rect),
           onSelectionChanging: () => widget.showControls.value = false,
           onDeselection: () => widget.showControls.value = true,
         );
