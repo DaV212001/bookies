@@ -533,28 +533,6 @@ class _CommunityManagementViewState extends State<CommunityManagementView>
           ],
         ),
         actions: [
-          Container(
-            margin: const EdgeInsets.only(right: 6),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primaryContainer,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(LucideIcons.crown, size: 14, color: theme.colorScheme.onPrimaryContainer),
-                const SizedBox(width: 5),
-                Text(
-                  'Creator Mode',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.onPrimaryContainer,
-                  ),
-                ),
-              ],
-            ),
-          ),
           PopupMenuButton<String>(
             icon: const Icon(LucideIcons.ellipsisVertical),
             tooltip: 'Club Options',

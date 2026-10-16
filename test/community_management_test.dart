@@ -111,7 +111,7 @@ void main() {
   }
 
   group('Community Reader Management & Live Reading Tests', () {
-    testWidgets('CommunityManagementView renders tabs, Creator Mode, and members list', (tester) async {
+    testWidgets('CommunityManagementView renders tabs and members list', (tester) async {
       tester.view.physicalSize = const Size(1000, 1200);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -128,9 +128,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Check Creator Mode badge and title
+      // Check title and absence of Creator Mode badge
       expect(find.text('Reader Management'), findsOneWidget);
-      expect(find.text('Creator Mode'), findsOneWidget);
+      expect(find.text('Creator Mode'), findsNothing);
       expect(find.text('The Secret History'), findsOneWidget);
 
       // Check Tabs
