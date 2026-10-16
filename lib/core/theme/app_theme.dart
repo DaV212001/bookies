@@ -1,8 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 import 'app_typography.dart';
 
 class AppTheme {
+  static InputDecorationTheme _buildInputDecorationTheme({
+    required Color hintColor,
+    required Color textColor,
+  }) {
+    return InputDecorationTheme(
+      hintStyle: GoogleFonts.inter(
+        fontSize: 13.5,
+        fontWeight: FontWeight.normal,
+        color: hintColor,
+      ),
+      labelStyle: GoogleFonts.inter(
+        fontSize: 13.5,
+        fontWeight: FontWeight.normal,
+        color: textColor,
+      ),
+    );
+  }
   static ThemeData get parchmentLight {
     return ThemeData(
       useMaterial3: true,
@@ -38,6 +56,10 @@ class AppTheme {
       textTheme: AppTypography.getTextTheme().apply(
         bodyColor: AppColors.parchmentTextPrimary,
         displayColor: AppColors.parchmentTextPrimary,
+      ),
+      inputDecorationTheme: _buildInputDecorationTheme(
+        hintColor: AppColors.onSurfaceVariant.withValues(alpha: 0.65),
+        textColor: AppColors.parchmentTextPrimary,
       ),
       extensions: const <ThemeExtension<dynamic>>[
         ReaderColors(
@@ -92,6 +114,10 @@ class AppTheme {
         bodyColor: AppColors.sepiaTextPrimary,
         displayColor: AppColors.sepiaTextPrimary,
       ),
+      inputDecorationTheme: _buildInputDecorationTheme(
+        hintColor: const Color(0xFF6B5848).withValues(alpha: 0.65),
+        textColor: AppColors.sepiaTextPrimary,
+      ),
       extensions: const <ThemeExtension<dynamic>>[
         ReaderColors(
           highlightFill: AppColors.highlightLightFill,
@@ -145,6 +171,10 @@ class AppTheme {
         bodyColor: AppColors.charcoalTextPrimary,
         displayColor: AppColors.charcoalTextPrimary,
       ),
+      inputDecorationTheme: _buildInputDecorationTheme(
+        hintColor: const Color(0xFF94A3B8).withValues(alpha: 0.65),
+        textColor: AppColors.charcoalTextPrimary,
+      ),
       extensions: const <ThemeExtension<dynamic>>[
         ReaderColors(
           highlightFill: AppColors.highlightLightFill,
@@ -197,6 +227,10 @@ class AppTheme {
       textTheme: AppTypography.getTextTheme().apply(
         bodyColor: const Color(0xFFE5E7EB),
         displayColor: const Color(0xFFE5E7EB),
+      ),
+      inputDecorationTheme: _buildInputDecorationTheme(
+        hintColor: const Color(0xFF9CA3AF).withValues(alpha: 0.65),
+        textColor: const Color(0xFFE5E7EB),
       ),
       extensions: const <ThemeExtension<dynamic>>[
         ReaderColors(

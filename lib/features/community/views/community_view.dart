@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import 'package:bookies/data/models/book.dart';
@@ -79,25 +80,41 @@ class _CommunitiesViewState extends State<CommunitiesView> {
         TextField(
           controller: _searchController,
           onChanged: (_) => setState(() {}),
+          style: GoogleFonts.inter(
+            fontSize: 13.5,
+            fontWeight: FontWeight.normal,
+            color: theme.colorScheme.onSurface,
+          ),
           decoration: InputDecoration(
+            isDense: true,
             hintText: 'Search communities or books',
-            prefixIcon: const Icon(LucideIcons.search, size: 19),
+            hintStyle: GoogleFonts.inter(
+              fontSize: 13.5,
+              fontWeight: FontWeight.normal,
+              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.65),
+            ),
+            prefixIcon: const Icon(LucideIcons.search, size: 17),
+            prefixIconConstraints: const BoxConstraints(minWidth: 40, minHeight: 40),
             suffixIcon: query.isEmpty
                 ? null
                 : IconButton(
                     tooltip: 'Clear search',
-                    icon: const Icon(LucideIcons.x, size: 18),
+                    icon: const Icon(LucideIcons.x, size: 16),
+                    constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                    padding: EdgeInsets.zero,
                     onPressed: () {
                       _searchController.clear();
                       setState(() {});
                     },
                   ),
+            suffixIconConstraints: const BoxConstraints(minWidth: 36, minHeight: 36),
             filled: true,
             fillColor: theme.colorScheme.surfaceContainerLow,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
             ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           ),
         ),
         const SizedBox(height: 10),
