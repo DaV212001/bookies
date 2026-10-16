@@ -6,6 +6,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import 'package:bookies/core/widgets/create_thread_dialog.dart';
 import 'package:bookies/core/widgets/quote_card_rating_widget.dart';
+import 'package:bookies/core/widgets/responsive_text.dart';
 import 'package:bookies/data/models/book.dart';
 import 'package:bookies/data/models/discussion.dart';
 import 'package:bookies/data/models/highlight.dart';
@@ -238,20 +239,25 @@ class _CommunityDetailViewState extends State<CommunityDetailView>
             ),
             child: _buildCover(theme, book?.coverUrl),
           ),
-          Text(
+          ResponsiveText.display(
             widget.communityName,
             textAlign: TextAlign.center,
             style: theme.textTheme.displaySmall?.copyWith(
               fontWeight: FontWeight.bold,
             ),
+            maxLines: 2,
+            minFontSize: 18,
           ),
           const SizedBox(height: 4),
-          Text(
+          ResponsiveText.body(
             'by ${book?.author ?? 'Unknown author'}',
             style: theme.textTheme.bodyLarge?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
               fontStyle: FontStyle.italic,
             ),
+            maxLines: 1,
+            minFontSize: 12,
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 18),
           Row(
@@ -325,18 +331,21 @@ class _CommunityDetailViewState extends State<CommunityDetailView>
                             ),
                           ],
                         ),
-                        Text(
+                        ResponsiveText.title(
                           activeLiveSession.title,
                           style: const TextStyle(
                               fontWeight: FontWeight.bold, fontSize: 13),
-                          overflow: TextOverflow.ellipsis,
+                          maxLines: 2,
+                          minFontSize: 11,
                         ),
-                        Text(
+                        ResponsiveText.label(
                           'Host: ${activeLiveSession.host.displayName} • ${activeLiveSession.chapterTitle ?? 'Reading in sync'}',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                             fontSize: 11,
                           ),
+                          maxLines: 1,
+                          minFontSize: 9.5,
                         ),
                       ],
                     ),
@@ -517,11 +526,13 @@ class _CommunityDetailViewState extends State<CommunityDetailView>
                   Icon(LucideIcons.hash, size: 20, color: theme.colorScheme.primary),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: Text(
+                    child: ResponsiveText.title(
                       topic.title,
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
+                      maxLines: 2,
+                      minFontSize: 13,
                     ),
                   ),
                   Text(

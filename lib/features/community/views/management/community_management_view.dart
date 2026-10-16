@@ -3,6 +3,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
 import 'package:bookies/core/widgets/create_community_dialog.dart';
+import 'package:bookies/core/widgets/responsive_text.dart';
 import 'package:bookies/data/models/community_member.dart';
 import 'package:bookies/data/models/live_reading_session.dart';
 import 'package:bookies/data/providers/local_data_service.dart';
@@ -521,11 +522,13 @@ class _CommunityManagementViewState extends State<CommunityManagementView>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text('Reader Management'),
-            Text(
+            ResponsiveText.label(
               widget.communityName,
               style: theme.textTheme.labelSmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
+              maxLines: 1,
+              minFontSize: 10,
             ),
           ],
         ),
@@ -591,6 +594,8 @@ class _CommunityManagementViewState extends State<CommunityManagementView>
         ],
         bottom: TabBar(
           controller: _tabController,
+          tabAlignment: TabAlignment.center,
+          isScrollable: true,
           tabs: [
             Tab(
               icon: const Icon(LucideIcons.users, size: 18),
@@ -765,10 +770,11 @@ class _CommunityManagementViewState extends State<CommunityManagementView>
                       title: Row(
                         children: [
                           Flexible(
-                            child: Text(
+                            child: ResponsiveText.title(
                               member.user.displayName,
                               style: const TextStyle(fontWeight: FontWeight.w600),
-                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                              minFontSize: 13,
                             ),
                           ),
                           if (isMe) ...[
@@ -791,15 +797,14 @@ class _CommunityManagementViewState extends State<CommunityManagementView>
                           ],
                         ],
                       ),
-                      subtitle: Row(
+                      subtitle: Wrap(
+                        spacing: 6,
+                        runSpacing: 2,
+                        crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
                           Text('@${member.user.username}'),
-                          const SizedBox(width: 8),
                           _buildRoleBadge(theme, member.role),
-                          if (member.isRestricted) ...[
-                            const SizedBox(width: 6),
-                            _buildStatusBadge(theme, member.status),
-                          ],
+                          if (member.isRestricted) _buildStatusBadge(theme, member.status),
                         ],
                       ),
                       trailing: IconButton(

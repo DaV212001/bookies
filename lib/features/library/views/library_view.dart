@@ -12,6 +12,7 @@ import 'package:bookies/core/utils/app_logger.dart';
 import 'package:bookies/data/providers/local_data_service.dart';
 import 'package:bookies/data/models/book.dart';
 import 'package:bookies/core/widgets/create_community_dialog.dart';
+import 'package:bookies/core/widgets/responsive_text.dart';
 
 enum LibraryViewMode { grid, list }
 
@@ -345,22 +346,22 @@ class _LibraryViewState extends State<LibraryView> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
+                              ResponsiveText.title(
                                 'Your Library',
                                 style: theme.textTheme.titleMedium?.copyWith(
                                   fontWeight: FontWeight.bold,
                                 ),
                                 maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                                minFontSize: 13,
                               ),
                               const SizedBox(height: 2),
-                              Text(
+                              ResponsiveText.label(
                                 '${allBooks.length} Books • $currentlyReadingCount Reading',
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   color: theme.colorScheme.onSurfaceVariant,
                                 ),
                                 maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                                minFontSize: 10,
                               ),
                             ],
                           ),
@@ -772,22 +773,22 @@ class _LibraryViewState extends State<LibraryView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  ResponsiveText.title(
                     book.title,
                     style: theme.textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                    maxLines: 2,
+                    minFontSize: 11.5,
                   ),
                   const SizedBox(height: 2),
-                  Text(
+                  ResponsiveText.body(
                     book.author,
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
                     maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                    minFontSize: 10.5,
                   ),
                   if (progress > 0.0) ...[
                     const SizedBox(height: 6),
@@ -861,20 +862,22 @@ class _LibraryViewState extends State<LibraryView> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    ResponsiveText.title(
                       book.title,
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                      maxLines: 2,
+                      minFontSize: 13,
                     ),
                     const SizedBox(height: 2),
-                    Text(
+                    ResponsiveText.body(
                       book.author,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
+                      maxLines: 1,
+                      minFontSize: 11,
                     ),
                     const SizedBox(height: 8),
                     LinearProgressIndicator(

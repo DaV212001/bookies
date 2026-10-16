@@ -8,6 +8,7 @@ import 'package:bookies/data/models/book.dart';
 import 'package:bookies/data/providers/local_data_service.dart';
 import 'package:bookies/features/discussion/views/discussions_bottom_sheet.dart';
 import 'package:bookies/core/widgets/create_community_dialog.dart';
+import 'package:bookies/core/widgets/responsive_text.dart';
 
 class ChapterListDrawer extends StatefulWidget {
   final Book book;
@@ -118,16 +119,18 @@ class _ChapterListDrawerState extends State<ChapterListDrawer> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
+                            ResponsiveText.title(
                               'Table of Contents',
+                              maxLines: 1,
+                              minFontSize: 13,
                               style: theme.textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            Text(
+                            ResponsiveText.body(
                               book.title,
                               maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                              minFontSize: 10.5,
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: theme.colorScheme.onSurfaceVariant,
                               ),

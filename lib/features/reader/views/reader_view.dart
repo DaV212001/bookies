@@ -24,6 +24,7 @@ import 'package:bookies/features/reader/widgets/epub_js_reader.dart';
 
 import 'package:bookies/core/widgets/create_thread_dialog.dart';
 import 'package:bookies/core/widgets/create_community_dialog.dart';
+import 'package:bookies/core/widgets/responsive_text.dart';
 import 'package:bookies/features/community/views/community_detail_view.dart';
 
 class ReaderView extends StatefulWidget {
@@ -117,16 +118,18 @@ class _ReaderViewState extends State<ReaderView> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
+                              ResponsiveText.headline(
                                 'Book Communities',
                                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                       fontWeight: FontWeight.bold,
                                     ),
+                                maxLines: 1,
+                                minFontSize: 15,
                               ),
-                              Text(
+                              ResponsiveText.body(
                                 book.title,
                                 maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                                minFontSize: 11,
                                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                                     ),
@@ -174,8 +177,10 @@ class _ReaderViewState extends State<ReaderView> {
                                   : Theme.of(context).colorScheme.onSurfaceVariant,
                             ),
                           ),
-                          title: Text(
+                          title: ResponsiveText.title(
                             community.name,
+                            maxLines: 1,
+                            minFontSize: 13,
                             style: TextStyle(
                               fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
                               color: isCurrent
@@ -184,10 +189,10 @@ class _ReaderViewState extends State<ReaderView> {
                             ),
                           ),
                           subtitle: community.description.isNotEmpty
-                              ? Text(
+                              ? ResponsiveText.body(
                                   community.description,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 2,
+                                  minFontSize: 11,
                                 )
                               : null,
                           trailing: isCurrent
@@ -617,10 +622,11 @@ class _ReaderViewState extends State<ReaderView> {
                             mainAxisSize: MainAxisSize.min,
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              Text(
+                              ResponsiveText.title(
                                 state.book.title,
                                 maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                                minFontSize: 11,
+                                textAlign: TextAlign.center,
                                 style: TextStyle(
                                   color: textColor,
                                   fontWeight: FontWeight.w600,
@@ -640,12 +646,12 @@ class _ReaderViewState extends State<ReaderView> {
                                   ),
                                   const SizedBox(width: 4),
                                   Flexible(
-                                    child: Text(
+                                    child: ResponsiveText.label(
                                       activeCommunity != null
                                           ? activeCommunity.name
                                           : 'Select Community',
                                       maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
+                                      minFontSize: 9.5,
                                       style: TextStyle(
                                         fontSize: 11,
                                         fontWeight: activeCommunity != null

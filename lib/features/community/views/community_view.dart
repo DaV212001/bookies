@@ -9,6 +9,7 @@ import 'package:bookies/data/models/community.dart';
 import 'package:bookies/data/providers/local_data_service.dart';
 import 'package:bookies/features/community/views/community_detail_view.dart';
 import 'package:bookies/core/widgets/create_community_dialog.dart';
+import 'package:bookies/core/widgets/responsive_text.dart';
 
 class CommunitiesView extends StatefulWidget {
   const CommunitiesView({super.key});
@@ -316,34 +317,40 @@ class _CommunityBookCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    ResponsiveText.title(
                       community.name,
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
+                      maxLines: 2,
+                      minFontSize: 13,
                     ),
                     const SizedBox(height: 3),
-                    Text(
+                    ResponsiveText.label(
                       book?.title ?? 'Book community',
                       style: theme.textTheme.labelMedium?.copyWith(
                         color: theme.colorScheme.secondary,
                         fontWeight: FontWeight.w600,
                       ),
+                      maxLines: 1,
+                      minFontSize: 10,
                     ),
                     if (book?.author.isNotEmpty == true) ...[
                       const SizedBox(height: 2),
-                      Text(
+                      ResponsiveText.label(
                         book!.author,
                         style: theme.textTheme.labelSmall?.copyWith(
                           color: theme.colorScheme.secondary,
                         ),
+                        maxLines: 1,
+                        minFontSize: 9.5,
                       ),
                     ],
                     const SizedBox(height: 7),
-                    Text(
+                    ResponsiveText.body(
                       community.description,
                       maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                      minFontSize: 11,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),

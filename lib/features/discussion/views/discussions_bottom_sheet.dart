@@ -13,6 +13,7 @@ import 'package:bookies/core/widgets/primary_button.dart';
 import 'package:bookies/core/widgets/community_membership_gate.dart';
 import 'package:bookies/features/community/views/community_detail_view.dart';
 import 'package:bookies/core/widgets/create_community_dialog.dart';
+import 'package:bookies/core/widgets/responsive_text.dart';
 
 class DiscussionsBottomSheet extends StatefulWidget {
   final String bookId;
@@ -158,17 +159,19 @@ class _DiscussionsBottomSheetState extends State<DiscussionsBottomSheet> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      ResponsiveText.label(
                         _bookTitle,
                         maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                        minFontSize: 10,
                         style: theme.textTheme.labelMedium?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
                       ),
                       const SizedBox(height: 4),
-                      Text(
+                      ResponsiveText.title(
                         'Discussion Threads',
+                        maxLines: 1,
+                        minFontSize: 15,
                         style: theme.textTheme.headlineMedium?.copyWith(
                           fontSize: 20,
                         ),

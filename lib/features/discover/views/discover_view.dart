@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:bookies/core/widgets/responsive_text.dart';
 
 class DiscoverView extends StatefulWidget {
   const DiscoverView({super.key});
@@ -197,7 +198,7 @@ class _DiscoverViewState extends State<DiscoverView> {
             ],
           ),
           const SizedBox(height: 16),
-          Text(
+          ResponsiveText.body(
             '"A room without books is like a body without a soul. In reading, we discover our truest companions across centuries."',
             style: theme.textTheme.titleMedium?.copyWith(
               fontStyle: FontStyle.italic,
@@ -205,6 +206,8 @@ class _DiscoverViewState extends State<DiscoverView> {
               height: 1.6,
               fontWeight: FontWeight.w500,
             ),
+            maxLines: 5,
+            minFontSize: 13,
           ),
           const SizedBox(height: 14),
           Row(
@@ -674,21 +677,23 @@ class _DiscoverViewState extends State<DiscoverView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                ResponsiveText.title(
                   title,
                   style: theme.textTheme.labelLarge?.copyWith(
                     color: theme.colorScheme.primary,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                  maxLines: 2,
+                  minFontSize: 12,
                 ),
                 const SizedBox(height: 2),
-                Text(
+                ResponsiveText.body(
                   subtitle,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                     fontSize: 12,
                   ),
+                  maxLines: 1,
+                  minFontSize: 10.5,
                 ),
                 const SizedBox(height: 6),
                 InkWell(
