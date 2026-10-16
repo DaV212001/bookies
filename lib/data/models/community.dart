@@ -4,6 +4,7 @@ class Community {
   final String description;
   final String bookId; // The reference book for this community
   final int memberCount;
+  final String creatorId;
 
   Community({
     required this.id,
@@ -11,6 +12,7 @@ class Community {
     required this.description,
     required this.bookId,
     required this.memberCount,
+    this.creatorId = 'user-1',
   });
 
   factory Community.fromJson(Map<String, dynamic> json) {
@@ -20,6 +22,7 @@ class Community {
       description: json['description'] as String,
       bookId: json['bookId'] as String,
       memberCount: json['memberCount'] as int,
+      creatorId: (json['creatorId'] as String?) ?? 'user-1',
     );
   }
 
@@ -30,6 +33,7 @@ class Community {
       'description': description,
       'bookId': bookId,
       'memberCount': memberCount,
+      'creatorId': creatorId,
     };
   }
 }

@@ -23,6 +23,7 @@ class ReaderBloc extends Bloc<ReaderEvent, ReaderState> {
     on<ToggleScrollMode>(_onToggleScrollMode);
     on<ChangeTheme>(_onChangeTheme);
     on<ChangeFontSize>(_onChangeFontSize);
+    on<ToggleDiscussionIndicators>(_onToggleDiscussionIndicators);
   }
 
   EPUBPreferences _loadSavedPreferences() {
@@ -119,6 +120,8 @@ class ReaderBloc extends Bloc<ReaderEvent, ReaderState> {
           progression: initialProgression,
           preferences: prefs,
           activeTheme: activeThemeName,
+          showDiscussionIndicators:
+              _dataService.isDiscussionIndicatorsEnabled(),
         ),
       );
     } catch (e, stackTrace) {
@@ -258,6 +261,22 @@ class ReaderBloc extends Bloc<ReaderEvent, ReaderState> {
       } catch (e) {
         AppLogger.e('ReaderBloc', 'Failed to change font size', e);
       }
+    }
+  }
+
+  Future<void> _onToggleDiscussionIndicators(
+    ToggleDiscussionIndicators event,
+    Emitter<ReaderState> emit,
+  ) async {
+    if (state is ReaderLoaded) {
+      final currentState = state as ReaderLoaded;
+      final newValue = event.enabled ?? !currentState.showDiscussionIndicators;
+      await _dataService.setDiscussionIndicatorsEnabled(newValue);
+      AppLogger.i(
+        'ReaderBloc',
+        'Discussion indicators ${newValue ? 'enabled' : 'disabled'}',
+      );
+      emit(currentState.copyWith(showDiscussionIndicators: newValue));
     }
   }
 }

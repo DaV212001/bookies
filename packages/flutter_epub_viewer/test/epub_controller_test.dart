@@ -71,6 +71,21 @@ void main() {
       expect(call.args[2], 'Sample quote');
     });
 
+    test('updateDiscussionCount passes cfi + count', () {
+      controller.updateDiscussionCount(cfi: 'cfi1', count: 5);
+      final call = bridge.calls.single;
+      expect(call.name, 'updateDiscussionCount');
+      expect(call.args[0], 'cfi1');
+      expect(call.args[1], 5);
+    });
+
+    test('clearUnderlines invokes clearUnderlines method on bridge', () {
+      controller.clearUnderlines();
+      final call = bridge.calls.single;
+      expect(call.name, 'clearUnderlines');
+      expect(call.args, isEmpty);
+    });
+
     test('setSpread/setFlow use enum .name', () async {
       await controller.setSpread(spread: EpubSpread.always);
       await controller.setFlow(flow: EpubFlow.scrolled);

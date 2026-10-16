@@ -191,7 +191,6 @@ class _LibraryViewState extends State<LibraryView> {
         filtered.sort((a, b) => a.author.compareTo(b.author));
         break;
       case LibrarySortOrder.recent:
-      default:
         // Already in recent insertion order
         break;
     }
@@ -252,11 +251,6 @@ class _LibraryViewState extends State<LibraryView> {
                 }
               });
             },
-          ),
-          IconButton(
-            icon: const Icon(LucideIcons.settings),
-            tooltip: 'Settings',
-            onPressed: () => context.push('/settings'),
           ),
         ],
       ),
@@ -544,7 +538,6 @@ class _LibraryViewState extends State<LibraryView> {
       case LibrarySortOrder.author:
         return 'Author';
       case LibrarySortOrder.recent:
-      default:
         return 'Recent';
     }
   }

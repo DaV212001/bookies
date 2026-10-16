@@ -6,11 +6,14 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import 'package:bookies/core/widgets/create_thread_dialog.dart';
 import 'package:bookies/core/widgets/quote_card_rating_widget.dart';
+import 'package:bookies/data/models/book.dart';
 import 'package:bookies/data/models/discussion.dart';
 import 'package:bookies/data/models/highlight.dart';
 import 'package:bookies/data/models/thread_scope.dart';
 import 'package:bookies/data/providers/local_data_service.dart';
+import 'package:bookies/features/community/views/management/community_management_view.dart';
 import 'package:bookies/features/discussion/views/discussion_chat_screen.dart';
+import 'package:bookies/features/reader/views/reader_view.dart';
 
 class CommunityDetailView extends StatefulWidget {
   final String bookId;
@@ -123,9 +126,9 @@ class _CommunityDetailViewState extends State<CommunityDetailView>
             SliverToBoxAdapter(
               child: _buildCommunityHeader(
                 theme,
-                book?.coverUrl,
-                book?.author,
+                book,
                 discussions.length,
+                dataService,
               ),
             ),
             SliverPersistentHeader(
@@ -150,8 +153,8 @@ class _CommunityDetailViewState extends State<CommunityDetailView>
             controller: _tabController,
             children: [
               _buildGlobalTab(theme, discussions, bookThreads),
-              _buildChapterTab(theme, chapterThreads),
-              _buildHighlightsTab(theme, highlights, highlightThreads),
+              _buildChapterTab(theme, book, chapterThreads),
+              _buildHighlightsTab(theme, book, highlights, highlightThreads),
               _buildQuotesTab(theme, quotes),
             ],
           ),
@@ -162,10 +165,16 @@ class _CommunityDetailViewState extends State<CommunityDetailView>
 
   Widget _buildCommunityHeader(
     ThemeData theme,
-    String? coverUrl,
-    String? author,
+    Book? book,
     int discussionCount,
+    LocalDataService dataService,
   ) {
+    final canManage = dataService.canManageCommunity(widget.communityId);
+    final members = dataService.getCommunityMembers(widget.communityId);
+    final activeMemberCount = members.where((m) => !m.isBanned).length;
+    final activeLiveSession =
+        dataService.getActiveLiveReadingSession(widget.communityId);
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(12, 8, 20, 28),
@@ -179,13 +188,39 @@ class _CommunityDetailViewState extends State<CommunityDetailView>
       ),
       child: Column(
         children: [
-          Align(
-            alignment: Alignment.centerLeft,
-            child: IconButton(
-              tooltip: 'Back',
-              icon: const Icon(LucideIcons.arrowLeft),
-              onPressed: () => Navigator.of(context).maybePop(),
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              IconButton(
+                tooltip: 'Back',
+                icon: const Icon(LucideIcons.arrowLeft),
+                onPressed: () => Navigator.of(context).maybePop(),
+              ),
+              if (canManage)
+                FilledButton.tonalIcon(
+                  style: FilledButton.styleFrom(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    visualDensity: VisualDensity.compact,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  icon: const Icon(LucideIcons.shieldCheck, size: 16),
+                  label: const Text('Reader Management'),
+                  onPressed: () {
+                    Navigator.of(context, rootNavigator: true).push(
+                      MaterialPageRoute(
+                        builder: (_) => CommunityManagementView(
+                          communityId: widget.communityId,
+                          communityName: widget.communityName,
+                          bookId: widget.bookId,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+            ],
           ),
           const SizedBox(height: 10),
           Container(
@@ -201,7 +236,7 @@ class _CommunityDetailViewState extends State<CommunityDetailView>
                 BoxShadow(blurRadius: 14, color: Color(0x22000000)),
               ],
             ),
-            child: _buildCover(theme, coverUrl),
+            child: _buildCover(theme, book?.coverUrl),
           ),
           Text(
             widget.communityName,
@@ -212,7 +247,7 @@ class _CommunityDetailViewState extends State<CommunityDetailView>
           ),
           const SizedBox(height: 4),
           Text(
-            'by ${author ?? 'Unknown author'}',
+            'by ${book?.author ?? 'Unknown author'}',
             style: theme.textTheme.bodyLarge?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
               fontStyle: FontStyle.italic,
@@ -229,7 +264,7 @@ class _CommunityDetailViewState extends State<CommunityDetailView>
               ),
               const SizedBox(width: 7),
               Text(
-                '142 Active Readers',
+                '$activeMemberCount Active Readers',
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                   letterSpacing: 1.0,
@@ -243,6 +278,134 @@ class _CommunityDetailViewState extends State<CommunityDetailView>
               '$discussionCount discussions',
               style: theme.textTheme.labelSmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+          if (activeLiveSession != null) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.redAccent.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(14),
+                border:
+                    Border.all(color: Colors.redAccent.withValues(alpha: 0.35)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 10,
+                    height: 10,
+                    decoration: const BoxDecoration(
+                      color: Colors.redAccent,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              'LIVE READING',
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.redAccent,
+                                letterSpacing: 0.8,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              '• ${activeLiveSession.participantUserIds.length} listening',
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Text(
+                          activeLiveSession.title,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 13),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          'Host: ${activeLiveSession.host.displayName} • ${activeLiveSession.chapterTitle ?? 'Reading in sync'}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.redAccent,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    icon: const Icon(LucideIcons.radio, size: 14),
+                    label: const Text('Join Live'),
+                    onPressed: () async {
+                      final canJoin = dataService.canUserJoinLiveReading(
+                        widget.communityId,
+                        dataService.currentUser.id,
+                      );
+                      if (canJoin) {
+                        await dataService.joinLiveReadingSession(
+                          widget.communityId,
+                          dataService.currentUser.id,
+                        );
+                        if (mounted && book != null) {
+                          Navigator.of(context, rootNavigator: true).push(
+                            MaterialPageRoute(
+                              builder: (_) => ReaderView(
+                                book: book,
+                                initialCfi: activeLiveSession.currentCfi,
+                              ),
+                            ),
+                          );
+                        }
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                                'Access to this live session is restricted by the community creator.'),
+                          ),
+                        );
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ],
+          if (book != null) ...[
+            const SizedBox(height: 18),
+            FilledButton.icon(
+              onPressed: () {
+                Navigator.of(context, rootNavigator: true).push(
+                  MaterialPageRoute(
+                    builder: (_) => ReaderView(book: book),
+                  ),
+                );
+              },
+              icon: const Icon(LucideIcons.bookOpen, size: 18),
+              label: const Text('Read Book'),
+              style: FilledButton.styleFrom(
+                backgroundColor: theme.colorScheme.primary,
+                foregroundColor: theme.colorScheme.onPrimary,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
             ),
           ],
@@ -281,9 +444,10 @@ class _CommunityDetailViewState extends State<CommunityDetailView>
     List<Discussion> allDiscussions,
     List<Discussion> bookThreads,
   ) {
-    final topics = bookThreads
-        .where((thread) => thread.title.isNotEmpty)
-        .toList();
+    final topics = context.watch<LocalDataService>().getTopicsForBook(
+          widget.bookId,
+          communityId: widget.communityId,
+        );
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
       children: [
@@ -329,6 +493,9 @@ class _CommunityDetailViewState extends State<CommunityDetailView>
   }
 
   Widget _buildCategoryCard(ThemeData theme, Discussion topic) {
+    final dataService = context.watch<LocalDataService>();
+    final subtopics = dataService.getSubtopics(topic.id);
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 0,
@@ -337,41 +504,85 @@ class _CommunityDetailViewState extends State<CommunityDetailView>
         borderRadius: BorderRadius.circular(8),
         side: BorderSide(color: theme.colorScheme.outlineVariant),
       ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(8),
-        onTap: () => _openDiscussion(topic),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(18, 16, 14, 16),
-          child: Row(
-            children: [
-              Expanded(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            InkWell(
+              borderRadius: BorderRadius.circular(6),
+              onTap: () => _openDiscussion(topic),
+              child: Row(
+                children: [
+                  Icon(LucideIcons.hash, size: 20, color: theme.colorScheme.primary),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      topic.title,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    '${subtopics.length} subtopics',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Icon(LucideIcons.chevronRight, size: 18, color: theme.colorScheme.outline),
+                ],
+              ),
+            ),
+            if (topic.content.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Padding(
+                padding: const EdgeInsets.only(left: 28),
                 child: Text(
-                  topic.title,
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
+                  topic.content,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
               ),
-              Text(
-                '${context.read<LocalDataService>().getDiscussionsForCfi(topic.highlightId, communityId: widget.communityId).length} Topics',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Icon(
-                LucideIcons.chevronDown,
-                size: 19,
-                color: theme.colorScheme.outline,
-              ),
             ],
-          ),
+            if (subtopics.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              const Divider(height: 1),
+              const SizedBox(height: 6),
+              ...subtopics.map((sub) => InkWell(
+                    borderRadius: BorderRadius.circular(6),
+                    onTap: () => _openDiscussion(sub),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                      child: Row(
+                        children: [
+                          Icon(LucideIcons.cornerDownRight, size: 16, color: theme.colorScheme.outline),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              sub.title,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                          Icon(LucideIcons.messageSquare, size: 14, color: theme.colorScheme.outline),
+                        ],
+                      ),
+                    ),
+                  )),
+            ],
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildChapterTab(ThemeData theme, List<Discussion> threads) {
+  Widget _buildChapterTab(ThemeData theme, Book? book, List<Discussion> threads) {
     final grouped = <String, List<Discussion>>{};
     for (final thread in threads) {
       final chapter = thread.chapterTitle?.trim();
@@ -390,13 +601,14 @@ class _CommunityDetailViewState extends State<CommunityDetailView>
     return ListView(
       padding: const EdgeInsets.all(16),
       children: grouped.entries
-          .map((entry) => _buildChapterCard(theme, entry.key, entry.value))
+          .map((entry) => _buildChapterCard(theme, book, entry.key, entry.value))
           .toList(),
     );
   }
 
   Widget _buildHighlightsTab(
     ThemeData theme,
+    Book? book,
     List<Highlight> highlights,
     List<Discussion> threads,
   ) {
@@ -417,6 +629,7 @@ class _CommunityDetailViewState extends State<CommunityDetailView>
       children: highlights
           .map((highlight) => _buildHighlightCard(
                 theme,
+                book,
                 highlight,
                 discussionsByHighlight[highlight.cfi] ?? const [],
               ))
@@ -586,6 +799,7 @@ class _CommunityDetailViewState extends State<CommunityDetailView>
 
   Widget _buildChapterCard(
     ThemeData theme,
+    Book? book,
     String chapter,
     List<Discussion> threads,
   ) {
@@ -618,6 +832,18 @@ class _CommunityDetailViewState extends State<CommunityDetailView>
               ],
             ),
           ),
+          if (book != null)
+            IconButton(
+              icon: const Icon(LucideIcons.bookOpen, size: 18),
+              tooltip: 'Read chapter in book',
+              onPressed: () {
+                Navigator.of(context, rootNavigator: true).push(
+                  MaterialPageRoute(
+                    builder: (_) => ReaderView(book: book, initialCfi: chapter),
+                  ),
+                );
+              },
+            ),
           const Icon(LucideIcons.chevronRight, size: 18),
         ],
       ),
@@ -626,6 +852,7 @@ class _CommunityDetailViewState extends State<CommunityDetailView>
 
   Widget _buildHighlightCard(
     ThemeData theme,
+    Book? book,
     Highlight highlight,
     List<Discussion> discussions,
   ) {
@@ -691,11 +918,35 @@ class _CommunityDetailViewState extends State<CommunityDetailView>
             ),
           ],
           const SizedBox(height: 8),
-          _metadata(
-            theme,
-            discussions.isEmpty
-                ? 'No discussion yet'
-                : '${discussions.length} ${discussions.length == 1 ? 'message' : 'messages'}',
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _metadata(
+                theme,
+                discussions.isEmpty
+                    ? 'No discussion yet'
+                    : '${discussions.length} ${discussions.length == 1 ? 'message' : 'messages'}',
+              ),
+              if (book != null)
+                TextButton.icon(
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                  ),
+                  icon: const Icon(LucideIcons.bookOpen, size: 14),
+                  label: const Text('Read in book', style: TextStyle(fontSize: 12)),
+                  onPressed: () {
+                    Navigator.of(context, rootNavigator: true).push(
+                      MaterialPageRoute(
+                        builder: (_) => ReaderView(
+                          book: book,
+                          initialCfi: highlight.cfi,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+            ],
           ),
         ],
       ),

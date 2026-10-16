@@ -10,6 +10,9 @@ import 'package:bookies/data/providers/local_data_service.dart';
 
 import 'package:bookies/core/theme/theme_cubit.dart';
 
+import 'package:bookies/data/repositories/discussion_repository.dart';
+import 'package:bookies/data/repositories/local_discussion_repository.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
@@ -21,6 +24,9 @@ void main() async {
       providers: [
         ChangeNotifierProvider<LocalDataService>.value(
           value: localDataService,
+        ),
+        Provider<DiscussionRepository>(
+          create: (context) => LocalDiscussionRepository(context.read<LocalDataService>()),
         ),
       ],
       child: const BookiesApp(),

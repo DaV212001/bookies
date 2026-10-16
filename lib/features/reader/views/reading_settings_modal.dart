@@ -367,6 +367,28 @@ class ReadingSettingsModal extends StatelessWidget {
                     context.read<ReaderBloc>().add(UpdateEPUBPreferences(newPrefs));
                   },
                 ),
+                const Divider(height: 32),
+
+                // --- Discussion Indicators Toggle ---
+                _buildSectionHeader(theme, 'Community Highlights'),
+                const SizedBox(height: 8),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  secondary: Icon(
+                    LucideIcons.messageSquare,
+                    color: state.showDiscussionIndicators
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.onSurfaceVariant.withOpacity(0.4),
+                  ),
+                  title: const Text('Discussion Indicators'),
+                  subtitle: const Text(
+                    'Show heat dots and dotted underlines on commented passages',
+                  ),
+                  value: state.showDiscussionIndicators,
+                  onChanged: (val) {
+                    context.read<ReaderBloc>().add(ToggleDiscussionIndicators(val));
+                  },
+                ),
               ],
             ),
           );

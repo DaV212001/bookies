@@ -4,7 +4,6 @@ import 'package:flutter_readium/flutter_readium.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import 'package:bookies/data/models/community.dart';
-import 'package:bookies/data/models/thread_scope.dart';
 import 'package:bookies/data/providers/local_data_service.dart';
 import 'package:bookies/features/discussion/bloc/discussion_bloc.dart';
 import 'package:bookies/features/reader/bloc/reader_bloc.dart';
@@ -179,6 +178,36 @@ class _DiscussionsBottomSheetState extends State<DiscussionsBottomSheet> {
                 ),
                 Row(
                   children: [
+                    Builder(
+                      builder: (context) {
+                        final dataService = context.watch<LocalDataService>();
+                        final enabled =
+                            dataService.isDiscussionIndicatorsEnabled();
+                        return IconButton(
+                          icon: Icon(
+                            LucideIcons.messageSquare,
+                            color: enabled
+                                ? theme.colorScheme.primary
+                                : theme.colorScheme.onSurfaceVariant
+                                    .withOpacity(0.4),
+                          ),
+                          tooltip: enabled
+                              ? 'Hide discussion indicators in book'
+                              : 'Show discussion indicators in book',
+                          onPressed: () async {
+                            final next = !enabled;
+                            await dataService.setDiscussionIndicatorsEnabled(
+                              next,
+                            );
+                            try {
+                              context.read<ReaderBloc>().add(
+                                ToggleDiscussionIndicators(next),
+                              );
+                            } catch (_) {}
+                          },
+                        );
+                      },
+                    ),
                     IconButton(
                       icon: const Icon(LucideIcons.users),
                       tooltip: 'Go to Community Circle',

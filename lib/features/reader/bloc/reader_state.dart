@@ -18,6 +18,7 @@ class ReaderLoaded extends ReaderState {
   final String activeTheme;
   final double fontSize;
   final EPUBPreferences preferences;
+  final bool showDiscussionIndicators;
 
   const ReaderLoaded({
     required this.book,
@@ -32,6 +33,7 @@ class ReaderLoaded extends ReaderState {
       backgroundColor: Color(0xFFFBF9F5),
       textColor: Color(0xFF1F2937),
     ),
+    this.showDiscussionIndicators = true,
   });
 
   ReaderLoaded copyWith({
@@ -41,6 +43,7 @@ class ReaderLoaded extends ReaderState {
     String? activeTheme,
     double? fontSize,
     EPUBPreferences? preferences,
+    bool? showDiscussionIndicators,
   }) {
     return ReaderLoaded(
       book: book ?? this.book,
@@ -49,11 +52,21 @@ class ReaderLoaded extends ReaderState {
       activeTheme: activeTheme ?? this.activeTheme,
       fontSize: fontSize ?? this.fontSize,
       preferences: preferences ?? this.preferences,
+      showDiscussionIndicators:
+          showDiscussionIndicators ?? this.showDiscussionIndicators,
     );
   }
 
   @override
-  List<Object?> get props => [book, currentCfi, progression, activeTheme, fontSize, preferences];
+  List<Object?> get props => [
+    book,
+    currentCfi,
+    progression,
+    activeTheme,
+    fontSize,
+    preferences,
+    showDiscussionIndicators,
+  ];
 }
 
 class ReaderError extends ReaderState {

@@ -1,8 +1,12 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:bookies/data/models/book.dart';
+import 'package:bookies/data/models/chat_message.dart';
 import 'package:bookies/data/models/community.dart';
+import 'package:bookies/data/models/community_member.dart';
 import 'package:bookies/data/models/discussion.dart';
 import 'package:bookies/data/models/highlight.dart';
+import 'package:bookies/data/models/live_reading_session.dart';
 import 'package:bookies/data/models/quote_rating.dart';
 import 'package:bookies/data/models/thread_scope.dart';
 import 'package:bookies/data/models/user.dart';
@@ -22,6 +26,11 @@ class LocalDataService extends ChangeNotifier {
   List<Community> communities = [];
   List<String> _joinedCommunityIds = [];
   Map<String, String> _selectedCommunityIdsByBook = {};
+  final Map<String, StreamController<List<ChatMessage>>> _threadStreamControllers = {};
+  final Map<String, List<ChatMessage>> _threadMessages = {};
+  final List<User> _directoryUsers = [];
+  final Map<String, List<CommunityMember>> _communityMembersByCommunityId = {};
+  final Map<String, LiveReadingSession> _activeLiveSessions = {};
 
   Future<LocalDataService> init() async {
     _prefs = await SharedPreferences.getInstance();
@@ -33,13 +42,54 @@ class LocalDataService extends ChangeNotifier {
       avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026704d',
     );
 
+    _directoryUsers.addAll([
+      currentUser,
+      User(
+        id: 'user-2',
+        username: 'julian',
+        displayName: 'Julian Morrow',
+        avatarUrl: 'https://i.pravatar.cc/150?u=julian',
+      ),
+      User(
+        id: 'user-3',
+        username: 'henry',
+        displayName: 'Henry Winter',
+        avatarUrl: 'https://i.pravatar.cc/150?u=henry',
+      ),
+      User(
+        id: 'user-4',
+        username: 'camilla',
+        displayName: 'Camilla Macaulay',
+        avatarUrl: 'https://i.pravatar.cc/150?u=camilla',
+      ),
+      User(
+        id: 'user-5',
+        username: 'charles',
+        displayName: 'Charles Macaulay',
+        avatarUrl: 'https://i.pravatar.cc/150?u=charles',
+      ),
+      User(
+        id: 'user-6',
+        username: 'francis',
+        displayName: 'Francis Abernathy',
+        avatarUrl: 'https://i.pravatar.cc/150?u=francis',
+      ),
+      User(
+        id: 'user-7',
+        username: 'richard',
+        displayName: 'Richard Papen',
+        avatarUrl: 'https://i.pravatar.cc/150?u=richard',
+      ),
+    ]);
+
     communities.add(
       Community(
         id: 'comm-1',
         name: 'The Secret History',
         description: 'A reading community for The Secret History.',
         bookId: 'mock-book-1',
-        memberCount: 142,
+        memberCount: 6,
+        creatorId: 'user-1',
       ),
     );
 
@@ -195,6 +245,118 @@ class LocalDataService extends ChangeNotifier {
       ]);
       _saveQuotes();
     }
+    _seedCommunityMembersIfNeeded();
+    _loadLiveSessions();
+  }
+
+  void _seedCommunityMembersIfNeeded() {
+    for (final comm in communities) {
+      final membersKey = 'members_${comm.id}';
+      final membersJson = _prefs.getStringList(membersKey);
+      if (membersJson != null && membersJson.isNotEmpty) {
+        _communityMembersByCommunityId[comm.id] = membersJson
+            .map((j) => CommunityMember.fromJson(jsonDecode(j)))
+            .toList();
+      } else if (comm.id == 'comm-1') {
+        _communityMembersByCommunityId[comm.id] = [
+          CommunityMember(
+            id: 'mem-1',
+            communityId: comm.id,
+            user: currentUser,
+            role: CommunityRole.creator,
+            status: CommunityMemberStatus.active,
+            joinedAt: DateTime.now().subtract(const Duration(days: 30)),
+          ),
+          CommunityMember(
+            id: 'mem-2',
+            communityId: comm.id,
+            user: _directoryUsers.firstWhere((u) => u.id == 'user-2'),
+            role: CommunityRole.admin,
+            status: CommunityMemberStatus.active,
+            joinedAt: DateTime.now().subtract(const Duration(days: 28)),
+          ),
+          CommunityMember(
+            id: 'mem-3',
+            communityId: comm.id,
+            user: _directoryUsers.firstWhere((u) => u.id == 'user-3'),
+            role: CommunityRole.member,
+            status: CommunityMemberStatus.active,
+            joinedAt: DateTime.now().subtract(const Duration(days: 20)),
+          ),
+          CommunityMember(
+            id: 'mem-4',
+            communityId: comm.id,
+            user: _directoryUsers.firstWhere((u) => u.id == 'user-4'),
+            role: CommunityRole.member,
+            status: CommunityMemberStatus.active,
+            joinedAt: DateTime.now().subtract(const Duration(days: 15)),
+          ),
+          CommunityMember(
+            id: 'mem-5',
+            communityId: comm.id,
+            user: _directoryUsers.firstWhere((u) => u.id == 'user-5'),
+            role: CommunityRole.member,
+            status: CommunityMemberStatus.restricted,
+            restrictionReason: 'Repeated off-topic spoilers in Chapter 2.',
+            restrictedAt: DateTime.now().subtract(const Duration(days: 2)),
+            joinedAt: DateTime.now().subtract(const Duration(days: 14)),
+          ),
+          CommunityMember(
+            id: 'mem-6',
+            communityId: comm.id,
+            user: _directoryUsers.firstWhere((u) => u.id == 'user-6'),
+            role: CommunityRole.member,
+            status: CommunityMemberStatus.active,
+            joinedAt: DateTime.now().subtract(const Duration(days: 10)),
+          ),
+        ];
+        _saveCommunityMembers(comm.id);
+      } else {
+        _communityMembersByCommunityId[comm.id] = [
+          CommunityMember(
+            id: _uuid.v4(),
+            communityId: comm.id,
+            user: currentUser,
+            role: CommunityRole.creator,
+            status: CommunityMemberStatus.active,
+            joinedAt: DateTime.now(),
+          ),
+        ];
+        _saveCommunityMembers(comm.id);
+      }
+    }
+  }
+
+  void _loadLiveSessions() {
+    for (final comm in communities) {
+      final sessionJson = _prefs.getString('live_session_${comm.id}');
+      if (sessionJson != null) {
+        try {
+          _activeLiveSessions[comm.id] =
+              LiveReadingSession.fromJson(jsonDecode(sessionJson));
+        } catch (_) {}
+      }
+    }
+  }
+
+  Future<void> _saveCommunityMembers(String communityId) async {
+    final list = _communityMembersByCommunityId[communityId] ?? [];
+    await _prefs.setStringList(
+      'members_$communityId',
+      list.map((m) => jsonEncode(m.toJson())).toList(),
+    );
+  }
+
+  Future<void> _saveLiveSession(String communityId) async {
+    final session = _activeLiveSessions[communityId];
+    if (session == null) {
+      await _prefs.remove('live_session_$communityId');
+    } else {
+      await _prefs.setString(
+        'live_session_$communityId',
+        jsonEncode(session.toJson()),
+      );
+    }
   }
 
   Future<void> _saveJoinedCommunities() async {
@@ -284,6 +446,15 @@ class LocalDataService extends ChangeNotifier {
     return _prefs.getString('reading_preferences');
   }
 
+  bool isDiscussionIndicatorsEnabled() {
+    return _prefs.getBool('show_discussion_indicators') ?? true;
+  }
+
+  Future<void> setDiscussionIndicatorsEnabled(bool enabled) async {
+    await _prefs.setBool('show_discussion_indicators', enabled);
+    notifyListeners();
+  }
+
   // --- Highlights ---
   List<Highlight> getHighlightsForBook(String bookId) {
     return _highlights.where((h) => h.bookId == bookId).toList();
@@ -352,6 +523,7 @@ class LocalDataService extends ChangeNotifier {
     int? chapterIndex,
     String? quoteText,
     double? rating,
+    String? parentTopicId,
   }) async {
     final newDiscussion = Discussion(
       id: _uuid.v4(),
@@ -367,11 +539,12 @@ class LocalDataService extends ChangeNotifier {
       chapterIndex: chapterIndex,
       quoteText: quoteText,
       rating: rating,
+      parentTopicId: parentTopicId,
       createdAt: DateTime.now(),
     );
     _discussions.insert(0, newDiscussion);
-    await _saveDiscussions();
     notifyListeners();
+    await _saveDiscussions();
     return newDiscussion;
   }
 
@@ -389,9 +562,356 @@ class LocalDataService extends ChangeNotifier {
     final index = _discussions.indexWhere((d) => d.id == threadId);
     if (index != -1) {
       _discussions[index].upvotes += 1;
+      notifyListeners();
       await _saveDiscussions();
+    }
+  }
+
+  Future<Discussion?> addReply({
+    required String threadId,
+    required String content,
+  }) async {
+    final index = _discussions.indexWhere((d) => d.id == threadId);
+    if (index != -1) {
+      final parent = _discussions[index];
+      final newReply = Discussion(
+        id: _uuid.v4(),
+        highlightId: parent.highlightId,
+        bookId: parent.bookId,
+        communityId: parent.communityId,
+        userId: currentUser.id,
+        user: currentUser,
+        title: 'Reply',
+        content: content,
+        scope: parent.scope,
+        chapterTitle: parent.chapterTitle,
+        chapterIndex: parent.chapterIndex,
+        quoteText: parent.quoteText,
+        createdAt: DateTime.now(),
+      );
+      final existingReplies = parent.replies ?? [];
+      _discussions[index] = Discussion(
+        id: parent.id,
+        highlightId: parent.highlightId,
+        bookId: parent.bookId,
+        communityId: parent.communityId,
+        userId: parent.userId,
+        user: parent.user,
+        title: parent.title,
+        content: parent.content,
+        scope: parent.scope,
+        chapterTitle: parent.chapterTitle,
+        chapterIndex: parent.chapterIndex,
+        quoteText: parent.quoteText,
+        rating: parent.rating,
+        upvotes: parent.upvotes,
+        createdAt: parent.createdAt,
+        replies: [...existingReplies, newReply],
+        parentTopicId: parent.parentTopicId,
+      );
+      notifyListeners();
+      await _saveDiscussions();
+      return newReply;
+    }
+    return null;
+  }
+
+  // --- Topics & Subtopics ---
+  List<Discussion> getTopicsForBook(String bookId, {String? communityId}) {
+    return _discussions
+        .where(
+          (d) =>
+              (d.bookId == bookId || d.bookId.isEmpty) &&
+              (communityId == null ||
+                  d.communityId.isEmpty ||
+                  d.communityId == communityId) &&
+              (d.scope == ThreadScope.topic ||
+                  (d.scope == ThreadScope.book && d.title.isNotEmpty)),
+        )
+        .toList();
+  }
+
+  List<Discussion> getSubtopics(String parentTopicId) {
+    return _discussions
+        .where(
+          (d) =>
+              d.scope == ThreadScope.subtopic &&
+              d.parentTopicId == parentTopicId,
+        )
+        .toList();
+  }
+
+  // --- Chat Messages & Streaming ---
+  Future<List<ChatMessage>> getMessages(String threadId, {int limit = 50}) async {
+    if (_threadMessages.containsKey(threadId)) {
+      return List.unmodifiable(_threadMessages[threadId]!);
+    }
+
+    final raw = _prefs.getStringList('messages_$threadId');
+    if (raw != null && raw.isNotEmpty) {
+      final list = raw
+          .map((str) => ChatMessage.fromJson(jsonDecode(str) as Map<String, dynamic>))
+          .toList()
+        ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      _threadMessages[threadId] = list;
+      return List.unmodifiable(list);
+    }
+
+    // Populate from discussions or seed initial conversation
+    final List<ChatMessage> initial = [];
+    final discussion = _discussions.where((d) => d.id == threadId).firstOrNull ??
+        _discussions.where((d) => d.highlightId == threadId).firstOrNull;
+
+    if (discussion != null) {
+      initial.add(
+        ChatMessage(
+          id: discussion.id,
+          threadId: threadId,
+          userId: discussion.userId,
+          user: discussion.user,
+          content: discussion.content,
+          createdAt: discussion.createdAt,
+          status: MessageStatus.sent,
+          quoteText: discussion.quoteText,
+          chapterTitle: discussion.chapterTitle,
+          chapterIndex: discussion.chapterIndex,
+          cfi: discussion.highlightId,
+        ),
+      );
+
+      if (discussion.replies != null) {
+        for (final reply in discussion.replies!) {
+          initial.add(
+            ChatMessage(
+              id: reply.id,
+              threadId: threadId,
+              userId: reply.userId,
+              user: reply.user,
+              content: reply.content,
+              createdAt: reply.createdAt,
+              status: MessageStatus.sent,
+              quoteText: reply.quoteText,
+              chapterTitle: reply.chapterTitle,
+              chapterIndex: reply.chapterIndex,
+              cfi: reply.highlightId,
+            ),
+          );
+        }
+      }
+
+      final siblings = _discussions.where(
+        (d) => d.highlightId == discussion.highlightId && d.id != discussion.id,
+      );
+      for (final sib in siblings) {
+        initial.add(
+          ChatMessage(
+            id: sib.id,
+            threadId: threadId,
+            userId: sib.userId,
+            user: sib.user,
+            content: sib.content,
+            createdAt: sib.createdAt,
+            status: MessageStatus.sent,
+            quoteText: sib.quoteText,
+            chapterTitle: sib.chapterTitle,
+            chapterIndex: sib.chapterIndex,
+            cfi: sib.highlightId,
+          ),
+        );
+      }
+    } else if (threadId.startsWith('general:')) {
+      final bookId = threadId.replaceFirst('general:', '');
+      final bookThreads = _discussions.where((d) => d.bookId == bookId).toList();
+      for (final t in bookThreads) {
+        initial.add(
+          ChatMessage(
+            id: t.id,
+            threadId: threadId,
+            userId: t.userId,
+            user: t.user,
+            content: t.content,
+            createdAt: t.createdAt,
+            status: MessageStatus.sent,
+            quoteText: t.quoteText,
+            chapterTitle: t.chapterTitle,
+            chapterIndex: t.chapterIndex,
+            cfi: t.highlightId,
+          ),
+        );
+      }
+    }
+
+    if (initial.length <= 1) {
+      final baseTime = discussion?.createdAt ?? DateTime.now().subtract(const Duration(hours: 3));
+      initial.addAll([
+        ChatMessage(
+          id: '${threadId}_seed_1',
+          threadId: threadId,
+          userId: 'user-2',
+          user: User(
+            id: 'user-2',
+            username: 'julian',
+            displayName: 'Julian Morrow',
+            avatarUrl: 'https://i.pravatar.cc/150?u=julian',
+          ),
+          content: 'Fascinating perspective! It really changes how you interpret the narrative.',
+          createdAt: baseTime.add(const Duration(minutes: 18)),
+          status: MessageStatus.sent,
+          reactions: {'👍': ['user-1', 'user-3']},
+        ),
+        ChatMessage(
+          id: '${threadId}_seed_2',
+          threadId: threadId,
+          userId: 'user-3',
+          user: User(
+            id: 'user-3',
+            username: 'henry',
+            displayName: 'Henry Winter',
+            avatarUrl: 'https://i.pravatar.cc/150?u=henry',
+          ),
+          content: 'I agree with Julian. In classical literature this tension is always present between fate and desire.',
+          replyToId: '${threadId}_seed_1',
+          replyToContent: 'Fascinating perspective! It really changes how you interpret...',
+          replyToAuthor: 'Julian Morrow',
+          createdAt: baseTime.add(const Duration(minutes: 34)),
+          status: MessageStatus.sent,
+          reactions: {'❤️': ['user-2']},
+        ),
+      ]);
+    }
+
+    initial.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    _threadMessages[threadId] = initial;
+    await _saveMessagesForThread(threadId);
+    return List.unmodifiable(initial);
+  }
+
+  Stream<List<ChatMessage>> watchMessages(String threadId) {
+    if (!_threadStreamControllers.containsKey(threadId) ||
+        _threadStreamControllers[threadId]!.isClosed) {
+      _threadStreamControllers[threadId] =
+          StreamController<List<ChatMessage>>.broadcast();
+    }
+    getMessages(threadId).then((msgs) {
+      if (_threadStreamControllers.containsKey(threadId) &&
+          !_threadStreamControllers[threadId]!.isClosed) {
+        _threadStreamControllers[threadId]!.add(List.unmodifiable(msgs));
+      }
+    });
+    return _threadStreamControllers[threadId]!.stream;
+  }
+
+  Future<ChatMessage> addChatMessage({
+    required String threadId,
+    required String content,
+    String? replyToId,
+    String? replyToContent,
+    String? replyToAuthor,
+    bool isSpoiler = false,
+    String? quoteText,
+    String? chapterTitle,
+    int? chapterIndex,
+    String? cfi,
+  }) async {
+    final messages = (await getMessages(threadId)).toList();
+    final newMsg = ChatMessage(
+      id: _uuid.v4(),
+      threadId: threadId,
+      userId: currentUser.id,
+      user: currentUser,
+      content: content,
+      createdAt: DateTime.now(),
+      status: MessageStatus.sent,
+      replyToId: replyToId,
+      replyToContent: replyToContent,
+      replyToAuthor: replyToAuthor,
+      isSpoiler: isSpoiler,
+      quoteText: quoteText,
+      chapterTitle: chapterTitle,
+      chapterIndex: chapterIndex,
+      cfi: cfi,
+    );
+    messages.add(newMsg);
+    _threadMessages[threadId] = messages;
+    await _saveMessagesForThread(threadId);
+
+    // Keep discussion replies synchronized
+    final parentIndex = _discussions.indexWhere((d) => d.id == threadId);
+    if (parentIndex != -1) {
+      final parent = _discussions[parentIndex];
+      final currentReplies = parent.replies ?? [];
+      _discussions[parentIndex] = parent.copyWith(
+        replies: [
+          ...currentReplies,
+          Discussion(
+            id: newMsg.id,
+            highlightId: parent.highlightId,
+            bookId: parent.bookId,
+            communityId: parent.communityId,
+            userId: currentUser.id,
+            user: currentUser,
+            title: 'Reply',
+            content: content,
+            scope: parent.scope,
+            chapterTitle: chapterTitle ?? parent.chapterTitle,
+            chapterIndex: chapterIndex ?? parent.chapterIndex,
+            quoteText: quoteText ?? parent.quoteText,
+            createdAt: newMsg.createdAt,
+          ),
+        ],
+      );
+      await _saveDiscussions();
+    }
+
+    if (_threadStreamControllers.containsKey(threadId) &&
+        !_threadStreamControllers[threadId]!.isClosed) {
+      _threadStreamControllers[threadId]!.add(List.unmodifiable(messages));
+    }
+    notifyListeners();
+    return newMsg;
+  }
+
+  Future<void> toggleReaction({
+    required String threadId,
+    required String messageId,
+    required String emoji,
+    required String userId,
+  }) async {
+    final messages = (await getMessages(threadId)).toList();
+    final idx = messages.indexWhere((m) => m.id == messageId);
+    if (idx != -1) {
+      final msg = messages[idx];
+      final currentReactions = Map<String, List<String>>.from(
+        msg.reactions.map((k, v) => MapEntry(k, List<String>.from(v))),
+      );
+      final users = currentReactions[emoji] ?? [];
+      if (users.contains(userId)) {
+        users.remove(userId);
+        if (users.isEmpty) {
+          currentReactions.remove(emoji);
+        } else {
+          currentReactions[emoji] = users;
+        }
+      } else {
+        users.add(userId);
+        currentReactions[emoji] = users;
+      }
+      messages[idx] = msg.copyWith(reactions: currentReactions);
+      _threadMessages[threadId] = messages;
+      await _saveMessagesForThread(threadId);
+
+      if (_threadStreamControllers.containsKey(threadId) &&
+          !_threadStreamControllers[threadId]!.isClosed) {
+        _threadStreamControllers[threadId]!.add(List.unmodifiable(messages));
+      }
       notifyListeners();
     }
+  }
+
+  Future<void> _saveMessagesForThread(String threadId) async {
+    final list = _threadMessages[threadId] ?? [];
+    final jsonList = list.map((m) => jsonEncode(m.toJson())).toList();
+    await _prefs.setStringList('messages_$threadId', jsonList);
   }
 
   // --- Favorite Quotes & Ratings ---
@@ -439,9 +959,27 @@ class LocalDataService extends ChangeNotifier {
     }
   }
 
-  // --- Community Membership ---
+  // --- Community Membership & Member Management ---
   bool isMemberOfCommunity(String communityId) {
     return _joinedCommunityIds.contains(communityId);
+  }
+
+  void _syncCommunityMemberCount(String communityId) {
+    final commIdx = communities.indexWhere((c) => c.id == communityId);
+    if (commIdx != -1) {
+      final members = _communityMembersByCommunityId[communityId] ?? [];
+      final activeCount = members.where((m) => !m.isBanned).length;
+      final old = communities[commIdx];
+      communities[commIdx] = Community(
+        id: old.id,
+        name: old.name,
+        description: old.description,
+        bookId: old.bookId,
+        memberCount: activeCount > 0 ? activeCount : old.memberCount,
+        creatorId: old.creatorId,
+      );
+      _saveCommunities();
+    }
   }
 
   Future<void> joinCommunity(String communityId) async {
@@ -449,6 +987,7 @@ class LocalDataService extends ChangeNotifier {
     if (!isMemberOfCommunity(communityId)) {
       _joinedCommunityIds.add(communityId);
       await _saveJoinedCommunities();
+      await addMember(communityId, currentUser, role: CommunityRole.member);
       notifyListeners();
     }
   }
@@ -458,6 +997,7 @@ class LocalDataService extends ChangeNotifier {
     _selectedCommunityIdsByBook.removeWhere(
       (bookId, selectedId) => selectedId == communityId,
     );
+    await removeMember(communityId, currentUser.id);
     await _saveJoinedCommunities();
     await _saveSelectedCommunities();
     notifyListeners();
@@ -467,19 +1007,391 @@ class LocalDataService extends ChangeNotifier {
     required String name,
     required String description,
     required String bookId,
+    String? importMembersFromCommunityId,
+    bool copyRoles = true,
+    bool copyPermissions = true,
+    bool skipRestrictedOrBanned = true,
   }) async {
+    final newId = _uuid.v4();
     final newComm = Community(
-      id: _uuid.v4(),
+      id: newId,
       name: name,
       description: description,
       bookId: bookId,
       memberCount: 1,
+      creatorId: currentUser.id,
     );
     communities.add(newComm);
+    if (!_joinedCommunityIds.contains(newId)) {
+      _joinedCommunityIds.add(newId);
+      await _saveJoinedCommunities();
+    }
     await _saveCommunities();
-    await joinCommunity(newComm.id);
+    await addMember(newId, currentUser, role: CommunityRole.creator);
+
+    if (importMembersFromCommunityId != null && importMembersFromCommunityId.isNotEmpty) {
+      await importMembers(
+        targetCommunityId: newId,
+        sourceCommunityId: importMembersFromCommunityId,
+        copyRoles: copyRoles,
+        copyPermissions: copyPermissions,
+        skipRestrictedOrBanned: skipRestrictedOrBanned,
+      );
+    }
+
     notifyListeners();
-    return newComm;
+    return communities.firstWhere((c) => c.id == newId, orElse: () => newComm);
+  }
+
+  Future<int> importMembers({
+    required String targetCommunityId,
+    required String sourceCommunityId,
+    bool copyRoles = true,
+    bool copyPermissions = true,
+    bool skipRestrictedOrBanned = true,
+  }) async {
+    final sourceMembers = _communityMembersByCommunityId[sourceCommunityId] ?? [];
+    if (sourceMembers.isEmpty) return 0;
+
+    final targetList = _communityMembersByCommunityId.putIfAbsent(targetCommunityId, () => []);
+    final existingUserIds = targetList.map((m) => m.user.id).toSet();
+
+    int importedCount = 0;
+    for (final src in sourceMembers) {
+      if (existingUserIds.contains(src.user.id)) continue;
+      if (skipRestrictedOrBanned && (src.isRestricted || src.isBanned)) continue;
+
+      targetList.add(
+        CommunityMember(
+          id: _uuid.v4(),
+          communityId: targetCommunityId,
+          user: src.user,
+          role: copyRoles ? (src.isCreator ? CommunityRole.admin : src.role) : CommunityRole.member,
+          status: CommunityMemberStatus.active,
+          joinedAt: DateTime.now(),
+          customPermissions: copyPermissions ? src.customPermissions : null,
+        ),
+      );
+      importedCount++;
+    }
+
+    if (importedCount > 0) {
+      _syncCommunityMemberCount(targetCommunityId);
+      await _saveCommunityMembers(targetCommunityId);
+      notifyListeners();
+    }
+    return importedCount;
+  }
+
+  List<CommunityMember> getCommunityMembers(
+    String communityId, {
+    String? query,
+    CommunityMemberStatus? status,
+    CommunityRole? role,
+  }) {
+    final list = _communityMembersByCommunityId[communityId] ?? [];
+    return list.where((m) {
+      if (status != null && m.status != status) return false;
+      if (role != null && m.role != role) return false;
+      if (query != null && query.trim().isNotEmpty) {
+        final q = query.toLowerCase();
+        final matchName = m.user.displayName.toLowerCase().contains(q);
+        final matchUsername = m.user.username.toLowerCase().contains(q);
+        return matchName || matchUsername;
+      }
+      return true;
+    }).toList()
+      ..sort((a, b) {
+        if (a.isCreator && !b.isCreator) return -1;
+        if (!a.isCreator && b.isCreator) return 1;
+        if (a.role == CommunityRole.admin && b.role != CommunityRole.admin) return -1;
+        if (a.role != CommunityRole.admin && b.role == CommunityRole.admin) return 1;
+        return a.user.displayName.compareTo(b.user.displayName);
+      });
+  }
+
+  CommunityMember? getMember(String communityId, String userId) {
+    final list = _communityMembersByCommunityId[communityId] ?? [];
+    return list.where((m) => m.user.id == userId).firstOrNull;
+  }
+
+  bool isCommunityCreator(String communityId, [String? userId]) {
+    final targetId = userId ?? currentUser.id;
+    final comm = communities.where((c) => c.id == communityId).firstOrNull;
+    if (comm != null && comm.creatorId == targetId) return true;
+    final member = getMember(communityId, targetId);
+    return member?.isCreator ?? false;
+  }
+
+  bool isCommunityAdmin(String communityId, [String? userId]) {
+    final targetId = userId ?? currentUser.id;
+    if (isCommunityCreator(communityId, targetId)) return true;
+    final member = getMember(communityId, targetId);
+    return member?.isAdmin ?? false;
+  }
+
+  bool canManageCommunity(String communityId, [String? userId]) {
+    return isCommunityAdmin(communityId, userId);
+  }
+
+  Future<CommunityMember> addMember(
+    String communityId,
+    User user, {
+    CommunityRole role = CommunityRole.member,
+  }) async {
+    final list = _communityMembersByCommunityId.putIfAbsent(communityId, () => []);
+    final existingIdx = list.indexWhere((m) => m.user.id == user.id);
+    if (existingIdx != -1) {
+      if (role == CommunityRole.creator && !list[existingIdx].isCreator) {
+        list[existingIdx] = list[existingIdx].copyWith(role: CommunityRole.creator);
+        await _saveCommunityMembers(communityId);
+      }
+      return list[existingIdx];
+    }
+    final member = CommunityMember(
+      id: _uuid.v4(),
+      communityId: communityId,
+      user: user,
+      role: role,
+      status: CommunityMemberStatus.active,
+      joinedAt: DateTime.now(),
+    );
+    list.add(member);
+    _syncCommunityMemberCount(communityId);
+    await _saveCommunityMembers(communityId);
+    notifyListeners();
+    return member;
+  }
+
+  Future<void> updateMemberRole(
+    String communityId,
+    String userId,
+    CommunityRole newRole,
+  ) async {
+    final list = _communityMembersByCommunityId[communityId];
+    if (list == null) return;
+    final idx = list.indexWhere((m) => m.user.id == userId);
+    if (idx != -1) {
+      list[idx] = list[idx].copyWith(role: newRole);
+      await _saveCommunityMembers(communityId);
+      notifyListeners();
+    }
+  }
+
+  Future<void> updateMemberPermissions(
+    String communityId,
+    String userId,
+    Set<CommunityPermission>? permissions,
+  ) async {
+    final list = _communityMembersByCommunityId[communityId];
+    if (list == null) return;
+    final idx = list.indexWhere((m) => m.user.id == userId);
+    if (idx != -1) {
+      list[idx] = list[idx].copyWith(
+        customPermissions: permissions,
+        clearCustomPermissions: permissions == null,
+      );
+      await _saveCommunityMembers(communityId);
+      notifyListeners();
+    }
+  }
+
+  Future<void> restrictMember(
+    String communityId,
+    String userId, {
+    String? reason,
+  }) async {
+    final list = _communityMembersByCommunityId[communityId];
+    if (list == null) return;
+    final idx = list.indexWhere((m) => m.user.id == userId);
+    if (idx != -1) {
+      list[idx] = list[idx].copyWith(
+        status: CommunityMemberStatus.restricted,
+        restrictionReason: reason ?? 'Restricted by community moderator.',
+        restrictedAt: DateTime.now(),
+      );
+      await _saveCommunityMembers(communityId);
+      notifyListeners();
+    }
+  }
+
+  Future<void> unrestrictMember(String communityId, String userId) async {
+    final list = _communityMembersByCommunityId[communityId];
+    if (list == null) return;
+    final idx = list.indexWhere((m) => m.user.id == userId);
+    if (idx != -1) {
+      list[idx] = list[idx].copyWith(
+        status: CommunityMemberStatus.active,
+        restrictionReason: null,
+        restrictedAt: null,
+      );
+      await _saveCommunityMembers(communityId);
+      notifyListeners();
+    }
+  }
+
+  Future<void> banMember(
+    String communityId,
+    String userId, {
+    String? reason,
+  }) async {
+    final list = _communityMembersByCommunityId[communityId];
+    if (list == null) return;
+    final idx = list.indexWhere((m) => m.user.id == userId);
+    if (idx != -1) {
+      list[idx] = list[idx].copyWith(
+        status: CommunityMemberStatus.banned,
+        restrictionReason: reason ?? 'Banned from community for rule violations.',
+        restrictedAt: DateTime.now(),
+      );
+      _syncCommunityMemberCount(communityId);
+      await _saveCommunityMembers(communityId);
+      notifyListeners();
+    }
+  }
+
+  Future<void> unbanMember(String communityId, String userId) async {
+    final list = _communityMembersByCommunityId[communityId];
+    if (list == null) return;
+    final idx = list.indexWhere((m) => m.user.id == userId);
+    if (idx != -1) {
+      list[idx] = list[idx].copyWith(
+        status: CommunityMemberStatus.active,
+        restrictionReason: null,
+        restrictedAt: null,
+      );
+      _syncCommunityMemberCount(communityId);
+      await _saveCommunityMembers(communityId);
+      notifyListeners();
+    }
+  }
+
+  Future<void> removeMember(String communityId, String userId) async {
+    final list = _communityMembersByCommunityId[communityId];
+    if (list == null) return;
+    list.removeWhere((m) => m.user.id == userId);
+    _syncCommunityMemberCount(communityId);
+    await _saveCommunityMembers(communityId);
+    notifyListeners();
+  }
+
+  List<User> getAvailableUsersToInvite(String communityId) {
+    final memberUserIds = (_communityMembersByCommunityId[communityId] ?? [])
+        .map((m) => m.user.id)
+        .toSet();
+    return _directoryUsers.where((u) => !memberUserIds.contains(u.id)).toList();
+  }
+
+  // --- Live Reading Sessions ---
+  LiveReadingSession? getActiveLiveReadingSession(String communityId) {
+    return _activeLiveSessions[communityId];
+  }
+
+  Future<LiveReadingSession> startLiveReadingSession({
+    required String communityId,
+    required String bookId,
+    required String title,
+    String? currentCfi,
+    String? chapterTitle,
+    int? chapterIndex,
+    LiveReadingAccessMode accessMode = LiveReadingAccessMode.allMembers,
+    Set<String> allowedUserIds = const {},
+  }) async {
+    final session = LiveReadingSession(
+      id: _uuid.v4(),
+      communityId: communityId,
+      bookId: bookId,
+      title: title,
+      host: currentUser,
+      currentCfi: currentCfi,
+      chapterTitle: chapterTitle,
+      chapterIndex: chapterIndex,
+      isActive: true,
+      startedAt: DateTime.now(),
+      accessMode: accessMode,
+      allowedUserIds: allowedUserIds,
+      commenterUserIds: {currentUser.id},
+      participantUserIds: {currentUser.id},
+    );
+    _activeLiveSessions[communityId] = session;
+    await _saveLiveSession(communityId);
+    notifyListeners();
+    return session;
+  }
+
+  Future<void> endLiveReadingSession(String communityId) async {
+    _activeLiveSessions.remove(communityId);
+    await _saveLiveSession(communityId);
+    notifyListeners();
+  }
+
+  Future<void> updateLiveReadingSession(LiveReadingSession session) async {
+    _activeLiveSessions[session.communityId] = session;
+    await _saveLiveSession(session.communityId);
+    notifyListeners();
+  }
+
+  bool canUserJoinLiveReading(String communityId, String userId) {
+    final session = _activeLiveSessions[communityId];
+    if (session == null || !session.isActive) return false;
+    final member = getMember(communityId, userId);
+    final isElevated = member?.isElevated ?? false;
+    final isRestricted = member?.isRestricted ?? false;
+    final isBanned = member?.isBanned ?? false;
+    return session.canUserJoin(
+      userId,
+      isElevated: isElevated,
+      isRestricted: isRestricted,
+      isBanned: isBanned,
+    );
+  }
+
+  bool canUserCommentInLiveReading(String communityId, String userId) {
+    final session = _activeLiveSessions[communityId];
+    if (session == null || !session.isActive) return false;
+    final member = getMember(communityId, userId);
+    final isElevated = member?.isElevated ?? false;
+    final isRestricted = member?.isRestricted ?? false;
+    final isBanned = member?.isBanned ?? false;
+    return session.canUserComment(
+      userId,
+      isElevated: isElevated,
+      isRestricted: isRestricted,
+      isBanned: isBanned,
+    );
+  }
+
+  Future<void> joinLiveReadingSession(String communityId, String userId) async {
+    final session = _activeLiveSessions[communityId];
+    if (session == null) return;
+    if (canUserJoinLiveReading(communityId, userId)) {
+      final updated = session.copyWith(
+        participantUserIds: {...session.participantUserIds, userId},
+      );
+      await updateLiveReadingSession(updated);
+    }
+  }
+
+  Future<void> leaveLiveReadingSession(String communityId, String userId) async {
+    final session = _activeLiveSessions[communityId];
+    if (session == null) return;
+    final newParticipants =
+        Set<String>.from(session.participantUserIds)..remove(userId);
+    final updated = session.copyWith(participantUserIds: newParticipants);
+    await updateLiveReadingSession(updated);
+  }
+
+  Future<void> toggleLiveCommenter(String communityId, String userId) async {
+    final session = _activeLiveSessions[communityId];
+    if (session == null) return;
+    final newCommenters = Set<String>.from(session.commenterUserIds);
+    if (newCommenters.contains(userId)) {
+      newCommenters.remove(userId);
+    } else {
+      newCommenters.add(userId);
+    }
+    final updated = session.copyWith(commenterUserIds: newCommenters);
+    await updateLiveReadingSession(updated);
   }
 
   List<Community> getCommunitiesForBook(String bookId) => communities

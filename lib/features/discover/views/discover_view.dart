@@ -43,13 +43,6 @@ class _DiscoverViewState extends State<DiscoverView> {
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(LucideIcons.settings),
-            tooltip: 'Settings',
-            onPressed: () {},
-          ),
-        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {},

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flutter_epub_viewer/flutter_epub_viewer.dart';
 
@@ -143,10 +144,10 @@ class _ChapterListDrawerState extends State<ChapterListDrawer> {
                       vertical: 8,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFB45309).withOpacity(0.08),
+                      color: const Color(0xFFB45309).withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: const Color(0xFFB45309).withOpacity(0.2),
+                        color: const Color(0xFFB45309).withValues(alpha: 0.2),
                       ),
                     ),
                     child: Row(
@@ -203,6 +204,25 @@ class _ChapterListDrawerState extends State<ChapterListDrawer> {
                 children: _buildEntries(context, theme, dataService, chapters),
               ),
             ),
+            const Divider(height: 1),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: ListTile(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                leading: const Icon(LucideIcons.arrowLeft, size: 18),
+                title: const Text('Exit to Library'),
+                onTap: () {
+                  Navigator.pop(context); // close drawer
+                  if (Navigator.of(context).canPop()) {
+                    Navigator.of(context).pop();
+                  } else {
+                    context.go('/');
+                  }
+                },
+              ),
+            ),
           ],
         ),
       ),
@@ -235,7 +255,7 @@ class _ChapterListDrawerState extends State<ChapterListDrawer> {
     final isActivePart = _containsCurrent(entry);
     return Material(
       color: isActivePart
-          ? theme.colorScheme.secondaryContainer.withOpacity(0.22)
+          ? theme.colorScheme.secondaryContainer.withValues(alpha: 0.22)
           : Colors.transparent,
       borderRadius: BorderRadius.circular(8),
       clipBehavior: Clip.antiAlias,
@@ -324,15 +344,15 @@ class _ChapterListDrawerState extends State<ChapterListDrawer> {
     return Material(
       key: _keyForTitle(entry.title),
       color: isCurrent
-          ? theme.colorScheme.primaryContainer.withOpacity(0.3)
+          ? theme.colorScheme.primaryContainer.withValues(alpha: 0.3)
           : isSpecial
-          ? theme.colorScheme.surfaceContainerLow.withOpacity(0.55)
+          ? theme.colorScheme.surfaceContainerLow.withValues(alpha: 0.55)
           : Colors.transparent,
       shape: RoundedRectangleBorder(
         borderRadius: radius,
         side: BorderSide(
           color: isCurrent
-              ? theme.colorScheme.primary.withOpacity(0.4)
+              ? theme.colorScheme.primary.withValues(alpha: 0.4)
               : Colors.transparent,
         ),
       ),

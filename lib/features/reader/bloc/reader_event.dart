@@ -61,3 +61,12 @@ class ToggleScrollMode extends ReaderEvent {
   @override
   List<Object?> get props => [isScrollMode];
 }
+
+class ToggleDiscussionIndicators extends ReaderEvent {
+  final bool? enabled;
+
+  const ToggleDiscussionIndicators([this.enabled]);
+
+  @override
+  List<Object?> get props => [enabled];
+}

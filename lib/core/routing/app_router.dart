@@ -33,8 +33,16 @@ final appRouter = GoRouter(
       path: '/reader',
       parentNavigatorKey: _rootNavigatorKey,
       builder: (context, state) {
-        final book = state.extra as Book?;
-        return ReaderView(book: book);
+        Book? book;
+        String? initialCfi;
+        if (state.extra is Book) {
+          book = state.extra as Book;
+        } else if (state.extra is Map<String, dynamic>) {
+          final map = state.extra as Map<String, dynamic>;
+          book = map['book'] as Book?;
+          initialCfi = map['initialCfi'] as String?;
+        }
+        return ReaderView(book: book, initialCfi: initialCfi);
       },
     ),
     StatefulShellRoute.indexedStack(

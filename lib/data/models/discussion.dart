@@ -1,5 +1,6 @@
 import 'package:bookies/data/models/user.dart';
 import 'package:bookies/data/models/thread_scope.dart';
+import 'package:bookies/data/models/chat_message.dart';
 
 class Discussion {
   final String id;
@@ -18,6 +19,7 @@ class Discussion {
   int upvotes;
   final DateTime createdAt;
   final List<Discussion>? replies;
+  final String? parentTopicId;
 
   Discussion({
     required this.id,
@@ -36,7 +38,64 @@ class Discussion {
     this.upvotes = 0,
     required this.createdAt,
     this.replies,
+    this.parentTopicId,
   });
+
+  Discussion copyWith({
+    String? id,
+    String? highlightId,
+    String? bookId,
+    String? communityId,
+    String? userId,
+    User? user,
+    String? title,
+    String? content,
+    ThreadScope? scope,
+    String? chapterTitle,
+    int? chapterIndex,
+    String? quoteText,
+    double? rating,
+    int? upvotes,
+    DateTime? createdAt,
+    List<Discussion>? replies,
+    String? parentTopicId,
+  }) {
+    return Discussion(
+      id: id ?? this.id,
+      highlightId: highlightId ?? this.highlightId,
+      bookId: bookId ?? this.bookId,
+      communityId: communityId ?? this.communityId,
+      userId: userId ?? this.userId,
+      user: user ?? this.user,
+      title: title ?? this.title,
+      content: content ?? this.content,
+      scope: scope ?? this.scope,
+      chapterTitle: chapterTitle ?? this.chapterTitle,
+      chapterIndex: chapterIndex ?? this.chapterIndex,
+      quoteText: quoteText ?? this.quoteText,
+      rating: rating ?? this.rating,
+      upvotes: upvotes ?? this.upvotes,
+      createdAt: createdAt ?? this.createdAt,
+      replies: replies ?? this.replies,
+      parentTopicId: parentTopicId ?? this.parentTopicId,
+    );
+  }
+
+  ChatMessage toChatMessage([String? fallbackThreadId]) {
+    return ChatMessage(
+      id: id,
+      threadId: fallbackThreadId ?? id,
+      userId: userId,
+      user: user,
+      content: content,
+      createdAt: createdAt,
+      status: MessageStatus.sent,
+      quoteText: quoteText,
+      chapterTitle: chapterTitle,
+      chapterIndex: chapterIndex,
+      cfi: highlightId,
+    );
+  }
 
   factory Discussion.fromJson(Map<String, dynamic> json) {
     return Discussion(
@@ -62,6 +121,7 @@ class Discussion {
               .map((e) => Discussion.fromJson(e as Map<String, dynamic>))
               .toList()
           : null,
+      parentTopicId: json['parentTopicId'] as String?,
     );
   }
 
@@ -83,6 +143,7 @@ class Discussion {
       'upvotes': upvotes,
       'createdAt': createdAt.toIso8601String(),
       'replies': replies?.map((e) => e.toJson()).toList(),
+      'parentTopicId': parentTopicId,
     };
   }
 }

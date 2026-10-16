@@ -8,6 +8,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flutter/services.dart';
 
 import 'package:bookies/data/models/book.dart';
+import 'package:bookies/data/models/discussion.dart';
 import 'package:bookies/data/models/thread_scope.dart';
 import 'package:bookies/data/models/community.dart';
 import 'package:bookies/data/models/highlight.dart';
@@ -20,13 +21,16 @@ import 'package:bookies/core/widgets/ambient_progress_bar.dart';
 import 'package:bookies/features/reader/views/reading_settings_modal.dart';
 import 'package:bookies/features/reader/views/chapter_list_drawer.dart';
 import 'package:bookies/features/reader/widgets/epub_js_reader.dart';
+
 import 'package:bookies/core/widgets/create_thread_dialog.dart';
 import 'package:bookies/core/widgets/create_community_dialog.dart';
+import 'package:bookies/features/community/views/community_detail_view.dart';
 
 class ReaderView extends StatefulWidget {
   final Book? book;
+  final String? initialCfi;
 
-  const ReaderView({super.key, this.book});
+  const ReaderView({super.key, this.book, this.initialCfi});
 
   @override
   State<ReaderView> createState() => _ReaderViewState();
@@ -51,59 +55,198 @@ class _ReaderViewState extends State<ReaderView> {
   String? _currentChapterTitle;
   String? _chapterTarget;
   int _drawerOpenCount = 0;
+
   Community? _activeCommunity(LocalDataService data, String bookId) {
     return data.getSelectedCommunityForBook(bookId);
   }
 
-  Future<Community?> _chooseCommunity(String bookId) async {
-    final data = context.read<LocalDataService>();
-    final communities = data.getJoinedCommunitiesForBook(bookId);
-    
-    return showModalBottomSheet<Community>(
-      context: context,
-      builder: (context) => SafeArea(
-        child: ListView(
-          shrinkWrap: true,
-          padding: const EdgeInsets.all(16),
-          children: [
-            Text(
-              communities.isEmpty ? 'Book Communities' : 'Switch community',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 8),
-            ...communities.map(
-              (community) => ListTile(
-                title: Text(community.name),
-                leading: const Icon(LucideIcons.users),
-                trailing: community.id == _activeCommunity(data, bookId)?.id
-                    ? const Icon(LucideIcons.check)
-                    : null,
-                onTap: () => Navigator.pop(context, community),
-              ),
-            ),
-            if (communities.isNotEmpty) const Divider(),
-            ListTile(
-              title: const Text('Create new community'),
-              leading: const Icon(LucideIcons.plus),
-              onTap: () async {
-                Navigator.pop(context); // Close bottom sheet
-                if (widget.book != null) {
-                  CreateCommunityDialog.show(context, book: widget.book!);
-                }
-              },
-            ),
-          ],
+  void _openCommunityHub(Book book, Community community) {
+    Navigator.of(context, rootNavigator: true).push(
+      MaterialPageRoute(
+        builder: (_) => CommunityDetailView(
+          bookId: book.id,
+          communityId: community.id,
+          communityName: community.name,
+          description: community.description.isNotEmpty
+              ? community.description
+              : 'Discussion hub for readers exploring themes, chapters, and favorite passages.',
         ),
       ),
     );
   }
 
-  Future<void> _switchCommunity(String bookId) async {
-    final community = await _chooseCommunity(bookId);
-    if (community == null || !mounted) return;
-    await context.read<LocalDataService>().selectCommunityForBook(
-      bookId: bookId,
-      communityId: community.id,
+  Future<void> _showCommunityMenu(Book book) async {
+    final data = context.read<LocalDataService>();
+    final active = _activeCommunity(data, book.id);
+    final communities = data.getCommunitiesForBook(book.id);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(sheetContext).size.height * 0.8,
+          ),
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 36,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.outlineVariant,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Book Communities',
+                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                              ),
+                              Text(
+                                book.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                    ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(LucideIcons.x, size: 20),
+                          tooltip: 'Close',
+                          onPressed: () => Navigator.pop(sheetContext),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  if (communities.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+                      child: Text(
+                        'No communities yet for this book. Create one to start discussing passages and chapters.',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                      ),
+                    )
+                  else
+                    ...communities.map(
+                      (community) {
+                        final isCurrent = community.id == active?.id;
+                        return ListTile(
+                          leading: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: isCurrent
+                                  ? Theme.of(context).colorScheme.primaryContainer
+                                  : Theme.of(context).colorScheme.surfaceContainerHighest,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              LucideIcons.users,
+                              size: 18,
+                              color: isCurrent
+                                  ? Theme.of(context).colorScheme.primary
+                                  : Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          title: Text(
+                            community.name,
+                            style: TextStyle(
+                              fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
+                              color: isCurrent
+                                  ? Theme.of(context).colorScheme.primary
+                                  : null,
+                            ),
+                          ),
+                          subtitle: community.description.isNotEmpty
+                              ? Text(
+                                  community.description,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                )
+                              : null,
+                          trailing: isCurrent
+                              ? Icon(
+                                  LucideIcons.check,
+                                  color: Theme.of(context).colorScheme.primary,
+                                  size: 20,
+                                )
+                              : const Icon(
+                                  LucideIcons.chevronRight,
+                                  size: 18,
+                                ),
+                          onTap: () async {
+                            Navigator.pop(sheetContext);
+                            if (!data.isMemberOfCommunity(community.id)) {
+                              await data.joinCommunity(community.id);
+                            }
+                            await data.selectCommunityForBook(
+                              bookId: book.id,
+                              communityId: community.id,
+                            );
+                            if (mounted) {
+                              _openCommunityHub(book, community);
+                            }
+                          },
+                        );
+                      },
+                    ),
+                  const Divider(),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 6, 16, 8),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        icon: const Icon(LucideIcons.plus, size: 18),
+                        label: const Text('Create New Community'),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        onPressed: () async {
+                          Navigator.pop(sheetContext);
+                          final created =
+                              await CreateCommunityDialog.show(context, book: book);
+                          if (created != null && mounted) {
+                            setState(() {});
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -139,6 +282,7 @@ class _ReaderViewState extends State<ReaderView> {
         ),
       );
     }
+    if (!mounted) return;
     showDialog(
       context: context,
       builder: (_) => CreateThreadDialog(
@@ -203,8 +347,19 @@ class _ReaderViewState extends State<ReaderView> {
   @override
   void initState() {
     super.initState();
+    _chapterTarget = widget.initialCfi;
     if (widget.book != null) {
       context.read<ReaderBloc>().add(LoadBook(widget.book!));
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant ReaderView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialCfi != null && widget.initialCfi != oldWidget.initialCfi) {
+      setState(() {
+        _chapterTarget = widget.initialCfi;
+      });
     }
   }
 
@@ -422,7 +577,6 @@ class _ReaderViewState extends State<ReaderView> {
                   scrolledUnderElevation: 0,
                   systemOverlayStyle: overlayStyle,
                   iconTheme: IconThemeData(color: foregroundColor),
-                  actionsIconTheme: IconThemeData(color: foregroundColor),
                   leading: IconButton(
                     icon: const Icon(LucideIcons.listTree),
                     tooltip: 'Table of Contents',
@@ -430,71 +584,102 @@ class _ReaderViewState extends State<ReaderView> {
                       _scaffoldKey.currentState?.openDrawer();
                     },
                   ),
+                  centerTitle: true,
                   title: BlocBuilder<ReaderBloc, ReaderState>(
                     builder: (context, state) {
-                      if (state is ReaderLoaded) {
+                      final textColor =
+                          foregroundColor ?? theme.colorScheme.onSurface;
+                      if (state is! ReaderLoaded) {
                         return Text(
-                          state.book.title,
+                          'Reader',
                           style: TextStyle(
-                            color: foregroundColor,
+                            color: textColor,
                             fontWeight: FontWeight.w600,
+                            fontSize: 15,
                           ),
                         );
                       }
-                      return Text(
-                        'Reader',
-                        style: TextStyle(
-                          color: foregroundColor,
-                          fontWeight: FontWeight.w600,
+
+                      final activeCommunity = _activeCommunity(
+                        context.watch<LocalDataService>(),
+                        state.book.id,
+                      );
+
+                      return InkWell(
+                        onTap: () => _showCommunityMenu(state.book),
+                        borderRadius: BorderRadius.circular(8),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Text(
+                                state.book.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: textColor,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    LucideIcons.users,
+                                    size: 12,
+                                    color: activeCommunity != null
+                                        ? theme.colorScheme.primary
+                                        : textColor.withValues(alpha: 0.7),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Flexible(
+                                    child: Text(
+                                      activeCommunity != null
+                                          ? activeCommunity.name
+                                          : 'Select Community',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: activeCommunity != null
+                                            ? FontWeight.w600
+                                            : FontWeight.w500,
+                                        color: activeCommunity != null
+                                            ? theme.colorScheme.primary
+                                            : textColor.withValues(alpha: 0.7),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 3),
+                                  Icon(
+                                    LucideIcons.chevronDown,
+                                    size: 12,
+                                    color: activeCommunity != null
+                                        ? theme.colorScheme.primary
+                                        : textColor.withValues(alpha: 0.7),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                       );
                     },
                   ),
                   actions: [
-                    if (state is ReaderLoaded)
-                      Builder(
-                        builder: (context) {
-                          final community = _activeCommunity(
-                            context.watch<LocalDataService>(),
-                            state.book.id,
-                          );
-                          if (community == null) return const SizedBox.shrink();
-                          return ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 156),
-                            child: TextButton.icon(
-                              onPressed: () => _switchCommunity(state.book.id),
-                              icon: const Icon(LucideIcons.users, size: 17),
-                              label: Text(
-                                community.name,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
                     IconButton(
                       icon: const Icon(LucideIcons.slidersHorizontal),
                       tooltip: 'Reading Settings',
                       onPressed: () {
                         if (state is ReaderLoaded) {
                           ReadingSettingsModal.show(context);
-                        }
-                      },
-                    ),
-                    IconButton(
-                      icon: const Icon(LucideIcons.messageCircle),
-                      tooltip: 'Discussions',
-                      onPressed: () {
-                        if (state is ReaderLoaded) {
-                          _showDiscussions(
-                            context,
-                            state.book.id,
-                            state.currentCfi,
-                            _activeCommunity(
-                              context.read<LocalDataService>(),
-                              state.book.id,
-                            ),
-                          );
                         }
                       },
                     ),
@@ -515,11 +700,13 @@ class _ReaderViewState extends State<ReaderView> {
                 dataService,
                 state.book.id,
               );
-              final activeDiscussions = dataService.getDiscussionsByScope(
-                state.book.id,
-                ThreadScope.passage,
-                communityId: activeCommunity?.id,
-              );
+              final activeDiscussions = state.showDiscussionIndicators
+                  ? dataService.getDiscussionsByScope(
+                      state.book.id,
+                      ThreadScope.passage,
+                      communityId: activeCommunity?.id,
+                    )
+                  : const <Discussion>[];
 
               return Listener(
                 onPointerDown: _handlePointerDown,
@@ -551,7 +738,6 @@ class _ReaderViewState extends State<ReaderView> {
                                       : _firstNavigableChapter(
                                           _chapters,
                                         )?.title;
-                                  _chapterTarget = null;
                                 });
                               },
                               onLocationChanged: (location) {
@@ -569,6 +755,8 @@ class _ReaderViewState extends State<ReaderView> {
                               passageDiscussions: activeDiscussions,
                               onDiscussSelection: (selection) =>
                                   _discussSelection(state, selection),
+                              onHighlightSelection: (selection) =>
+                                  _highlightSelection(state, selection),
                               onSaveQuoteSelection: (selection) =>
                                   _saveQuoteSelection(state, selection),
                               onDiscussionIndicatorTapped: (cfi) =>

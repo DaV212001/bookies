@@ -18,6 +18,7 @@ class EpubJsReader extends StatefulWidget {
   final String? chapterTarget;
   final List<Discussion> passageDiscussions;
   final ValueChanged<EpubTextSelection>? onDiscussSelection;
+  final ValueChanged<EpubTextSelection>? onHighlightSelection;
   final ValueChanged<EpubTextSelection>? onSaveQuoteSelection;
   final ValueChanged<String>? onDiscussionIndicatorTapped;
   final void Function(String cfi, Map<String, dynamic>? rect)?
@@ -32,6 +33,7 @@ class EpubJsReader extends StatefulWidget {
     this.chapterTarget,
     this.passageDiscussions = const [],
     this.onDiscussSelection,
+    this.onHighlightSelection,
     this.onSaveQuoteSelection,
     this.onDiscussionIndicatorTapped,
     this.onDiscussionIndicatorLongPressed,
@@ -49,12 +51,13 @@ class _EpubJsReaderState extends State<EpubJsReader> {
   bool _hasInitialDisplaySettings = false;
   bool _isLoaded = false;
   EpubTextSelection? _lastSelection;
-  final Set<String> _renderedDiscussionCfis = {};
+  final Map<String, int> _renderedDiscussionCounts = {};
   late bool _initialPositionReady;
 
   @override
   void dispose() {
     _isLoaded = false;
+    _renderedDiscussionCounts.clear();
     super.dispose();
   }
 
@@ -114,8 +117,7 @@ class _EpubJsReaderState extends State<EpubJsReader> {
                 widget.state.preferences.textAlign)) {
       _applyThemeSafely(widget.state);
     }
-    if (_isLoaded &&
-        oldWidget.passageDiscussions != widget.passageDiscussions) {
+    if (_isLoaded) {
       _syncDiscussionIndicators();
     }
   }
@@ -167,13 +169,15 @@ class _EpubJsReaderState extends State<EpubJsReader> {
   }
 
   void _syncDiscussionIndicators() {
+    if (!_isLoaded) return;
     // Group discussions by CFI to compute per-passage message counts and quote texts.
     final cfiCounts = <String, int>{};
     final cfiQuotes = <String, String>{};
     for (final discussion in widget.passageDiscussions) {
       final cfi = discussion.highlightId;
       if (cfi.startsWith('epubcfi(')) {
-        cfiCounts[cfi] = (cfiCounts[cfi] ?? 0) + 1;
+        final chatCount = 1 + (discussion.replies?.length ?? 0);
+        cfiCounts[cfi] = (cfiCounts[cfi] ?? 0) + chatCount;
         if (discussion.quoteText != null &&
             discussion.quoteText!.trim().isNotEmpty &&
             !cfiQuotes.containsKey(cfi)) {
@@ -181,22 +185,52 @@ class _EpubJsReaderState extends State<EpubJsReader> {
         }
       }
     }
-    final cfis = cfiCounts.keys.toSet();
-    for (final oldCfi in _renderedDiscussionCfis.difference(cfis)) {
-      _runControllerCall(() => _controller.removeUnderline(cfi: oldCfi));
+
+    final currentRendered = Map<String, int>.from(_renderedDiscussionCounts);
+
+    // If all indicators are cleared (e.g. toggled off), clear them in one fast call
+    if (cfiCounts.isEmpty) {
+      if (currentRendered.isNotEmpty) {
+        _runControllerCall(() => _controller.clearUnderlines());
+        _renderedDiscussionCounts.clear();
+      }
+      return;
     }
-    for (final cfi in cfis.difference(_renderedDiscussionCfis)) {
+
+    // 1. Remove indicators that no longer exist
+    for (final oldCfi in currentRendered.keys.toSet().difference(cfiCounts.keys.toSet())) {
+      _runControllerCall(() => _controller.removeUnderline(cfi: oldCfi));
+      _renderedDiscussionCounts.remove(oldCfi);
+    }
+
+    // 2. Add newly created passage indicators
+    for (final newCfi in cfiCounts.keys.toSet().difference(currentRendered.keys.toSet())) {
+      final count = cfiCounts[newCfi] ?? 1;
+      _renderedDiscussionCounts[newCfi] = count;
       _runControllerCall(
         () => _controller.addUnderline(
-          cfi: cfi,
-          count: cfiCounts[cfi] ?? 1,
-          quoteText: cfiQuotes[cfi],
+          cfi: newCfi,
+          count: count,
+          quoteText: cfiQuotes[newCfi],
         ),
       );
     }
-    _renderedDiscussionCfis
-      ..clear()
-      ..addAll(cfis);
+
+    // 3. Update existing indicators whose chat count changed (e.g. reply added or comment posted)
+    for (final entry in cfiCounts.entries) {
+      final cfi = entry.key;
+      final newCount = entry.value;
+      final oldCount = currentRendered[cfi];
+      if (oldCount != null && oldCount != newCount) {
+        _renderedDiscussionCounts[cfi] = newCount;
+        _runControllerCall(
+          () => _controller.updateDiscussionCount(
+            cfi: cfi,
+            count: newCount,
+          ),
+        );
+      }
+    }
   }
 
   Future<EpubSource> _loadSource() async {
@@ -249,12 +283,13 @@ class _EpubJsReaderState extends State<EpubJsReader> {
       future: _source,
       builder: (context, snapshot) {
         if (snapshot.hasError) return Center(child: Text('${snapshot.error}'));
-        if (!snapshot.hasData)
+        if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
+        }
         return EpubViewer(
           epubController: _controller,
           epubSource: snapshot.data!,
-          initialCfi: widget.state.currentCfi,
+          initialCfi: widget.chapterTarget ?? widget.state.currentCfi,
           // Keep the initial WebView configuration stable. Runtime preference
           // changes are applied through EpubController to avoid reloading EPUB.js.
           displaySettings: _initialDisplaySettings,
@@ -265,6 +300,9 @@ class _EpubJsReaderState extends State<EpubJsReader> {
             // present immediately, including after a hot restart.
             _applyThemeSafely(widget.state);
             _syncDiscussionIndicators();
+            if (widget.chapterTarget != null && widget.chapterTarget!.isNotEmpty) {
+              _runControllerCall(() => _controller.display(cfi: widget.chapterTarget!));
+            }
             final continuous = widget.state.preferences.scroll ?? true;
             AppLogger.i(
               'EpubJsReader',
@@ -300,8 +338,19 @@ class _EpubJsReaderState extends State<EpubJsReader> {
                 title: 'Discuss',
                 action: () {
                   final selection = _lastSelection;
-                  if (selection != null)
+                  if (selection != null) {
                     widget.onDiscussSelection?.call(selection);
+                  }
+                },
+              ),
+              EpubContextMenuItem(
+                id: 102,
+                title: 'Highlight',
+                action: () {
+                  final selection = _lastSelection;
+                  if (selection != null) {
+                    widget.onHighlightSelection?.call(selection);
+                  }
                 },
               ),
               EpubContextMenuItem(
@@ -309,8 +358,9 @@ class _EpubJsReaderState extends State<EpubJsReader> {
                 title: 'Save quote',
                 action: () {
                   final selection = _lastSelection;
-                  if (selection != null)
+                  if (selection != null) {
                     widget.onSaveQuoteSelection?.call(selection);
+                  }
                 },
               ),
             ],

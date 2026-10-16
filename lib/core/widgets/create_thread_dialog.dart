@@ -1,8 +1,9 @@
-import 'package:bookies/data/models/thread_scope.dart';
-import 'package:bookies/data/providers/local_data_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+
+import 'package:bookies/data/models/thread_scope.dart';
+import 'package:bookies/data/providers/local_data_service.dart';
 
 class CreateThreadDialog extends StatefulWidget {
   final String bookId;
@@ -33,20 +34,23 @@ class CreateThreadDialog extends StatefulWidget {
 class _CreateThreadDialogState extends State<CreateThreadDialog> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _contentController = TextEditingController();
-  final TextEditingController _chapterController = TextEditingController(
-    text: 'Chapter 1: The Gathering',
-  );
-  final TextEditingController _quoteController = TextEditingController();
+  final TextEditingController _chapterController = TextEditingController();
   late ThreadScope _selectedScope;
-  double _rating = 5.0;
+  String? _selectedParentTopicId;
+  bool _isSubmitting = false;
+
+  bool get _isFixedPassageScope =>
+      widget.initialScope == ThreadScope.passage &&
+      widget.initialQuoteText?.isNotEmpty == true;
 
   @override
   void initState() {
     super.initState();
     _selectedScope = widget.initialScope;
-    _quoteController.text = widget.initialQuoteText ?? '';
     if (widget.initialChapterTitle?.isNotEmpty == true) {
       _chapterController.text = widget.initialChapterTitle!;
+    } else {
+      _chapterController.text = 'Chapter 1';
     }
   }
 
@@ -55,60 +59,86 @@ class _CreateThreadDialogState extends State<CreateThreadDialog> {
     _titleController.dispose();
     _contentController.dispose();
     _chapterController.dispose();
-    _quoteController.dispose();
     super.dispose();
   }
 
   void _submit() async {
-    final title = _titleController.text.trim();
     final content = _contentController.text.trim();
-
     if (content.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please enter discussion content'),
+          content: Text('Please write your thoughts or question.'),
           behavior: SnackBarBehavior.floating,
         ),
       );
       return;
     }
 
-    final localData = context.read<LocalDataService>();
-    final highlightId = _selectedScope == ThreadScope.passage
-        ? (widget.initialHighlightId ?? 'cfi-passage-custom')
-        : _selectedScope == ThreadScope.chapter
-        ? _chapterController.text.trim()
-        : 'book-overall';
+    setState(() => _isSubmitting = true);
 
-    await localData.createThread(
-      highlightId: highlightId,
-      bookId: widget.bookId,
-      communityId: widget.communityId,
-      title: title.isEmpty ? _selectedScope.label : title,
-      content: content,
-      scope: _selectedScope,
-      chapterTitle: _selectedScope == ThreadScope.book
-          ? null
-          : _chapterController.text.trim(),
-      quoteText: _selectedScope == ThreadScope.passage
-          ? _quoteController.text.trim()
-          : null,
-      rating: _rating,
-    );
+    try {
+      final localData = context.read<LocalDataService>();
+      final title = _titleController.text.trim();
 
-    if (mounted) {
-      Navigator.pop(context);
-      if (widget.onThreadCreated != null) {
-        widget.onThreadCreated!();
+      String highlightId;
+      switch (_selectedScope) {
+        case ThreadScope.passage:
+          highlightId = widget.initialHighlightId ??
+              'cfi-passage-${DateTime.now().millisecondsSinceEpoch}';
+          break;
+        case ThreadScope.chapter:
+          highlightId = _chapterController.text.trim().isEmpty
+              ? 'chapter-1'
+              : _chapterController.text.trim();
+          break;
+        case ThreadScope.topic:
+          highlightId = 'topic-${DateTime.now().millisecondsSinceEpoch}';
+          break;
+        case ThreadScope.subtopic:
+          highlightId = 'subtopic-${DateTime.now().millisecondsSinceEpoch}';
+          break;
+        case ThreadScope.book:
+        default:
+          highlightId = 'book-overall';
+          break;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Thread "${title.isEmpty ? _selectedScope.label : title}" published!',
-          ),
-          behavior: SnackBarBehavior.floating,
-        ),
+
+      await localData.createThread(
+        highlightId: highlightId,
+        bookId: widget.bookId,
+        communityId: widget.communityId,
+        title: title.isEmpty ? _selectedScope.label : title,
+        content: content,
+        scope: _selectedScope,
+        chapterTitle: (_selectedScope == ThreadScope.book ||
+                _selectedScope == ThreadScope.topic ||
+                _selectedScope == ThreadScope.subtopic)
+            ? null
+            : _chapterController.text.trim(),
+        quoteText: _selectedScope == ThreadScope.passage
+            ? widget.initialQuoteText
+            : null,
+        parentTopicId: _selectedScope == ThreadScope.subtopic
+            ? _selectedParentTopicId
+            : null,
       );
+
+      if (mounted) {
+        Navigator.pop(context);
+        widget.onThreadCreated?.call();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Discussion "${title.isEmpty ? _selectedScope.label : title}" published!',
+            ),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
     }
   }
 
@@ -117,250 +147,237 @@ class _CreateThreadDialogState extends State<CreateThreadDialog> {
     final theme = Theme.of(context);
 
     return Dialog(
-      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 28),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 620, maxHeight: 760),
+        constraints: const BoxConstraints(maxWidth: 480),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(28, 22, 28, 20),
+          padding: const EdgeInsets.all(22),
           child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Title Header
+                // Header
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.secondaryContainer.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        _selectedScope.icon,
+                        color: theme.colorScheme.secondary,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
                     Expanded(
-                      child: Text(
-                        'Create Discussion Thread',
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _isFixedPassageScope
+                                ? 'Discuss Passage'
+                                : 'New Discussion',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            widget.communityName,
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(LucideIcons.x),
+                      visualDensity: VisualDensity.compact,
+                      icon: const Icon(LucideIcons.x, size: 18),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ],
                 ),
-                Text(
-                  _selectedScope == ThreadScope.passage
-                      ? 'Start a conversation around this passage.'
-                      : 'Share thoughts with ${widget.communityName}',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
                 const SizedBox(height: 16),
 
-                if (_selectedScope == ThreadScope.passage &&
-                    _quoteController.text.trim().isNotEmpty) ...[
+                // Passage quote excerpt preview if applicable
+                if (_isFixedPassageScope) ...[
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                    padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.secondaryContainer.withValues(
-                        alpha: 0.35,
-                      ),
+                      color: theme.colorScheme.surfaceContainerLow,
                       border: Border(
                         left: BorderSide(
                           color: theme.colorScheme.secondary,
                           width: 3,
                         ),
                       ),
-                      borderRadius: const BorderRadius.horizontal(
-                        right: Radius.circular(8),
-                      ),
+                      borderRadius: const BorderRadius.horizontal(right: Radius.circular(8)),
                     ),
                     child: Text(
-                      _quoteController.text.trim(),
-                      maxLines: 5,
+                      widget.initialQuoteText!,
+                      maxLines: 3,
                       overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodyMedium?.copyWith(
+                      style: theme.textTheme.bodySmall?.copyWith(
                         fontStyle: FontStyle.italic,
+                        height: 1.35,
                       ),
                     ),
                   ),
                   const SizedBox(height: 16),
+                ] else ...[
+                  // Scope selector if not passage-fixed
+                  Text(
+                    'Topic Scope',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      ThreadScope.book,
+                      ThreadScope.topic,
+                      ThreadScope.subtopic,
+                      ThreadScope.chapter,
+                    ].map((scope) {
+                      final isSelected = _selectedScope == scope;
+                      return ChoiceChip(
+                        showCheckmark: false,
+                        visualDensity: VisualDensity.compact,
+                        avatar: Icon(
+                          scope.icon,
+                          size: 14,
+                          color: isSelected
+                              ? theme.colorScheme.onPrimary
+                              : theme.colorScheme.onSurfaceVariant,
+                        ),
+                        label: Text(
+                          scope.label,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                          ),
+                        ),
+                        selected: isSelected,
+                        selectedColor: theme.colorScheme.primary,
+                        onSelected: (selected) {
+                          if (selected) {
+                            setState(() => _selectedScope = scope);
+                          }
+                        },
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Subtopic parent topic picker
+                  if (_selectedScope == ThreadScope.subtopic) ...[
+                    Builder(
+                      builder: (context) {
+                        final topics = context
+                            .read<LocalDataService>()
+                            .getTopicsForBook(widget.bookId, communityId: widget.communityId);
+                        if (_selectedParentTopicId == null && topics.isNotEmpty) {
+                          _selectedParentTopicId = topics.first.id;
+                        }
+                        return DropdownButtonFormField<String>(
+                          value: _selectedParentTopicId,
+                          decoration: InputDecoration(
+                            labelText: 'Parent Topic',
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                          items: topics.map((t) {
+                            return DropdownMenuItem(value: t.id, child: Text(t.title));
+                          }).toList(),
+                          onChanged: (val) {
+                            setState(() => _selectedParentTopicId = val);
+                          },
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+
+                  // Chapter title field if Chapter scope
+                  if (_selectedScope == ThreadScope.chapter) ...[
+                    TextField(
+                      controller: _chapterController,
+                      decoration: InputDecoration(
+                        labelText: 'Chapter Name or Number',
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
                 ],
 
-                // Scope Segment Selector
-                Text(
-                  'Thread Scope',
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: ThreadScope.values.map((scope) {
-                    final isSelected = _selectedScope == scope;
-                    return Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: ChoiceChip(
-                          showCheckmark: false,
-                          avatar: Icon(
-                            scope.icon,
-                            size: 14,
-                            color: isSelected
-                                ? theme.colorScheme.onPrimary
-                                : theme.colorScheme.primary,
-                          ),
-                          label: Text(
-                            scope.label,
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: isSelected
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
-                            ),
-                          ),
-                          selected: isSelected,
-                          selectedColor: theme.colorScheme.primary,
-                          onSelected: (selected) {
-                            if (selected) {
-                              setState(() {
-                                _selectedScope = scope;
-                              });
-                            }
-                          },
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 16),
-
-                // Custom Topic Title Input
+                // Title input
                 TextField(
                   controller: _titleController,
                   decoration: InputDecoration(
-                    labelText: _selectedScope == ThreadScope.passage
-                        ? 'Discussion title'
-                        : 'Topic title',
-                    hintText: _selectedScope == ThreadScope.passage
-                        ? 'What do you want to explore?'
-                        : 'Enter topic title',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                    labelText: _isFixedPassageScope
+                        ? 'Discussion Title (Optional)'
+                        : 'Title (Optional)',
+                    hintText: _isFixedPassageScope
+                        ? 'e.g. Literary analysis of this passage'
+                        : 'e.g. Character evolution in the opening',
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                 ),
                 const SizedBox(height: 12),
 
-                // Conditional fields based on Scope
-                if (_selectedScope == ThreadScope.chapter) ...[
-                  TextField(
-                    controller: _chapterController,
-                    decoration: InputDecoration(
-                      labelText: 'Chapter Name / Number',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                ],
-
-                if (_selectedScope == ThreadScope.passage) ...[
-                  TextField(
-                    controller: _quoteController,
-                    maxLines: 2,
-                    decoration: InputDecoration(
-                      labelText: 'Passage Excerpt / Quote (Optional)',
-                      hintText: 'Paste or type excerpt...',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                ],
-
-                // Content Input
+                // Content input
                 TextField(
                   controller: _contentController,
-                  minLines: 5,
-                  maxLines: 8,
+                  minLines: 3,
+                  maxLines: 5,
                   decoration: InputDecoration(
-                    labelText: 'Your thought',
-                    hintText: 'Write your interpretation or question...',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                    labelText: 'Thoughts or Questions',
+                    hintText: 'What did you notice? Ask or share your interpretation...',
+                    alignLabelWithHint: true,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                   ),
-                ),
-                const SizedBox(height: 16),
-
-                // Passage/Chapter Rating Bar
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Your Rating',
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Row(
-                      children: List.generate(5, (index) {
-                        final starVal = index + 1;
-                        return IconButton(
-                          iconSize: 15,
-                          visualDensity: VisualDensity.compact,
-                          icon: Icon(
-                            starVal <= _rating
-                                ? LucideIcons.star
-                                : LucideIcons.star,
-                            color: starVal <= _rating
-                                ? Colors.amber[700]
-                                : Colors.grey[400],
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              _rating = starVal.toDouble();
-                            });
-                          },
-                        );
-                      }),
-                    ),
-                  ],
                 ),
                 const SizedBox(height: 20),
 
-                // Action Buttons
+                // Action buttons
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     TextButton(
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: _isSubmitting ? null : () => Navigator.pop(context),
                       child: const Text('Cancel'),
                     ),
                     const SizedBox(width: 8),
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(
-                          0xFFB45309,
-                        ), // Ochre accent
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 12,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                    FilledButton(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: theme.colorScheme.primary,
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
-                      onPressed: _submit,
-                      icon: const Icon(LucideIcons.send, size: 16),
-                      label: const Text(
-                        'Publish Thread',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
+                      onPressed: _isSubmitting ? null : _submit,
+                      child: _isSubmitting
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            )
+                          : const Text('Post Discussion'),
                     ),
                   ],
                 ),

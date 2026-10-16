@@ -122,6 +122,12 @@ class EpubController {
     await webViewController?.callMethod('addUnderLine', [cfi, count, quoteText]);
   }
 
+  /// Updates the discussion count and heat level for an existing underline annotation
+  Future<void> updateDiscussionCount({required String cfi, required int count}) async {
+    checkEpubLoaded();
+    await webViewController?.callMethod('updateDiscussionCount', [cfi, count]);
+  }
+
   ///Removes a highlight from epub viewer
   Future<void> removeHighlight({required String cfi}) async {
     checkEpubLoaded();
@@ -132,6 +138,12 @@ class EpubController {
   Future<void> removeUnderline({required String cfi}) async {
     checkEpubLoaded();
     await webViewController?.callMethod('removeUnderLine', [cfi]);
+  }
+
+  ///Clears all discussion underlines and badges from the epub viewer
+  Future<void> clearUnderlines() async {
+    checkEpubLoaded();
+    await webViewController?.callMethod('clearUnderlines');
   }
 
   ///Clears any active text selection in the epub viewer

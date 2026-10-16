@@ -2211,7 +2211,7 @@ function _ensureDiscussionStylesheet(doc) {
     '  position: relative !important;',
     '  background-color: var(--di-heat-1-dot-bg) !important;',
     '  border: 1px solid var(--di-heat-1-dot-border) !important;',
-    '  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease !important;',
+    '  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease !important;',
     '  -webkit-tap-highlight-color: transparent !important;',
     '}',
     '.bookies-di-badge::before {',
@@ -3208,6 +3208,47 @@ function _ensureDiscussionContentHook() {
   }
 }
 
+function updateDiscussionCount(cfiString, count) {
+  count = (typeof count === 'number' && count > 0) ? count : 1;
+  var meta = _discussionMeta[cfiString];
+  if (meta) {
+    meta.count = count;
+  } else {
+    _discussionMeta[cfiString] = { count: count, isParagraph: false, quoteText: null };
+  }
+  var heat = _getHeatLevel(count);
+  var chatWord = (count === 1) ? 'chat' : 'chats';
+  var title = count + ' ' + chatWord + ' • Tap to open, hold for preview';
+
+  var updatedAny = false;
+  try {
+    var allContents = rendition.getContents ? rendition.getContents() : [];
+    for (var i = 0; i < allContents.length; i++) {
+      try {
+        var doc = allContents[i].document;
+        if (!doc) continue;
+        var selector = (window.CSS && window.CSS.escape)
+          ? '[data-di-cfi="' + window.CSS.escape(cfiString) + '"]'
+          : '[data-di-cfi]';
+        var nodes = doc.querySelectorAll(selector);
+        for (var k = 0; k < nodes.length; k++) {
+          var el = nodes[k];
+          if (el.getAttribute('data-di-cfi') === cfiString) {
+            updatedAny = true;
+            el.setAttribute('data-heat', heat);
+            el.setAttribute('title', title);
+          }
+        }
+      } catch (e) {}
+    }
+  } catch (e) {}
+
+  if (!updatedAny) {
+    _reinjectAllContentsBadges();
+  }
+}
+window.updateDiscussionCount = updateDiscussionCount;
+
 function addUnderLine(cfiString, count, quoteText) {
   count = (typeof count === 'number' && count > 0) ? count : 1;
   _ensureDiscussionContentHook();
@@ -3216,6 +3257,7 @@ function addUnderLine(cfiString, count, quoteText) {
     isParagraph: false,
     quoteText: (typeof quoteText === 'string' && quoteText.trim().length > 0) ? quoteText.trim() : null
   };
+  updateDiscussionCount(cfiString, count);
   _reinjectAllContentsBadges();
   setTimeout(_reinjectAllContentsBadges, 50);
   setTimeout(_reinjectAllContentsBadges, 200);
@@ -3239,6 +3281,21 @@ function removeUnderLine(cfiString) {
     }
   } catch(e) {}
 }
+
+function clearUnderlines() {
+  _discussionMeta = {};
+  try {
+    var allContents = rendition.getContents ? rendition.getContents() : [];
+    for (var i = 0; i < allContents.length; i++) {
+      try {
+        if (allContents[i].document) {
+          _unwrapAllDiscussionIndicators(allContents[i].document);
+        }
+      } catch(e) {}
+    }
+  } catch(e) {}
+}
+window.clearUnderlines = clearUnderlines;
 
 function clearSelection() {
   try {

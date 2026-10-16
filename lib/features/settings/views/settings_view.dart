@@ -16,7 +16,6 @@ class SettingsView extends StatefulWidget {
 
 class _SettingsViewState extends State<SettingsView> {
   bool _spoilerProtection = true;
-  bool _showDiscussionIndicators = true;
   bool _discussionNotifications = true;
 
   @override
@@ -29,13 +28,6 @@ class _SettingsViewState extends State<SettingsView> {
       appBar: AppBar(
         title: const Text('Settings & Profile'),
         centerTitle: false,
-        actions: [
-          IconButton(
-            icon: const Icon(LucideIcons.layoutGrid),
-            tooltip: 'Component Gallery',
-            onPressed: () => context.push('/gallery'),
-          ),
-        ],
       ),
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -108,9 +100,9 @@ class _SettingsViewState extends State<SettingsView> {
               subtitle: const Text(
                 'Display community indicators on book margins',
               ),
-              value: _showDiscussionIndicators,
-              onChanged: (val) {
-                setState(() => _showDiscussionIndicators = val);
+              value: dataService.isDiscussionIndicatorsEnabled(),
+              onChanged: (val) async {
+                await dataService.setDiscussionIndicatorsEnabled(val);
               },
             ),
             const Divider(height: 1),
