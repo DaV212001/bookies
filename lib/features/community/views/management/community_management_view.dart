@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
@@ -574,6 +575,14 @@ class _CommunityManagementViewState extends State<CommunityManagementView>
           controller: _tabController,
           tabAlignment: TabAlignment.center,
           isScrollable: true,
+          labelStyle: GoogleFonts.inter(
+            fontSize: 13.5,
+            fontWeight: FontWeight.bold,
+          ),
+          unselectedLabelStyle: GoogleFonts.inter(
+            fontSize: 13.5,
+            fontWeight: FontWeight.normal,
+          ),
           tabs: [
             Tab(
               icon: const Icon(LucideIcons.users, size: 18),
@@ -630,25 +639,40 @@ class _CommunityManagementViewState extends State<CommunityManagementView>
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
           child: TextField(
             controller: _searchController,
+            style: GoogleFonts.inter(
+              fontSize: 13.0,
+              fontWeight: FontWeight.normal,
+              color: theme.colorScheme.onSurface,
+            ),
             decoration: InputDecoration(
-              prefixIcon: const Icon(LucideIcons.search, size: 18),
+              isDense: true,
+              prefixIcon: const Icon(LucideIcons.search, size: 16),
+              prefixIconConstraints: const BoxConstraints(minWidth: 38, minHeight: 38),
               suffixIcon: query.isNotEmpty
                   ? IconButton(
-                      icon: const Icon(LucideIcons.x, size: 16),
+                      icon: const Icon(LucideIcons.x, size: 15),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
                       onPressed: () {
                         _searchController.clear();
                         setState(() {});
                       },
                     )
                   : null,
+              suffixIconConstraints: const BoxConstraints(minWidth: 36, minHeight: 36),
               hintText: 'Search readers...',
+              hintStyle: GoogleFonts.inter(
+                fontSize: 13.0,
+                fontWeight: FontWeight.normal,
+                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.65),
+              ),
               filled: true,
-              fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+              fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(10),
                 borderSide: BorderSide.none,
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             ),
             onChanged: (_) => setState(() {}),
           ),
@@ -661,12 +685,15 @@ class _CommunityManagementViewState extends State<CommunityManagementView>
               Expanded(
                 child: FilledButton.icon(
                   icon: const Icon(LucideIcons.userPlus, size: 16),
-                  label: const FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text('Add Member'),
+                  label: Text(
+                    'Add Member',
+                    style: GoogleFonts.inter(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                   onPressed: _openAddMemberDialog,
@@ -676,12 +703,15 @@ class _CommunityManagementViewState extends State<CommunityManagementView>
               Expanded(
                 child: OutlinedButton.icon(
                   icon: const Icon(LucideIcons.bookPlus, size: 16),
-                  label: const FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text('Next Book'),
+                  label: Text(
+                    'Next Book',
+                    style: GoogleFonts.inter(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                   onPressed: _openExportToNewBookDialog,
@@ -697,21 +727,39 @@ class _CommunityManagementViewState extends State<CommunityManagementView>
           child: Row(
             children: [
               ChoiceChip(
-                label: Text('All Readers ($activeCount)'),
+                label: Text(
+                  'All Readers ($activeCount)',
+                  style: GoogleFonts.inter(
+                    fontSize: 12.0,
+                    fontWeight: _roleFilter == null ? FontWeight.w600 : FontWeight.normal,
+                  ),
+                ),
                 selected: _roleFilter == null,
                 onSelected: (_) => setState(() => _roleFilter = null),
               ),
               const SizedBox(width: 8),
               ChoiceChip(
                 avatar: const Icon(LucideIcons.shieldCheck, size: 14),
-                label: Text('Admins & Creator ($adminCount)'),
+                label: Text(
+                  'Admins & Creator ($adminCount)',
+                  style: GoogleFonts.inter(
+                    fontSize: 12.0,
+                    fontWeight: _roleFilter == CommunityRole.admin ? FontWeight.w600 : FontWeight.normal,
+                  ),
+                ),
                 selected: _roleFilter == CommunityRole.admin,
                 onSelected: (_) => setState(() => _roleFilter = CommunityRole.admin),
               ),
               const SizedBox(width: 8),
               ChoiceChip(
                 avatar: const Icon(LucideIcons.bookOpen, size: 14),
-                label: Text('Standard Readers (${activeCount - adminCount})'),
+                label: Text(
+                  'Standard Readers (${activeCount - adminCount})',
+                  style: GoogleFonts.inter(
+                    fontSize: 12.0,
+                    fontWeight: _roleFilter == CommunityRole.member ? FontWeight.w600 : FontWeight.normal,
+                  ),
+                ),
                 selected: _roleFilter == CommunityRole.member,
                 onSelected: (_) => setState(() => _roleFilter = CommunityRole.member),
               ),
