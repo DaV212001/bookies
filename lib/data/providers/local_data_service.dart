@@ -26,11 +26,13 @@ class LocalDataService extends ChangeNotifier {
   List<Community> communities = [];
   List<String> _joinedCommunityIds = [];
   Map<String, String> _selectedCommunityIdsByBook = {};
-  final Map<String, StreamController<List<ChatMessage>>> _threadStreamControllers = {};
+  final Map<String, StreamController<List<ChatMessage>>>
+  _threadStreamControllers = {};
   final Map<String, List<ChatMessage>> _threadMessages = {};
   final List<User> _directoryUsers = [];
   final Map<String, List<CommunityMember>> _communityMembersByCommunityId = {};
   final Map<String, LiveReadingSession> _activeLiveSessions = {};
+  final ValueNotifier<int> communityCatalogRevision = ValueNotifier(0);
 
   Future<LocalDataService> init() async {
     _prefs = await SharedPreferences.getInstance();
@@ -95,6 +97,7 @@ class LocalDataService extends ChangeNotifier {
 
     _loadData();
     _seedInitialDataIfNeeded();
+    _sortAllCommunityMembers();
     return this;
   }
 
@@ -332,8 +335,9 @@ class LocalDataService extends ChangeNotifier {
       final sessionJson = _prefs.getString('live_session_${comm.id}');
       if (sessionJson != null) {
         try {
-          _activeLiveSessions[comm.id] =
-              LiveReadingSession.fromJson(jsonDecode(sessionJson));
+          _activeLiveSessions[comm.id] = LiveReadingSession.fromJson(
+            jsonDecode(sessionJson),
+          );
         } catch (_) {}
       }
     }
@@ -409,6 +413,7 @@ class LocalDataService extends ChangeNotifier {
   Future<void> addBook(Book book) async {
     _books.add(book);
     await _saveBooks();
+    _markCommunityCatalogChanged();
   }
 
   Future<void> updateBook(Book updatedBook) async {
@@ -416,12 +421,19 @@ class LocalDataService extends ChangeNotifier {
     if (index != -1) {
       _books[index] = updatedBook;
       await _saveBooks();
+      _markCommunityCatalogChanged();
     }
   }
 
-  Future<void> saveProgress(String bookId, String locatorJson) async {
+  Future<void> saveProgress(
+    String bookId,
+    String locatorJson, {
+    bool notify = false,
+  }) async {
     await _prefs.setString('progress_$bookId', locatorJson);
-    notifyListeners();
+    if (notify) {
+      notifyListeners();
+    }
   }
 
   String? getProgress(String bookId) {
@@ -642,24 +654,33 @@ class LocalDataService extends ChangeNotifier {
   }
 
   // --- Chat Messages & Streaming ---
-  Future<List<ChatMessage>> getMessages(String threadId, {int limit = 50}) async {
+  Future<List<ChatMessage>> getMessages(
+    String threadId, {
+    int limit = 50,
+  }) async {
     if (_threadMessages.containsKey(threadId)) {
       return List.unmodifiable(_threadMessages[threadId]!);
     }
 
     final raw = _prefs.getStringList('messages_$threadId');
     if (raw != null && raw.isNotEmpty) {
-      final list = raw
-          .map((str) => ChatMessage.fromJson(jsonDecode(str) as Map<String, dynamic>))
-          .toList()
-        ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      final list =
+          raw
+              .map(
+                (str) => ChatMessage.fromJson(
+                  jsonDecode(str) as Map<String, dynamic>,
+                ),
+              )
+              .toList()
+            ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
       _threadMessages[threadId] = list;
       return List.unmodifiable(list);
     }
 
     // Populate from discussions or seed initial conversation
     final List<ChatMessage> initial = [];
-    final discussion = _discussions.where((d) => d.id == threadId).firstOrNull ??
+    final discussion =
+        _discussions.where((d) => d.id == threadId).firstOrNull ??
         _discussions.where((d) => d.highlightId == threadId).firstOrNull;
 
     if (discussion != null) {
@@ -721,7 +742,9 @@ class LocalDataService extends ChangeNotifier {
       }
     } else if (threadId.startsWith('general:')) {
       final bookId = threadId.replaceFirst('general:', '');
-      final bookThreads = _discussions.where((d) => d.bookId == bookId).toList();
+      final bookThreads = _discussions
+          .where((d) => d.bookId == bookId)
+          .toList();
       for (final t in bookThreads) {
         initial.add(
           ChatMessage(
@@ -742,7 +765,9 @@ class LocalDataService extends ChangeNotifier {
     }
 
     if (initial.length <= 1) {
-      final baseTime = discussion?.createdAt ?? DateTime.now().subtract(const Duration(hours: 3));
+      final baseTime =
+          discussion?.createdAt ??
+          DateTime.now().subtract(const Duration(hours: 3));
       initial.addAll([
         ChatMessage(
           id: '${threadId}_seed_1',
@@ -754,10 +779,13 @@ class LocalDataService extends ChangeNotifier {
             displayName: 'Julian Morrow',
             avatarUrl: 'https://i.pravatar.cc/150?u=julian',
           ),
-          content: 'Fascinating perspective! It really changes how you interpret the narrative.',
+          content:
+              'Fascinating perspective! It really changes how you interpret the narrative.',
           createdAt: baseTime.add(const Duration(minutes: 18)),
           status: MessageStatus.sent,
-          reactions: {'👍': ['user-1', 'user-3']},
+          reactions: {
+            '👍': ['user-1', 'user-3'],
+          },
         ),
         ChatMessage(
           id: '${threadId}_seed_2',
@@ -769,13 +797,17 @@ class LocalDataService extends ChangeNotifier {
             displayName: 'Henry Winter',
             avatarUrl: 'https://i.pravatar.cc/150?u=henry',
           ),
-          content: 'I agree with Julian. In classical literature this tension is always present between fate and desire.',
+          content:
+              'I agree with Julian. In classical literature this tension is always present between fate and desire.',
           replyToId: '${threadId}_seed_1',
-          replyToContent: 'Fascinating perspective! It really changes how you interpret...',
+          replyToContent:
+              'Fascinating perspective! It really changes how you interpret...',
           replyToAuthor: 'Julian Morrow',
           createdAt: baseTime.add(const Duration(minutes: 34)),
           status: MessageStatus.sent,
-          reactions: {'❤️': ['user-2']},
+          reactions: {
+            '❤️': ['user-2'],
+          },
         ),
       ]);
     }
@@ -979,6 +1011,33 @@ class LocalDataService extends ChangeNotifier {
         creatorId: old.creatorId,
       );
       _saveCommunities();
+      _markCommunityCatalogChanged();
+    }
+  }
+
+  void _markCommunityCatalogChanged() {
+    communityCatalogRevision.value++;
+  }
+
+  static int _compareCommunityMembers(CommunityMember a, CommunityMember b) {
+    if (a.isCreator && !b.isCreator) return -1;
+    if (!a.isCreator && b.isCreator) return 1;
+    if (a.role == CommunityRole.admin && b.role != CommunityRole.admin) {
+      return -1;
+    }
+    if (a.role != CommunityRole.admin && b.role == CommunityRole.admin) {
+      return 1;
+    }
+    return a.user.displayName.compareTo(b.user.displayName);
+  }
+
+  void _sortCommunityMembers(String communityId) {
+    _communityMembersByCommunityId[communityId]?.sort(_compareCommunityMembers);
+  }
+
+  void _sortAllCommunityMembers() {
+    for (final communityId in _communityMembersByCommunityId.keys) {
+      _sortCommunityMembers(communityId);
     }
   }
 
@@ -1022,6 +1081,7 @@ class LocalDataService extends ChangeNotifier {
       creatorId: currentUser.id,
     );
     communities.add(newComm);
+    _markCommunityCatalogChanged();
     if (!_joinedCommunityIds.contains(newId)) {
       _joinedCommunityIds.add(newId);
       await _saveJoinedCommunities();
@@ -1029,7 +1089,8 @@ class LocalDataService extends ChangeNotifier {
     await _saveCommunities();
     await addMember(newId, currentUser, role: CommunityRole.creator);
 
-    if (importMembersFromCommunityId != null && importMembersFromCommunityId.isNotEmpty) {
+    if (importMembersFromCommunityId != null &&
+        importMembersFromCommunityId.isNotEmpty) {
       await importMembers(
         targetCommunityId: newId,
         sourceCommunityId: importMembersFromCommunityId,
@@ -1050,23 +1111,30 @@ class LocalDataService extends ChangeNotifier {
     bool copyPermissions = true,
     bool skipRestrictedOrBanned = true,
   }) async {
-    final sourceMembers = _communityMembersByCommunityId[sourceCommunityId] ?? [];
+    final sourceMembers =
+        _communityMembersByCommunityId[sourceCommunityId] ?? [];
     if (sourceMembers.isEmpty) return 0;
 
-    final targetList = _communityMembersByCommunityId.putIfAbsent(targetCommunityId, () => []);
+    final targetList = _communityMembersByCommunityId.putIfAbsent(
+      targetCommunityId,
+      () => [],
+    );
     final existingUserIds = targetList.map((m) => m.user.id).toSet();
 
     int importedCount = 0;
     for (final src in sourceMembers) {
       if (existingUserIds.contains(src.user.id)) continue;
-      if (skipRestrictedOrBanned && (src.isRestricted || src.isBanned)) continue;
+      if (skipRestrictedOrBanned && (src.isRestricted || src.isBanned))
+        continue;
 
       targetList.add(
         CommunityMember(
           id: _uuid.v4(),
           communityId: targetCommunityId,
           user: src.user,
-          role: copyRoles ? (src.isCreator ? CommunityRole.admin : src.role) : CommunityRole.member,
+          role: copyRoles
+              ? (src.isCreator ? CommunityRole.admin : src.role)
+              : CommunityRole.member,
           status: CommunityMemberStatus.active,
           joinedAt: DateTime.now(),
           customPermissions: copyPermissions ? src.customPermissions : null,
@@ -1076,6 +1144,7 @@ class LocalDataService extends ChangeNotifier {
     }
 
     if (importedCount > 0) {
+      _sortCommunityMembers(targetCommunityId);
       _syncCommunityMemberCount(targetCommunityId);
       await _saveCommunityMembers(targetCommunityId);
       notifyListeners();
@@ -1090,24 +1159,23 @@ class LocalDataService extends ChangeNotifier {
     CommunityRole? role,
   }) {
     final list = _communityMembersByCommunityId[communityId] ?? [];
-    return list.where((m) {
-      if (status != null && m.status != status) return false;
-      if (role != null && m.role != role) return false;
-      if (query != null && query.trim().isNotEmpty) {
-        final q = query.toLowerCase();
-        final matchName = m.user.displayName.toLowerCase().contains(q);
-        final matchUsername = m.user.username.toLowerCase().contains(q);
-        return matchName || matchUsername;
-      }
-      return true;
-    }).toList()
-      ..sort((a, b) {
-        if (a.isCreator && !b.isCreator) return -1;
-        if (!a.isCreator && b.isCreator) return 1;
-        if (a.role == CommunityRole.admin && b.role != CommunityRole.admin) return -1;
-        if (a.role != CommunityRole.admin && b.role == CommunityRole.admin) return 1;
-        return a.user.displayName.compareTo(b.user.displayName);
-      });
+    final normalizedQuery = query?.trim().toLowerCase();
+    return list
+        .where((m) {
+          if (status != null && m.status != status) return false;
+          if (role != null && m.role != role) return false;
+          if (normalizedQuery != null && normalizedQuery.isNotEmpty) {
+            final matchName = m.user.displayName
+                .toLowerCase()
+                .contains(normalizedQuery);
+            final matchUsername = m.user.username
+                .toLowerCase()
+                .contains(normalizedQuery);
+            return matchName || matchUsername;
+          }
+          return true;
+        })
+        .toList(growable: false);
   }
 
   CommunityMember? getMember(String communityId, String userId) {
@@ -1139,11 +1207,17 @@ class LocalDataService extends ChangeNotifier {
     User user, {
     CommunityRole role = CommunityRole.member,
   }) async {
-    final list = _communityMembersByCommunityId.putIfAbsent(communityId, () => []);
+    final list = _communityMembersByCommunityId.putIfAbsent(
+      communityId,
+      () => [],
+    );
     final existingIdx = list.indexWhere((m) => m.user.id == user.id);
     if (existingIdx != -1) {
       if (role == CommunityRole.creator && !list[existingIdx].isCreator) {
-        list[existingIdx] = list[existingIdx].copyWith(role: CommunityRole.creator);
+        list[existingIdx] = list[existingIdx].copyWith(
+          role: CommunityRole.creator,
+        );
+        _sortCommunityMembers(communityId);
         await _saveCommunityMembers(communityId);
       }
       return list[existingIdx];
@@ -1157,6 +1231,7 @@ class LocalDataService extends ChangeNotifier {
       joinedAt: DateTime.now(),
     );
     list.add(member);
+    _sortCommunityMembers(communityId);
     _syncCommunityMemberCount(communityId);
     await _saveCommunityMembers(communityId);
     notifyListeners();
@@ -1173,6 +1248,7 @@ class LocalDataService extends ChangeNotifier {
     final idx = list.indexWhere((m) => m.user.id == userId);
     if (idx != -1) {
       list[idx] = list[idx].copyWith(role: newRole);
+      _sortCommunityMembers(communityId);
       await _saveCommunityMembers(communityId);
       notifyListeners();
     }
@@ -1241,7 +1317,8 @@ class LocalDataService extends ChangeNotifier {
     if (idx != -1) {
       list[idx] = list[idx].copyWith(
         status: CommunityMemberStatus.banned,
-        restrictionReason: reason ?? 'Banned from community for rule violations.',
+        restrictionReason:
+            reason ?? 'Banned from community for rule violations.',
         restrictedAt: DateTime.now(),
       );
       _syncCommunityMemberCount(communityId);
@@ -1372,11 +1449,14 @@ class LocalDataService extends ChangeNotifier {
     }
   }
 
-  Future<void> leaveLiveReadingSession(String communityId, String userId) async {
+  Future<void> leaveLiveReadingSession(
+    String communityId,
+    String userId,
+  ) async {
     final session = _activeLiveSessions[communityId];
     if (session == null) return;
-    final newParticipants =
-        Set<String>.from(session.participantUserIds)..remove(userId);
+    final newParticipants = Set<String>.from(session.participantUserIds)
+      ..remove(userId);
     final updated = session.copyWith(participantUserIds: newParticipants);
     await updateLiveReadingSession(updated);
   }
@@ -1430,11 +1510,21 @@ class LocalDataService extends ChangeNotifier {
     required String bookId,
     required String communityId,
   }) async {
-    final isJoinedForBook = getJoinedCommunitiesForBook(bookId)
-        .any((community) => community.id == communityId);
+    final isJoinedForBook = getJoinedCommunitiesForBook(
+      bookId,
+    ).any((community) => community.id == communityId);
     if (!isJoinedForBook) return;
     _selectedCommunityIdsByBook[bookId] = communityId;
     await _saveSelectedCommunities();
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    communityCatalogRevision.dispose();
+    for (final controller in _threadStreamControllers.values) {
+      controller.close();
+    }
+    super.dispose();
   }
 }

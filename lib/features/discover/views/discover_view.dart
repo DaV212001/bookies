@@ -427,6 +427,7 @@ class _DiscoverViewState extends State<DiscoverView> {
                   child: Image.network(
                     'https://lh3.googleusercontent.com/aida-public/AB6AXuC7cpL27jzawVwPw3wJxDpwBU3uGQMUNJgC_jwFsuKEm3c6S6pxXrO15bNkcjfvyam6YqaZEbIouXlUJwUmWPuaq2TowE295nAdd7eU5DHIJPOJIYzaIscj8WU_yqRRI8fNo6ZqE1YhbRF7ZHVx1ZuabhhDAqjN6IAbfYmG14Ocs8kpM-nTrPsBahyWyrfgNpGpbHry9ufCxtIvl6oJ5b_CcKT5yRgJCqhZLGi3Bsz0U4c-2wgw607D',
                     fit: BoxFit.cover,
+                    cacheHeight: 400,
                     errorBuilder: (context, error, stack) => Container(
                       color: theme.colorScheme.primaryContainer,
                       child: Center(
@@ -577,6 +578,7 @@ class _DiscoverViewState extends State<DiscoverView> {
                 child: Image.network(
                   'https://lh3.googleusercontent.com/aida-public/AB6AXuCddjFf4fbvLs8U8t0jMYaXDI8s6YcStfqbRHqmZqIq9kVyx7r9HG-cTtN5NJeMqt6V1r972SxflFkk6AsY3d750E9Sp6iBJvJAWRm50RAGcHld94EA9HZH2qtjqbPAtt4mV_ux3iAScBSpcQ0guuvf0huH4AatDLwx2BHS6nLK0OR-osDCOMHUSUlHBELoySSRfuy4URvDDv1ZJ_NzLGn7rFkx2zjlKTuPr_qnZgsO25b9u7OMwbJr',
                   fit: BoxFit.cover,
+                  cacheWidth: 300,
                   errorBuilder: (context, error, stack) => Container(
                     color: theme.colorScheme.primaryContainer,
                     child: Center(
@@ -659,6 +661,7 @@ class _DiscoverViewState extends State<DiscoverView> {
               child: Image.network(
                 imageUrl,
                 fit: BoxFit.cover,
+                cacheWidth: 150,
                 errorBuilder: (context, error, stack) => Container(
                   color: theme.colorScheme.primaryContainer,
                   child: Center(

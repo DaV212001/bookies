@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/services.dart';
@@ -117,7 +118,11 @@ class _EpubJsReaderState extends State<EpubJsReader> {
                 widget.state.preferences.textAlign)) {
       _applyThemeSafely(widget.state);
     }
-    if (_isLoaded) {
+    final discussionsChanged =
+        !listEquals(oldWidget.passageDiscussions, widget.passageDiscussions) ||
+        oldWidget.state.showDiscussionIndicators !=
+            widget.state.showDiscussionIndicators;
+    if (_isLoaded && discussionsChanged) {
       _syncDiscussionIndicators();
     }
   }
@@ -184,6 +189,10 @@ class _EpubJsReaderState extends State<EpubJsReader> {
           cfiQuotes[cfi] = discussion.quoteText!.trim();
         }
       }
+    }
+
+    if (mapEquals(cfiCounts, _renderedDiscussionCounts)) {
+      return;
     }
 
     final currentRendered = Map<String, int>.from(_renderedDiscussionCounts);

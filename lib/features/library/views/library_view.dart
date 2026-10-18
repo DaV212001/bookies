@@ -17,8 +17,6 @@ import 'package:bookies/core/widgets/responsive_text.dart';
 
 enum LibraryViewMode { grid, list }
 
-enum LibrarySortOrder { recent, title, author }
-
 class LibraryView extends StatefulWidget {
   const LibraryView({super.key});
 
@@ -28,10 +26,8 @@ class LibraryView extends StatefulWidget {
 
 class _LibraryViewState extends State<LibraryView> {
   LibraryViewMode _viewMode = LibraryViewMode.grid;
-  LibrarySortOrder _sortOrder = LibrarySortOrder.recent;
   bool _isSearching = false;
   final TextEditingController _searchController = TextEditingController();
-  String _searchQuery = '';
 
   @override
   void dispose() {
@@ -177,28 +173,6 @@ class _LibraryViewState extends State<LibraryView> {
     return 0.0;
   }
 
-  List<Book> _filterAndSortBooks(List<Book> books) {
-    var filtered = books.where((book) {
-      if (_searchQuery.isEmpty) return true;
-      final q = _searchQuery.toLowerCase();
-      return book.title.toLowerCase().contains(q) ||
-          book.author.toLowerCase().contains(q);
-    }).toList();
-
-    switch (_sortOrder) {
-      case LibrarySortOrder.title:
-        filtered.sort((a, b) => a.title.compareTo(b.title));
-        break;
-      case LibrarySortOrder.author:
-        filtered.sort((a, b) => a.author.compareTo(b.author));
-        break;
-      case LibrarySortOrder.recent:
-        // Already in recent insertion order
-        break;
-    }
-    return filtered;
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -220,14 +194,16 @@ class _LibraryViewState extends State<LibraryView> {
                   hintStyle: GoogleFonts.inter(
                     fontSize: 14.5,
                     fontWeight: FontWeight.normal,
-                    color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.65),
+                    color: theme.colorScheme.onSurfaceVariant.withValues(
+                      alpha: 0.65,
+                    ),
                   ),
                   border: InputBorder.none,
                 ),
                 onChanged: (val) {
-                  setState(() {
-                    _searchQuery = val;
-                  });
+                  context.read<LibraryBloc>().add(
+                    UpdateLibraryView(query: val),
+                  );
                 },
               )
             : Column(
@@ -253,15 +229,20 @@ class _LibraryViewState extends State<LibraryView> {
             icon: Icon(_isSearching ? LucideIcons.x : LucideIcons.search),
             tooltip: _isSearching ? 'Close Search' : 'Search Library',
             onPressed: () {
+              final wasSearching = _isSearching;
               setState(() {
-                if (_isSearching) {
+                if (wasSearching) {
                   _isSearching = false;
                   _searchController.clear();
-                  _searchQuery = '';
                 } else {
                   _isSearching = true;
                 }
               });
+              if (wasSearching) {
+                context.read<LibraryBloc>().add(
+                  const UpdateLibraryView(query: ''),
+                );
+              }
             },
           ),
         ],
@@ -324,7 +305,7 @@ class _LibraryViewState extends State<LibraryView> {
 
           if (state is LibraryLoaded) {
             final allBooks = state.books;
-            final displayedBooks = _filterAndSortBooks(allBooks);
+            final displayedBooks = state.displayedBooks;
 
             if (allBooks.isEmpty) {
               return _buildEmptySanctuary(context, theme);
@@ -383,12 +364,12 @@ class _LibraryViewState extends State<LibraryView> {
                           children: [
                             // Sort Dropdown
                             PopupMenuButton<LibrarySortOrder>(
-                              initialValue: _sortOrder,
+                              initialValue: state.sortOrder,
                               tooltip: 'Sort Order',
                               onSelected: (val) {
-                                setState(() {
-                                  _sortOrder = val;
-                                });
+                                context.read<LibraryBloc>().add(
+                                  UpdateLibraryView(sortOrder: val),
+                                );
                               },
                               child: Padding(
                                 padding: const EdgeInsets.symmetric(
@@ -399,7 +380,7 @@ class _LibraryViewState extends State<LibraryView> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Text(
-                                      _getSortLabel(_sortOrder),
+                                      _getSortLabel(state.sortOrder),
                                       style: theme.textTheme.labelMedium
                                           ?.copyWith(
                                             color: theme
@@ -467,7 +448,7 @@ class _LibraryViewState extends State<LibraryView> {
                         hasScrollBody: false,
                         child: Center(
                           child: Text(
-                            'No books match "$_searchQuery"',
+                            'No books match "${state.query}"',
                             style: theme.textTheme.bodyMedium?.copyWith(
                               color: theme.colorScheme.onSurfaceVariant,
                             ),
@@ -746,6 +727,7 @@ class _LibraryViewState extends State<LibraryView> {
                     Image.file(
                       File(book.coverUrl!),
                       fit: BoxFit.cover,
+                      cacheWidth: 350,
                       errorBuilder: (context, error, stackTrace) =>
                           _buildFallbackGridCover(theme, book),
                     )
@@ -767,7 +749,7 @@ class _LibraryViewState extends State<LibraryView> {
                       ),
                     ),
                   ),
-                  
+
                   // Context Menu
                   Positioned(
                     top: 8,
@@ -853,6 +835,7 @@ class _LibraryViewState extends State<LibraryView> {
                       ? Image.file(
                           File(book.coverUrl!),
                           fit: BoxFit.cover,
+                          cacheWidth: 150,
                           errorBuilder: (context, error, stack) => Center(
                             child: Icon(
                               LucideIcons.bookOpen,
@@ -983,7 +966,11 @@ class _LibraryViewState extends State<LibraryView> {
     );
   }
 
-  Widget _buildBookContextMenu(BuildContext context, ThemeData theme, Book book) {
+  Widget _buildBookContextMenu(
+    BuildContext context,
+    ThemeData theme,
+    Book book,
+  ) {
     return PopupMenuButton<String>(
       icon: Container(
         padding: const EdgeInsets.all(4),

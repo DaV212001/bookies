@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:bloc/bloc.dart';
@@ -15,6 +16,11 @@ part 'reader_state.dart';
 
 class ReaderBloc extends Bloc<ReaderEvent, ReaderState> {
   final LocalDataService _dataService;
+  Timer? _progressSaveDebounceTimer;
+  Timer? _prefSaveDebounceTimer;
+  String? _pendingProgressBookId;
+  String? _pendingProgressJson;
+  EPUBPreferences? _pendingPreferences;
 
   ReaderBloc(this._dataService) : super(ReaderInitial()) {
     on<LoadBook>(_onLoadBook);
@@ -142,13 +148,22 @@ class ReaderBloc extends Bloc<ReaderEvent, ReaderState> {
           ? event.progression
           : currentState.progression;
 
-      // Always remember the user's latest location, including when rereading
-      // an earlier chapter. Completion progress remains at the furthest point
-      // reached until an explicit reset is implemented/requested.
-      _dataService.saveProgress(
-        currentState.book.id,
-        jsonEncode({'cfi': event.cfi, 'progression': furthestProgress}),
-      );
+      _pendingProgressBookId = currentState.book.id;
+      _pendingProgressJson = jsonEncode({
+        'cfi': event.cfi,
+        'progression': furthestProgress,
+      });
+
+      _progressSaveDebounceTimer?.cancel();
+      _progressSaveDebounceTimer = Timer(const Duration(milliseconds: 400), () {
+        if (_pendingProgressBookId != null && _pendingProgressJson != null) {
+          _dataService.saveProgress(
+            _pendingProgressBookId!,
+            _pendingProgressJson!,
+            notify: false,
+          );
+        }
+      });
 
       emit(currentState.copyWith(
         currentCfi: event.cfi,
@@ -163,6 +178,8 @@ class ReaderBloc extends Bloc<ReaderEvent, ReaderState> {
   ) async {
     if (state is ReaderLoaded) {
       final currentState = state as ReaderLoaded;
+      _prefSaveDebounceTimer?.cancel();
+      _pendingPreferences = null;
       try {
         await FlutterReadium().setEPUBPreferences(event.preferences);
         await _dataService.saveReadingPreferences(
@@ -255,9 +272,15 @@ class ReaderBloc extends Bloc<ReaderEvent, ReaderState> {
       emit(currentState.copyWith(preferences: newPrefs, fontSize: ratio));
       try {
         await FlutterReadium().setEPUBPreferences(newPrefs);
-        await _dataService.saveReadingPreferences(
-          jsonEncode(newPrefs.toJson()),
-        );
+        _pendingPreferences = newPrefs;
+        _prefSaveDebounceTimer?.cancel();
+        _prefSaveDebounceTimer = Timer(const Duration(milliseconds: 400), () {
+          if (_pendingPreferences != null) {
+            _dataService.saveReadingPreferences(
+              jsonEncode(_pendingPreferences!.toJson()),
+            );
+          }
+        });
       } catch (e) {
         AppLogger.e('ReaderBloc', 'Failed to change font size', e);
       }
@@ -278,5 +301,26 @@ class ReaderBloc extends Bloc<ReaderEvent, ReaderState> {
       );
       emit(currentState.copyWith(showDiscussionIndicators: newValue));
     }
+  }
+
+  @override
+  Future<void> close() {
+    _progressSaveDebounceTimer?.cancel();
+    if (_pendingProgressBookId != null && _pendingProgressJson != null) {
+      _dataService.saveProgress(
+        _pendingProgressBookId!,
+        _pendingProgressJson!,
+        notify: false,
+      );
+    }
+
+    _prefSaveDebounceTimer?.cancel();
+    if (_pendingPreferences != null) {
+      _dataService.saveReadingPreferences(
+        jsonEncode(_pendingPreferences!.toJson()),
+      );
+    }
+
+    return super.close();
   }
 }

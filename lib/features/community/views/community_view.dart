@@ -12,6 +12,8 @@ import 'package:bookies/features/community/views/community_detail_view.dart';
 import 'package:bookies/core/widgets/create_community_dialog.dart';
 import 'package:bookies/core/widgets/responsive_text.dart';
 
+typedef _CommunityListItem = ({Community community, Book? book});
+
 class CommunitiesView extends StatefulWidget {
   const CommunitiesView({super.key});
 
@@ -22,21 +24,39 @@ class CommunitiesView extends StatefulWidget {
 class _CommunitiesViewState extends State<CommunitiesView> {
   final _searchController = TextEditingController();
   bool _popularFirst = false;
+  LocalDataService? _dataService;
+  List<Book> _books = const [];
+  List<_CommunityListItem> _communities = const [];
+  List<_CommunityListItem> _filteredCommunities = const [];
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final dataService = context.read<LocalDataService>();
+    if (identical(dataService, _dataService)) return;
+
+    _dataService?.communityCatalogRevision.removeListener(_refreshCatalog);
+    _dataService = dataService;
+    dataService.communityCatalogRevision.addListener(_refreshCatalog);
+    _refreshCatalog(rebuild: false);
+  }
 
   @override
   void dispose() {
+    _dataService?.communityCatalogRevision.removeListener(_refreshCatalog);
     _searchController.dispose();
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final data = context.watch<LocalDataService>();
-    final books = data.getBooks();
-    final communities = <({Community community, Book? book})>[
-      for (final community in data.communities)
-        (community: community, book: _bookFor(books, community.bookId)),
+  void _refreshCatalog({bool rebuild = true}) {
+    final dataService = _dataService;
+    if (dataService == null) return;
+
+    final books = dataService.getBooks();
+    final booksById = {for (final book in books) book.id: book};
+    final communities = <_CommunityListItem>[
+      for (final community in dataService.communities)
+        (community: community, book: booksById[community.bookId]),
     ];
     final query = _searchController.text.trim().toLowerCase();
     final filtered = communities.where((item) {
@@ -44,10 +64,31 @@ class _CommunitiesViewState extends State<CommunitiesView> {
       return item.community.name.toLowerCase().contains(query) ||
           item.community.description.toLowerCase().contains(query) ||
           (item.book?.title.toLowerCase().contains(query) ?? false);
-    }).toList()
-      ..sort((a, b) => _popularFirst
-          ? b.community.memberCount.compareTo(a.community.memberCount)
-          : 0);
+    }).toList();
+
+    if (_popularFirst) {
+      filtered.sort(
+        (a, b) => b.community.memberCount.compareTo(a.community.memberCount),
+      );
+    }
+
+    void apply() {
+      _books = List.unmodifiable(books);
+      _communities = List.unmodifiable(communities);
+      _filteredCommunities = List.unmodifiable(filtered);
+    }
+
+    if (rebuild && mounted) {
+      setState(apply);
+    } else {
+      apply();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final query = _searchController.text.trim();
 
     return Scaffold(
       appBar: AppBar(
@@ -70,115 +111,155 @@ class _CommunitiesViewState extends State<CommunitiesView> {
           ],
         ),
       ),
-      body: communities.isEmpty
+      body: _communities.isEmpty
           ? _emptyState(theme)
-          : ListView(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
-              children: [
-        _CommunityIntro(theme: theme, communities: communities),
-        const SizedBox(height: 16),
-        TextField(
-          controller: _searchController,
-          onChanged: (_) => setState(() {}),
-          style: GoogleFonts.inter(
-            fontSize: 13.5,
-            fontWeight: FontWeight.normal,
-            color: theme.colorScheme.onSurface,
-          ),
-          decoration: InputDecoration(
-            isDense: true,
-            hintText: 'Search communities or books',
-            hintStyle: GoogleFonts.inter(
-              fontSize: 13.5,
-              fontWeight: FontWeight.normal,
-              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.65),
-            ),
-            prefixIcon: const Icon(LucideIcons.search, size: 17),
-            prefixIconConstraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-            suffixIcon: query.isEmpty
-                ? null
-                : IconButton(
-                    tooltip: 'Clear search',
-                    icon: const Icon(LucideIcons.x, size: 16),
-                    constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                    padding: EdgeInsets.zero,
-                    onPressed: () {
-                      _searchController.clear();
-                      setState(() {});
-                    },
-                  ),
-            suffixIconConstraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-            filled: true,
-            fillColor: theme.colorScheme.surfaceContainerLow,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          ),
-        ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            Text('Browse', style: theme.textTheme.labelLarge),
-            const SizedBox(width: 10),
-            ChoiceChip(
-              label: const Text('All rooms'),
-              selected: !_popularFirst,
-              onSelected: (_) => setState(() => _popularFirst = false),
-            ),
-            const SizedBox(width: 8),
-            ChoiceChip(
-              label: const Text('Most readers'),
-              selected: _popularFirst,
-              onSelected: (_) => setState(() => _popularFirst = true),
-            ),
-          ],
-        ),
-        const SizedBox(height: 18),
-        if (filtered.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 36),
-            child: Center(child: Text('No communities match your search.')),
-          ),
-        ...filtered.map(
-                  (item) => _CommunityBookCard(
-                    community: item.community,
-                    book: item.book,
-                    onTap: () => Navigator.of(context, rootNavigator: true).push(
-                      MaterialPageRoute(
-                        builder: (_) => CommunityDetailView(
-                          bookId: item.community.bookId,
-                          communityId: item.community.id,
-                          communityName: item.community.name,
-                          description: item.community.description,
+          : CustomScrollView(
+              slivers: [
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+                  sliver: SliverToBoxAdapter(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _CommunityIntro(
+                          theme: theme,
+                          communities: _communities,
                         ),
-                      ),
+                        const SizedBox(height: 16),
+                        TextField(
+                          controller: _searchController,
+                          onChanged: (_) => _refreshCatalog(),
+                          style: GoogleFonts.inter(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.normal,
+                            color: theme.colorScheme.onSurface,
+                          ),
+                          decoration: InputDecoration(
+                            isDense: true,
+                            hintText: 'Search communities or books',
+                            hintStyle: GoogleFonts.inter(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.normal,
+                              color: theme.colorScheme.onSurfaceVariant
+                                  .withValues(alpha: 0.65),
+                            ),
+                            prefixIcon: const Icon(
+                              LucideIcons.search,
+                              size: 17,
+                            ),
+                            prefixIconConstraints: const BoxConstraints(
+                              minWidth: 40,
+                              minHeight: 40,
+                            ),
+                            suffixIcon: query.isEmpty
+                                ? null
+                                : IconButton(
+                                    tooltip: 'Clear search',
+                                    icon: const Icon(LucideIcons.x, size: 16),
+                                    constraints: const BoxConstraints(
+                                      minWidth: 36,
+                                      minHeight: 36,
+                                    ),
+                                    padding: EdgeInsets.zero,
+                                    onPressed: () {
+                                      _searchController.clear();
+                                      _refreshCatalog();
+                                    },
+                                  ),
+                            suffixIconConstraints: const BoxConstraints(
+                              minWidth: 36,
+                              minHeight: 36,
+                            ),
+                            filled: true,
+                            fillColor: theme.colorScheme.surfaceContainerLow,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 10,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            Text('Browse', style: theme.textTheme.labelLarge),
+                            const SizedBox(width: 10),
+                            ChoiceChip(
+                              label: const Text('All rooms'),
+                              selected: !_popularFirst,
+                              onSelected: (_) {
+                                if (_popularFirst) {
+                                  _popularFirst = false;
+                                  _refreshCatalog();
+                                }
+                              },
+                            ),
+                            const SizedBox(width: 8),
+                            ChoiceChip(
+                              label: const Text('Most readers'),
+                              selected: _popularFirst,
+                              onSelected: (_) {
+                                if (!_popularFirst) {
+                                  _popularFirst = true;
+                                  _refreshCatalog();
+                                }
+                              },
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 18),
+                      ],
                     ),
                   ),
                 ),
+                if (_filteredCommunities.isEmpty)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 36),
+                      child: Center(
+                        child: Text('No communities match your search.'),
+                      ),
+                    ),
+                  )
+                else
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        final item = _filteredCommunities[index];
+                        return _CommunityBookCard(
+                          community: item.community,
+                          book: item.book,
+                          onTap: () =>
+                              Navigator.of(context, rootNavigator: true).push(
+                                MaterialPageRoute(
+                                  builder: (_) => CommunityDetailView(
+                                    bookId: item.community.bookId,
+                                    communityId: item.community.id,
+                                    communityName: item.community.name,
+                                    description: item.community.description,
+                                  ),
+                                ),
+                              ),
+                        );
+                      }, childCount: _filteredCommunities.length),
+                    ),
+                  ),
               ],
             ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          CreateCommunityDialog.show(
-            context,
-            availableBooks: books,
-          );
+          CreateCommunityDialog.show(context, availableBooks: _books);
         },
         backgroundColor: theme.colorScheme.secondary,
         foregroundColor: theme.colorScheme.onSecondary,
-        child: const Icon(LucideIcons.plus),
         tooltip: 'Create Community',
+        child: const Icon(LucideIcons.plus),
       ),
     );
-  }
-
-  static Book? _bookFor(List<Book> books, String bookId) {
-    for (final book in books) {
-      if (book.id == bookId) return book;
-    }
-    return null;
   }
 
   Widget _emptyState(ThemeData theme) {
@@ -239,7 +320,10 @@ class _CommunityIntro extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(LucideIcons.messagesSquare, color: theme.colorScheme.primary),
+              Icon(
+                LucideIcons.messagesSquare,
+                color: theme.colorScheme.primary,
+              ),
               const SizedBox(width: 9),
               Text(
                 'Reading rooms',
@@ -284,8 +368,19 @@ class _Stat extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(value, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-        Text(label, style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant, letterSpacing: 0.8)),
+        Text(
+          value,
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        Text(
+          label,
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+            letterSpacing: 0.8,
+          ),
+        ),
       ],
     );
   }

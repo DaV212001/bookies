@@ -98,16 +98,26 @@ class _CommunityDetailViewState extends State<CommunityDetailView>
       communityId: widget.communityId,
     );
     final isMember = dataService.isMemberOfCommunity(widget.communityId);
-    final bookThreads = discussions
-        .where((discussion) => discussion.scope == ThreadScope.book)
-        .toList();
-    final chapterThreads = discussions
-        .where((discussion) => discussion.scope == ThreadScope.chapter)
-        .toList();
+    final bookThreads = <Discussion>[];
+    final chapterThreads = <Discussion>[];
+    final highlightThreads = <Discussion>[];
+    for (final discussion in discussions) {
+      switch (discussion.scope) {
+        case ThreadScope.book:
+          bookThreads.add(discussion);
+          break;
+        case ThreadScope.chapter:
+          chapterThreads.add(discussion);
+          break;
+        case ThreadScope.passage:
+          highlightThreads.add(discussion);
+          break;
+        case ThreadScope.topic:
+        case ThreadScope.subtopic:
+          break;
+      }
+    }
     final highlights = dataService.getHighlightsForBook(widget.bookId);
-    final highlightThreads = discussions
-        .where((discussion) => discussion.scope == ThreadScope.passage)
-        .toList();
     final quotes = dataService.getFavoriteQuotes(widget.bookId);
 
     return Scaffold(
@@ -609,11 +619,16 @@ class _CommunityDetailViewState extends State<CommunityDetailView>
         'Start a chapter conversation from the reader or this page.',
       );
     }
-    return ListView(
+    final entries = grouped.entries.toList();
+    return ListView.builder(
       padding: const EdgeInsets.all(16),
-      children: grouped.entries
-          .map((entry) => _buildChapterCard(theme, book, entry.key, entry.value))
-          .toList(),
+      itemCount: entries.length,
+      itemBuilder: (context, index) => _buildChapterCard(
+        theme,
+        book,
+        entries[index].key,
+        entries[index].value,
+      ),
     );
   }
 
@@ -635,16 +650,18 @@ class _CommunityDetailViewState extends State<CommunityDetailView>
     for (final thread in threads) {
       discussionsByHighlight.putIfAbsent(thread.highlightId, () => []).add(thread);
     }
-    return ListView(
+    return ListView.builder(
       padding: const EdgeInsets.all(16),
-      children: highlights
-          .map((highlight) => _buildHighlightCard(
-                theme,
-                book,
-                highlight,
-                discussionsByHighlight[highlight.cfi] ?? const [],
-              ))
-          .toList(),
+      itemCount: highlights.length,
+      itemBuilder: (context, index) {
+        final highlight = highlights[index];
+        return _buildHighlightCard(
+          theme,
+          book,
+          highlight,
+          discussionsByHighlight[highlight.cfi] ?? const [],
+        );
+      },
     );
   }
 
@@ -658,19 +675,19 @@ class _CommunityDetailViewState extends State<CommunityDetailView>
       );
     }
     final dataService = context.read<LocalDataService>();
-    return ListView(
+    return ListView.builder(
       padding: const EdgeInsets.all(16),
-      children: quotes
-          .map(
-            (quote) => QuoteCardRatingWidget(
-              quote: quote,
-              onUpvote: () async {
-                await dataService.upvoteQuote(quote.id);
-                setState(() {});
-              },
-            ),
-          )
-          .toList(),
+      itemCount: quotes.length,
+      itemBuilder: (context, index) {
+        final quote = quotes[index];
+        return QuoteCardRatingWidget(
+          quote: quote,
+          onUpvote: () async {
+            await dataService.upvoteQuote(quote.id);
+            setState(() {});
+          },
+        );
+      },
     );
   }
 

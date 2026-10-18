@@ -448,6 +448,20 @@ void main() {
       expect(bannedUser, isNull);
     });
 
+    test('LocalDataService keeps community members in display order after role updates', () async {
+      await localDataService.updateMemberRole(
+        'comm-1',
+        'user-3',
+        CommunityRole.admin,
+      );
+
+      final members = localDataService.getCommunityMembers('comm-1');
+      expect(
+        members.take(3).map((member) => member.user.displayName),
+        ['Alice Reader', 'Henry Winter', 'Julian Morrow'],
+      );
+    });
+
     testWidgets('CommunityManagementView has Next Book button and Club Options menu', (tester) async {
       tester.view.physicalSize = const Size(1000, 1200);
       tester.view.devicePixelRatio = 1.0;
