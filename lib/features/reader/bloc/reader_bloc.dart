@@ -10,6 +10,8 @@ import '../../../data/providers/local_data_service.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/app_logger.dart';
+import '../../../domain/entities/live_participant_progress.dart';
+import '../../../domain/entities/live_passage_reaction.dart';
 
 part 'reader_event.dart';
 part 'reader_state.dart';
@@ -30,6 +32,29 @@ class ReaderBloc extends Bloc<ReaderEvent, ReaderState> {
     on<ChangeTheme>(_onChangeTheme);
     on<ChangeFontSize>(_onChangeFontSize);
     on<ToggleDiscussionIndicators>(_onToggleDiscussionIndicators);
+    on<LiveParticipantsUpdatedEvent>(_onLiveParticipantsUpdated);
+    on<LivePassageReactionReceivedEvent>(_onLivePassageReactionReceived);
+  }
+
+  void _onLiveParticipantsUpdated(
+    LiveParticipantsUpdatedEvent event,
+    Emitter<ReaderState> emit,
+  ) {
+    if (state is ReaderLoaded) {
+      final current = state as ReaderLoaded;
+      emit(current.copyWith(liveParticipants: event.participants));
+    }
+  }
+
+  void _onLivePassageReactionReceived(
+    LivePassageReactionReceivedEvent event,
+    Emitter<ReaderState> emit,
+  ) {
+    if (state is ReaderLoaded) {
+      final current = state as ReaderLoaded;
+      final updated = [event.reaction, ...current.liveReactions.take(9)];
+      emit(current.copyWith(liveReactions: updated));
+    }
   }
 
   EPUBPreferences _loadSavedPreferences() {

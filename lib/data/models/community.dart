@@ -1,3 +1,5 @@
+import 'package:bookies/domain/entities/community_entity.dart';
+
 class Community {
   final String id;
   final String name;
@@ -14,6 +16,24 @@ class Community {
     required this.memberCount,
     this.creatorId = 'user-1',
   });
+
+  CommunityEntity toDomain() => CommunityEntity(
+        id: id,
+        name: name,
+        description: description,
+        bookId: bookId,
+        memberCount: memberCount,
+        creatorId: creatorId,
+      );
+
+  factory Community.fromDomain(CommunityEntity entity) => Community(
+        id: entity.id,
+        name: entity.name,
+        description: entity.description,
+        bookId: entity.bookId,
+        memberCount: entity.memberCount,
+        creatorId: entity.creatorId,
+      );
 
   factory Community.fromJson(Map<String, dynamic> json) {
     return Community(

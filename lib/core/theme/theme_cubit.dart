@@ -90,7 +90,6 @@ class ThemeCubit extends Cubit<ThemeState> {
         modeName = 'system';
         break;
       case AppThemeMode.parchment:
-      default:
         themeData = AppTheme.parchmentLight;
         modeName = 'parchment';
         break;

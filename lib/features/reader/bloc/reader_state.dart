@@ -19,6 +19,8 @@ class ReaderLoaded extends ReaderState {
   final double fontSize;
   final EPUBPreferences preferences;
   final bool showDiscussionIndicators;
+  final List<LiveParticipantProgress> liveParticipants;
+  final List<LivePassageReaction> liveReactions;
 
   const ReaderLoaded({
     required this.book,
@@ -34,6 +36,8 @@ class ReaderLoaded extends ReaderState {
       textColor: Color(0xFF1F2937),
     ),
     this.showDiscussionIndicators = true,
+    this.liveParticipants = const [],
+    this.liveReactions = const [],
   });
 
   ReaderLoaded copyWith({
@@ -44,6 +48,8 @@ class ReaderLoaded extends ReaderState {
     double? fontSize,
     EPUBPreferences? preferences,
     bool? showDiscussionIndicators,
+    List<LiveParticipantProgress>? liveParticipants,
+    List<LivePassageReaction>? liveReactions,
   }) {
     return ReaderLoaded(
       book: book ?? this.book,
@@ -54,6 +60,8 @@ class ReaderLoaded extends ReaderState {
       preferences: preferences ?? this.preferences,
       showDiscussionIndicators:
           showDiscussionIndicators ?? this.showDiscussionIndicators,
+      liveParticipants: liveParticipants ?? this.liveParticipants,
+      liveReactions: liveReactions ?? this.liveReactions,
     );
   }
 
@@ -66,6 +74,8 @@ class ReaderLoaded extends ReaderState {
     fontSize,
     preferences,
     showDiscussionIndicators,
+    liveParticipants,
+    liveReactions,
   ];
 }
 

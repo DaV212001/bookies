@@ -98,7 +98,6 @@ class _CreateThreadDialogState extends State<CreateThreadDialog> {
           highlightId = 'subtopic-${DateTime.now().millisecondsSinceEpoch}';
           break;
         case ThreadScope.book:
-        default:
           highlightId = 'book-overall';
           break;
       }

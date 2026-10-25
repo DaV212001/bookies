@@ -70,3 +70,21 @@ class ToggleDiscussionIndicators extends ReaderEvent {
   @override
   List<Object?> get props => [enabled];
 }
+
+class LiveParticipantsUpdatedEvent extends ReaderEvent {
+  final List<LiveParticipantProgress> participants;
+
+  const LiveParticipantsUpdatedEvent(this.participants);
+
+  @override
+  List<Object?> get props => [participants];
+}
+
+class LivePassageReactionReceivedEvent extends ReaderEvent {
+  final LivePassageReaction reaction;
+
+  const LivePassageReactionReceivedEvent(this.reaction);
+
+  @override
+  List<Object?> get props => [reaction];
+}

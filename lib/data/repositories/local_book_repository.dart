@@ -1,0 +1,146 @@
+import 'dart:convert';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+import 'package:flutter_readium/flutter_readium.dart';
+
+import 'package:bookies/core/utils/app_logger.dart';
+import 'package:bookies/core/utils/epub_cover_extractor.dart';
+import 'package:bookies/data/models/book.dart';
+import 'package:bookies/data/providers/local_data_service.dart';
+import 'package:bookies/domain/entities/book_entity.dart';
+import 'package:bookies/domain/repositories/book_repository.dart';
+
+class LocalBookRepository implements BookRepository {
+  final LocalDataService _localDataService;
+
+  LocalBookRepository(this._localDataService);
+
+  @override
+  Future<List<BookEntity>> getLibraryBooks() async {
+    final books = _localDataService.getBooks();
+    final appDocsDir = await getApplicationDocumentsDirectory();
+
+    // Backfill covers if missing
+    for (int i = 0; i < books.length; i++) {
+      final book = books[i];
+      final hasValidCover =
+          book.coverUrl != null && File(book.coverUrl!).existsSync();
+
+      if (!hasValidCover &&
+          book.localPath != null &&
+          File(book.localPath!).existsSync()) {
+        final targetCoverPath = '${appDocsDir.path}/${book.id}_cover.png';
+        final extractedPath = await EpubCoverExtractor.extractCover(
+          File(book.localPath!),
+          targetCoverPath,
+        );
+
+        if (extractedPath != null) {
+          final updatedBook = Book(
+            id: book.id,
+            title: book.title,
+            author: book.author,
+            fingerprint: book.fingerprint,
+            coverUrl: extractedPath,
+            isbn: book.isbn,
+            localPath: book.localPath,
+          );
+          await _localDataService.updateBook(updatedBook);
+          books[i] = updatedBook;
+        }
+      }
+    }
+
+    return books.map((b) => b.toDomain()).toList();
+  }
+
+  @override
+  Future<BookEntity> importBook(String sourceFilePath) async {
+    final file = File(sourceFilePath);
+    if (!await file.exists()) {
+      throw Exception('Source file not found at: $sourceFilePath');
+    }
+
+    final appDocsDir = await getApplicationDocumentsDirectory();
+    final rawFileName = file.uri.pathSegments.last;
+
+    String ext = '.epub';
+    String baseName = rawFileName;
+    if (rawFileName.contains('.')) {
+      final lastDotIndex = rawFileName.lastIndexOf('.');
+      ext = rawFileName.substring(lastDotIndex);
+      baseName = rawFileName.substring(0, lastDotIndex);
+    }
+    final sanitizedBase = baseName.replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '_');
+    final sanitizedFileName = '$sanitizedBase$ext';
+    final targetPath = '${appDocsDir.path}/$sanitizedFileName';
+
+    final savedFile = await file.copy(targetPath);
+
+    // Readium metadata extraction
+    final publication = await FlutterReadium().loadPublication(savedFile.path);
+
+    // Cover image extraction
+    final bookId = DateTime.now().millisecondsSinceEpoch.toString();
+    final targetCoverPath = '${appDocsDir.path}/${bookId}_cover.png';
+    final extractedCoverPath = await EpubCoverExtractor.extractCover(
+      savedFile,
+      targetCoverPath,
+    );
+
+    final newBook = Book(
+      id: bookId,
+      title: publication.metadata.title.isEmpty
+          ? 'Unknown Title'
+          : publication.metadata.title,
+      author: (publication.metadata.authors.firstOrNull ??
+                  Contributor(
+                    localizedName: LocalizedString(
+                      translations: {'en': Translation('')},
+                    ),
+                  ))
+              .localizedName
+              ?.string ??
+          'Unknown Author',
+      fingerprint: 'hash_${DateTime.now().millisecondsSinceEpoch}',
+      coverUrl: extractedCoverPath,
+      localPath: savedFile.path,
+    );
+
+    await _localDataService.addBook(newBook);
+    return newBook.toDomain();
+  }
+
+  @override
+  Future<void> syncReadingProgress({
+    required String bookId,
+    required String cfi,
+    required double progression,
+  }) async {
+    final progressJson = jsonEncode({
+      'cfi': cfi,
+      'progression': progression,
+    });
+    await _localDataService.saveProgress(bookId, progressJson, notify: false);
+  }
+
+  @override
+  Future<Map<String, dynamic>?> getReadingProgress(String bookId) async {
+    final raw = _localDataService.getProgress(bookId);
+    if (raw == null || raw.isEmpty) return null;
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is Map<String, dynamic>) {
+        return decoded;
+      }
+    } catch (e) {
+      AppLogger.w('LocalBookRepository', 'Failed to parse progress for $bookId: $e');
+    }
+    return null;
+  }
+
+  @override
+  Future<void> deleteBook(String bookId) async {
+    // Local deletion
+  }
+}

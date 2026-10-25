@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../features/auth/views/login_view.dart';
+import '../../features/auth/views/register_view.dart';
 import '../../features/settings/views/settings_view.dart';
 import '../../features/gallery/views/component_gallery_screen.dart';
 import '../../features/library/views/library_view.dart';
@@ -24,6 +26,16 @@ final appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
   initialLocation: '/',
   routes: [
+    GoRoute(
+      path: '/login',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const LoginView(),
+    ),
+    GoRoute(
+      path: '/register',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const RegisterView(),
+    ),
     GoRoute(
       path: '/gallery',
       parentNavigatorKey: _rootNavigatorKey,

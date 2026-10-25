@@ -1,6 +1,7 @@
 import 'package:bookies/data/models/user.dart';
 import 'package:bookies/data/models/thread_scope.dart';
 import 'package:bookies/data/models/chat_message.dart';
+import 'package:bookies/domain/entities/discussion_entity.dart';
 
 class Discussion {
   final String id;
@@ -40,6 +41,44 @@ class Discussion {
     this.replies,
     this.parentTopicId,
   });
+
+  DiscussionEntity toDomain() => DiscussionEntity(
+        id: id,
+        highlightId: highlightId,
+        bookId: bookId,
+        communityId: communityId,
+        userId: userId,
+        user: user?.toDomain(),
+        title: title,
+        content: content,
+        scope: DiscussionScope.fromString(scope.name),
+        chapterTitle: chapterTitle,
+        chapterIndex: chapterIndex,
+        quoteText: quoteText,
+        rating: rating,
+        upvotes: upvotes,
+        createdAt: createdAt,
+        parentTopicId: parentTopicId,
+      );
+
+  factory Discussion.fromDomain(DiscussionEntity entity) => Discussion(
+        id: entity.id,
+        highlightId: entity.highlightId,
+        bookId: entity.bookId,
+        communityId: entity.communityId,
+        userId: entity.userId,
+        user: entity.user != null ? User.fromDomain(entity.user!) : null,
+        title: entity.title,
+        content: entity.content,
+        scope: ThreadScope.fromString(entity.scope.name),
+        chapterTitle: entity.chapterTitle,
+        chapterIndex: entity.chapterIndex,
+        quoteText: entity.quoteText,
+        rating: entity.rating,
+        upvotes: entity.upvotes,
+        createdAt: entity.createdAt,
+        parentTopicId: entity.parentTopicId,
+      );
 
   Discussion copyWith({
     String? id,

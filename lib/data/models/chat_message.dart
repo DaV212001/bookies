@@ -1,4 +1,5 @@
 import 'package:bookies/data/models/user.dart';
+import 'package:bookies/domain/entities/chat_message_entity.dart';
 
 enum MessageStatus {
   sending,
@@ -54,6 +55,42 @@ class ChatMessage {
     this.chapterIndex,
     this.cfi,
   });
+
+  ChatMessageEntity toDomain() => ChatMessageEntity(
+        id: id,
+        threadId: threadId,
+        userId: userId,
+        content: content,
+        createdAt: createdAt,
+        replyToId: replyToId,
+        replyToContent: replyToContent,
+        replyToAuthor: replyToAuthor,
+        isSpoiler: isSpoiler,
+        quoteText: quoteText,
+        chapterTitle: chapterTitle,
+        chapterIndex: chapterIndex,
+        cfi: cfi,
+        reactions: reactions,
+      );
+
+  factory ChatMessage.fromDomain(ChatMessageEntity entity, {MessageStatus status = MessageStatus.sent}) =>
+      ChatMessage(
+        id: entity.id,
+        threadId: entity.threadId,
+        userId: entity.userId,
+        content: entity.content,
+        createdAt: entity.createdAt,
+        status: status,
+        replyToId: entity.replyToId,
+        replyToContent: entity.replyToContent,
+        replyToAuthor: entity.replyToAuthor,
+        isSpoiler: entity.isSpoiler,
+        quoteText: entity.quoteText,
+        chapterTitle: entity.chapterTitle,
+        chapterIndex: entity.chapterIndex,
+        cfi: entity.cfi,
+        reactions: entity.reactions,
+      );
 
   ChatMessage copyWith({
     String? id,

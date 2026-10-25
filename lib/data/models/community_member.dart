@@ -1,116 +1,14 @@
 import 'package:bookies/data/models/user.dart';
+import 'package:bookies/domain/entities/community_member_entity.dart';
 
-enum CommunityRole {
-  creator,
-  admin,
-  member,
-}
-
-extension CommunityRoleExtension on CommunityRole {
-  String get label {
-    switch (this) {
-      case CommunityRole.creator:
-        return 'Creator';
-      case CommunityRole.admin:
-        return 'Admin';
-      case CommunityRole.member:
-        return 'Reader';
-    }
-  }
-
-  bool get isElevated =>
-      this == CommunityRole.creator || this == CommunityRole.admin;
-}
-
-enum CommunityMemberStatus {
-  active,
-  restricted,
-  banned,
-}
-
-extension CommunityMemberStatusExtension on CommunityMemberStatus {
-  String get label {
-    switch (this) {
-      case CommunityMemberStatus.active:
-        return 'Active';
-      case CommunityMemberStatus.restricted:
-        return 'Restricted';
-      case CommunityMemberStatus.banned:
-        return 'Banned';
-    }
-  }
-}
-
-enum CommunityPermission {
-  startLiveReading,
-  joinLiveReading,
-  commentInLiveReading,
-  manageMembers,
-  createThreads,
-  postReplies,
-  pinDiscussions,
-  moderateChat,
-}
-
-extension CommunityPermissionExtension on CommunityPermission {
-  String get label {
-    switch (this) {
-      case CommunityPermission.startLiveReading:
-        return 'Start Live Reading Sessions';
-      case CommunityPermission.joinLiveReading:
-        return 'Join Live Reading Sessions';
-      case CommunityPermission.commentInLiveReading:
-        return 'Live Comments & Reactions';
-      case CommunityPermission.manageMembers:
-        return 'Manage Readers & Roles';
-      case CommunityPermission.createThreads:
-        return 'Create Discussion Threads';
-      case CommunityPermission.postReplies:
-        return 'Post Replies & Chat';
-      case CommunityPermission.pinDiscussions:
-        return 'Pin Discussions';
-      case CommunityPermission.moderateChat:
-        return 'Moderate & Delete Messages';
-    }
-  }
-
-  String get description {
-    switch (this) {
-      case CommunityPermission.startLiveReading:
-        return 'Can host a synchronized live reading session.';
-      case CommunityPermission.joinLiveReading:
-        return 'Can attend and follow live reading sessions.';
-      case CommunityPermission.commentInLiveReading:
-        return 'Can send comments and reactions during live reading.';
-      case CommunityPermission.manageMembers:
-        return 'Can invite readers, change roles, restrict, or ban members.';
-      case CommunityPermission.createThreads:
-        return 'Can create global, chapter, and passage discussion threads.';
-      case CommunityPermission.postReplies:
-        return 'Can send messages and reply in discussions.';
-      case CommunityPermission.pinDiscussions:
-        return 'Can pin important topics to the community tab.';
-      case CommunityPermission.moderateChat:
-        return 'Can delete or flag inappropriate responses.';
-    }
-  }
-
-  String get category {
-    switch (this) {
-      case CommunityPermission.startLiveReading:
-      case CommunityPermission.joinLiveReading:
-      case CommunityPermission.commentInLiveReading:
-        return 'Live Reading';
-      case CommunityPermission.createThreads:
-      case CommunityPermission.postReplies:
-      case CommunityPermission.pinDiscussions:
-        return 'Discussions';
-      case CommunityPermission.manageMembers:
-      case CommunityPermission.moderateChat:
-        return 'Administration';
-    }
-  }
-}
+export 'package:bookies/domain/entities/community_member_entity.dart'
+    show
+        CommunityRole,
+        CommunityRoleExtension,
+        CommunityMemberStatus,
+        CommunityMemberStatusExtension,
+        CommunityPermission,
+        CommunityPermissionExtension;
 
 class CommunityMember {
   final String id;
@@ -134,6 +32,30 @@ class CommunityMember {
     this.restrictionReason,
     this.restrictedAt,
   });
+
+  CommunityMemberEntity toDomain() => CommunityMemberEntity(
+        communityId: communityId,
+        user: user.toDomain(),
+        role: role,
+        status: status,
+        customPermissions: customPermissions ?? const {},
+        joinedAt: joinedAt,
+        restrictedReason: restrictionReason,
+        restrictedUntil: restrictedAt,
+      );
+
+  factory CommunityMember.fromDomain(CommunityMemberEntity entity, {String? id}) =>
+      CommunityMember(
+        id: id ?? entity.user.id,
+        communityId: entity.communityId,
+        user: User.fromDomain(entity.user),
+        role: entity.role,
+        status: entity.status,
+        joinedAt: entity.joinedAt,
+        customPermissions: entity.customPermissions,
+        restrictionReason: entity.restrictedReason,
+        restrictedAt: entity.restrictedUntil,
+      );
 
   bool get isCreator => role == CommunityRole.creator;
   bool get isAdmin =>

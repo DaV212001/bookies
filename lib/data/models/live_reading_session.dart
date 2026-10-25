@@ -1,34 +1,8 @@
 import 'package:bookies/data/models/user.dart';
+import 'package:bookies/domain/entities/live_reading_session_entity.dart';
 
-enum LiveReadingAccessMode {
-  allMembers,
-  adminsOnly,
-  custom,
-}
-
-extension LiveReadingAccessModeExtension on LiveReadingAccessMode {
-  String get label {
-    switch (this) {
-      case LiveReadingAccessMode.allMembers:
-        return 'All Community Readers';
-      case LiveReadingAccessMode.adminsOnly:
-        return 'Admins Only';
-      case LiveReadingAccessMode.custom:
-        return 'Selected Readers Only';
-    }
-  }
-
-  String get description {
-    switch (this) {
-      case LiveReadingAccessMode.allMembers:
-        return 'Any active member in the community can join and follow along.';
-      case LiveReadingAccessMode.adminsOnly:
-        return 'Restricted to community creator and designated admins.';
-      case LiveReadingAccessMode.custom:
-        return 'Only readers explicitly allowed by the session host can join.';
-    }
-  }
-}
+export 'package:bookies/domain/entities/live_reading_session_entity.dart'
+    show LiveReadingAccessMode, LiveReadingAccessModeExtension;
 
 class LiveReadingSession {
   final String id;
@@ -62,6 +36,41 @@ class LiveReadingSession {
     this.commenterUserIds = const {},
     this.participantUserIds = const {},
   });
+
+  LiveReadingSessionEntity toDomain() => LiveReadingSessionEntity(
+        id: id,
+        communityId: communityId,
+        bookId: bookId,
+        title: title,
+        host: host.toDomain(),
+        currentCfi: currentCfi,
+        chapterTitle: chapterTitle,
+        chapterIndex: chapterIndex,
+        isActive: isActive,
+        startedAt: startedAt,
+        accessMode: accessMode,
+        allowedUserIds: allowedUserIds,
+        commenterUserIds: commenterUserIds,
+        participantUserIds: participantUserIds,
+      );
+
+  factory LiveReadingSession.fromDomain(LiveReadingSessionEntity entity) =>
+      LiveReadingSession(
+        id: entity.id,
+        communityId: entity.communityId,
+        bookId: entity.bookId,
+        title: entity.title,
+        host: User.fromDomain(entity.host),
+        currentCfi: entity.currentCfi,
+        chapterTitle: entity.chapterTitle,
+        chapterIndex: entity.chapterIndex,
+        isActive: entity.isActive,
+        startedAt: entity.startedAt,
+        accessMode: entity.accessMode,
+        allowedUserIds: entity.allowedUserIds,
+        commenterUserIds: entity.commenterUserIds,
+        participantUserIds: entity.participantUserIds,
+      );
 
   bool canUserJoin(
     String userId, {

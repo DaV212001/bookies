@@ -1,3 +1,5 @@
+import 'package:bookies/domain/entities/quote_rating_entity.dart';
+
 class QuoteRating {
   final String id;
   final String bookId;
@@ -22,6 +24,32 @@ class QuoteRating {
     this.isUpvotedByMe = false,
     this.averageRating = 5.0,
   });
+
+  QuoteRatingEntity toDomain() => QuoteRatingEntity(
+        id: id,
+        bookId: bookId,
+        bookTitle: bookTitle,
+        chapterTitle: chapterTitle,
+        quoteText: quoteText,
+        authorName: authorName,
+        addedByUsername: addedByUsername,
+        upvotes: upvotes,
+        isUpvotedByMe: isUpvotedByMe,
+        averageRating: averageRating,
+      );
+
+  factory QuoteRating.fromDomain(QuoteRatingEntity entity) => QuoteRating(
+        id: entity.id,
+        bookId: entity.bookId,
+        bookTitle: entity.bookTitle,
+        chapterTitle: entity.chapterTitle ?? '',
+        quoteText: entity.quoteText,
+        authorName: entity.authorName,
+        addedByUsername: entity.addedByUsername,
+        upvotes: entity.upvotes,
+        isUpvotedByMe: entity.isUpvotedByMe,
+        averageRating: entity.averageRating,
+      );
 
   factory QuoteRating.fromJson(Map<String, dynamic> json) {
     return QuoteRating(

@@ -8,6 +8,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flutter/services.dart';
 
 import 'package:bookies/data/models/book.dart';
+import 'package:bookies/data/models/user.dart';
 import 'package:bookies/data/models/discussion.dart';
 import 'package:bookies/data/models/thread_scope.dart';
 import 'package:bookies/data/models/community.dart';
@@ -17,7 +18,12 @@ import 'package:bookies/features/reader/bloc/reader_bloc.dart';
 import 'package:bookies/features/discussion/views/discussions_bottom_sheet.dart';
 import 'package:bookies/features/discussion/views/discussion_details_sheet.dart';
 import 'package:bookies/core/widgets/reading_well.dart';
+import 'package:bookies/core/network/socket_service.dart';
+import 'package:bookies/core/network/api_client.dart';
 import 'package:bookies/core/widgets/ambient_progress_bar.dart';
+import 'package:bookies/core/widgets/passage_reaction_bubble.dart';
+import 'package:bookies/domain/entities/live_passage_reaction.dart';
+import 'package:bookies/domain/entities/live_participant_progress.dart';
 import 'package:bookies/features/reader/views/reading_settings_modal.dart';
 import 'package:bookies/features/reader/views/chapter_list_drawer.dart';
 import 'package:bookies/features/reader/widgets/epub_js_reader.dart';
@@ -56,6 +62,118 @@ class _ReaderViewState extends State<ReaderView> {
   String? _currentChapterTitle;
   String? _chapterTarget;
   int _drawerOpenCount = 0;
+  SocketService? _socketService;
+  String? _currentSessionId;
+  final Map<String, LiveParticipantProgress> _activeParticipantsMap = {};
+
+
+  void _setupSocketListeners() {
+    final socket = _socketService;
+    if (socket == null) return;
+
+    socket.on('live_reading:session_roster', (data) {
+      if (!mounted || data == null) return;
+      try {
+        final rawList = data['participants'] as List<dynamic>? ?? [];
+        _activeParticipantsMap.clear();
+        for (final item in rawList) {
+          if (item is Map) {
+            final p = LiveParticipantProgress(
+              userId: item['userId']?.toString() ?? '',
+              displayName: item['displayName']?.toString() ?? 'Reader',
+              avatarUrl: item['avatarUrl']?.toString(),
+              progression: (item['progression'] as num?)?.toDouble() ?? 0.0,
+              cfi: item['cfi']?.toString() ?? '',
+              chapterTitle: item['chapterTitle']?.toString(),
+              chapterIndex: item['chapterIndex'] as int?,
+              lastUpdated: DateTime.tryParse(item['lastUpdated']?.toString() ?? '') ?? DateTime.now(),
+            );
+            _activeParticipantsMap[p.userId] = p;
+          }
+        }
+        context.read<ReaderBloc>().add(
+          LiveParticipantsUpdatedEvent(_activeParticipantsMap.values.toList()),
+        );
+      } catch (e) {
+        // Ignored
+      }
+    });
+
+    socket.on('live_reading:participant_progress', (data) {
+      if (!mounted || data == null) return;
+      try {
+        final p = LiveParticipantProgress(
+          userId: data['userId']?.toString() ?? '',
+          displayName: data['displayName']?.toString() ?? 'Reader',
+          avatarUrl: data['avatarUrl']?.toString(),
+          progression: (data['progression'] as num?)?.toDouble() ?? 0.0,
+          cfi: data['cfi']?.toString() ?? '',
+          chapterTitle: data['chapterTitle']?.toString(),
+          chapterIndex: data['chapterIndex'] as int?,
+          lastUpdated: DateTime.tryParse(data['lastUpdated']?.toString() ?? '') ?? DateTime.now(),
+        );
+        _activeParticipantsMap[p.userId] = p;
+        context.read<ReaderBloc>().add(
+          LiveParticipantsUpdatedEvent(_activeParticipantsMap.values.toList()),
+        );
+      } catch (e) {
+        // Ignored
+      }
+    });
+
+    socket.on('live_reading:user_left', (data) {
+      if (!mounted || data == null) return;
+      final userId = data['userId']?.toString();
+      if (userId != null) {
+        _activeParticipantsMap.remove(userId);
+        context.read<ReaderBloc>().add(
+          LiveParticipantsUpdatedEvent(_activeParticipantsMap.values.toList()),
+        );
+      }
+    });
+
+    socket.on('live_reading:passage_reaction', (data) {
+      if (!mounted || data == null) return;
+      try {
+        final reaction = LivePassageReaction(
+          userId: data['userId']?.toString() ?? '',
+          displayName: data['displayName']?.toString() ?? 'Reader',
+          avatarUrl: data['avatarUrl']?.toString(),
+          cfi: data['cfi']?.toString() ?? '',
+          emoji: data['emoji']?.toString() ?? '✨',
+          quoteText: data['quoteText']?.toString(),
+          timestamp: DateTime.tryParse(data['timestamp']?.toString() ?? '') ?? DateTime.now(),
+        );
+        context.read<ReaderBloc>().add(LivePassageReactionReceivedEvent(reaction));
+      } catch (e) {
+        // Ignored
+      }
+    });
+  }
+
+  void _joinActiveLiveSessionIfNeeded(Book? book) {
+    if (book == null) return;
+    try {
+      final dataService = context.read<LocalDataService>();
+      final community = _activeCommunity(dataService, book.id);
+      if (community != null) {
+        final activeLive = dataService.getActiveLiveReadingSession(community.id);
+        if (activeLive != null && activeLive.id != _currentSessionId) {
+          _currentSessionId = activeLive.id;
+          final user = dataService.currentUser;
+          _socketService?.emit('live_reading:join_session', {
+            'sessionId': activeLive.id,
+            'userId': user.id,
+            'displayName': user.displayName,
+            'username': user.username,
+            'avatarUrl': user.avatarUrl,
+            'progression': 0.0,
+            'cfi': activeLive.currentCfi ?? '',
+          });
+        }
+      }
+    } catch (_) {}
+  }
 
   Community? _activeCommunity(LocalDataService data, String bookId) {
     return data.getSelectedCommunityForBook(bookId);
@@ -350,6 +468,19 @@ class _ReaderViewState extends State<ReaderView> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    try {
+      final socket = context.read<SocketService>();
+      if (!identical(_socketService, socket)) {
+        _socketService = socket;
+        _setupSocketListeners();
+      }
+    } catch (_) {}
+    _joinActiveLiveSessionIfNeeded(widget.book);
+  }
+
+  @override
   void initState() {
     super.initState();
     _chapterTarget = widget.initialCfi;
@@ -370,6 +501,19 @@ class _ReaderViewState extends State<ReaderView> {
 
   @override
   void dispose() {
+    if (_currentSessionId != null && _socketService != null) {
+      try {
+        final user = context.read<LocalDataService>().currentUser;
+        _socketService!.emit('live_reading:leave_session', {
+          'sessionId': _currentSessionId,
+          'userId': user.id,
+        });
+        _socketService!.off('live_reading:session_roster');
+        _socketService!.off('live_reading:participant_progress');
+        _socketService!.off('live_reading:user_left');
+        _socketService!.off('live_reading:passage_reaction');
+      } catch (_) {}
+    }
     _zoomOverlayTimer?.cancel();
     _showControlsNotifier.dispose();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
@@ -724,7 +868,22 @@ class _ReaderViewState extends State<ReaderView> {
                     Column(
                       children: [
                         if (!_isFullScreen)
-                          AmbientProgressBar(progress: state.progression),
+                          AmbientProgressBar(
+                            progress: state.progression,
+                            participants: state.liveParticipants,
+                            onParticipantTapped: (participant) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    '${participant.displayName} is reading at ${(participant.progression * 100).toInt()}%'
+                                    '${participant.chapterTitle != null ? ' in ${participant.chapterTitle}' : ''}',
+                                  ),
+                                  behavior: SnackBarBehavior.floating,
+                                  duration: const Duration(seconds: 2),
+                                ),
+                              );
+                            },
+                          ),
                         Expanded(
                           child: ReadingWell(
                             child: EpubJsReader(
@@ -757,6 +916,30 @@ class _ReaderViewState extends State<ReaderView> {
                                     _currentChapterTitle = chapter.title;
                                   });
                                 }
+
+                                if (_currentSessionId != null && _socketService != null) {
+                                  try {
+                                    final user = context.read<LocalDataService>().currentUser;
+                                    _socketService!.emit('live_reading:update_progress', {
+                                      'sessionId': _currentSessionId,
+                                      'userId': user.id,
+                                      'displayName': user.displayName,
+                                      'avatarUrl': user.avatarUrl,
+                                      'progression': location.progress,
+                                      'cfi': location.startCfi,
+                                      'chapterTitle': _currentChapterTitle,
+                                    });
+                                  } catch (_) {}
+                                }
+
+                                try {
+                                  final apiClient = context.read<ApiClient>();
+                                  apiClient.dio.post('/reading-progress', data: {
+                                    'bookId': state.book.id,
+                                    'cfi': location.startCfi,
+                                    'progression': location.progress.clamp(0.0, 1.0),
+                                  }).then((_) {}, onError: (_) {});
+                                } catch (_) {}
                               },
                               passageDiscussions: activeDiscussions,
                               onDiscussSelection: (selection) =>
@@ -882,6 +1065,32 @@ class _ReaderViewState extends State<ReaderView> {
                           ),
                         ),
                       ),
+
+                    // Floating live passage reactions overlay
+                    if (state.liveReactions.isNotEmpty)
+                      Positioned(
+                        bottom: _isFullScreen ? 32 : 24,
+                        left: 20,
+                        child: PassageReactionBubble(
+                          reaction: state.liveReactions.first,
+                        ),
+                      ),
+
+                    // Quick Live Passage Reaction Button
+                    Positioned(
+                      bottom: _isFullScreen ? 32 : 24,
+                      right: 20,
+                      child: FloatingActionButton.small(
+                        heroTag: 'live_reaction_fab',
+                        tooltip: 'React to current passage',
+                        elevation: 3,
+                        backgroundColor: theme.colorScheme.surfaceContainerHighest.withOpacity(0.9),
+                        child: const Text('✨', style: TextStyle(fontSize: 18)),
+                        onPressed: () {
+                          _showReactionPicker(context, state);
+                        },
+                      ),
+                    ),
                   ],
                 ),
               );
@@ -889,6 +1098,61 @@ class _ReaderViewState extends State<ReaderView> {
 
             return const SizedBox.shrink();
           }(),
+        );
+      },
+    );
+  }
+
+  void _showReactionPicker(BuildContext context, ReaderLoaded state) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 40),
+          child: Center(
+            child: QuickPassageReactionPicker(
+              onEmojiSelected: (emoji) {
+                Navigator.pop(ctx);
+                User? currentUser;
+                try {
+                  currentUser = context.read<LocalDataService>().currentUser;
+                } catch (_) {}
+                final userId = currentUser?.id ?? 'user-me';
+                final displayName = currentUser?.displayName ?? 'You';
+
+                final reaction = LivePassageReaction(
+                  userId: userId,
+                  displayName: displayName,
+                  avatarUrl: currentUser?.avatarUrl,
+                  cfi: state.currentCfi ?? '',
+                  emoji: emoji,
+                  quoteText: _currentChapterTitle,
+                  timestamp: DateTime.now(),
+                );
+                context.read<ReaderBloc>().add(LivePassageReactionReceivedEvent(reaction));
+
+                if (_currentSessionId != null && _socketService != null) {
+                  _socketService!.emit('live_reading:react_passage', {
+                    'sessionId': _currentSessionId,
+                    'userId': userId,
+                    'displayName': displayName,
+                    'avatarUrl': currentUser?.avatarUrl,
+                    'cfi': state.currentCfi ?? '',
+                    'emoji': emoji,
+                    'quoteText': _currentChapterTitle,
+                  });
+                }
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Reacted $emoji to current passage'),
+                    duration: const Duration(seconds: 1),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              },
+            ),
+          ),
         );
       },
     );

@@ -1,3 +1,5 @@
+import 'package:bookies/domain/entities/user_entity.dart';
+
 class User {
   final String id;
   final String username;
@@ -10,6 +12,20 @@ class User {
     required this.displayName,
     this.avatarUrl,
   });
+
+  UserEntity toDomain() => UserEntity(
+        id: id,
+        username: username,
+        displayName: displayName,
+        avatarUrl: avatarUrl,
+      );
+
+  factory User.fromDomain(UserEntity entity) => User(
+        id: entity.id,
+        username: entity.username,
+        displayName: entity.displayName,
+        avatarUrl: entity.avatarUrl,
+      );
 
   factory User.fromJson(Map<String, dynamic> json) {
     return User(

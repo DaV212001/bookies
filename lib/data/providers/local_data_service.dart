@@ -1124,8 +1124,9 @@ class LocalDataService extends ChangeNotifier {
     int importedCount = 0;
     for (final src in sourceMembers) {
       if (existingUserIds.contains(src.user.id)) continue;
-      if (skipRestrictedOrBanned && (src.isRestricted || src.isBanned))
+      if (skipRestrictedOrBanned && (src.isRestricted || src.isBanned)) {
         continue;
+      }
 
       targetList.add(
         CommunityMember(

@@ -13,6 +13,7 @@ import 'package:bookies/data/models/highlight.dart';
 import 'package:bookies/data/models/thread_scope.dart';
 import 'package:bookies/data/providers/local_data_service.dart';
 import 'package:bookies/features/community/views/management/community_management_view.dart';
+import 'package:bookies/features/community/bloc/community_bloc.dart';
 import 'package:bookies/features/discussion/views/discussion_chat_screen.dart';
 import 'package:bookies/features/reader/views/reader_view.dart';
 
@@ -77,7 +78,11 @@ class _CommunityDetailViewState extends State<CommunityDetailView>
   }
 
   Future<void> _joinCommunity() async {
-    await context.read<LocalDataService>().joinCommunity(widget.communityId);
+    try {
+      context.read<CommunityBloc>().add(JoinCommunityRequested(widget.communityId));
+    } catch (_) {
+      await context.read<LocalDataService>().joinCommunity(widget.communityId);
+    }
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Joined ${widget.communityName}.')),

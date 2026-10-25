@@ -6,6 +6,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_cubit.dart';
 import '../../../data/providers/local_data_service.dart';
+import '../../auth/bloc/auth_bloc.dart';
 
 class SettingsView extends StatefulWidget {
   const SettingsView({super.key});
@@ -216,87 +217,169 @@ class _SettingsViewState extends State<SettingsView> {
     ThemeData theme,
     dynamic user,
   ) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                theme.colorScheme.primaryContainer.withOpacity(0.6),
-                theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+    return BlocBuilder<AuthBloc, AuthState>(
+      builder: (context, authState) {
+        final currentUser = authState.user;
+        final isLoggedIn = authState.isAuthenticated && currentUser != null;
+
+        if (!isLoggedIn) {
+          return Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  theme.colorScheme.primaryContainer.withOpacity(0.5),
+                  theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: theme.colorScheme.primary.withOpacity(0.2),
+              ),
             ),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: theme.colorScheme.primary.withOpacity(0.2),
-            ),
-          ),
-          child: Row(
-            children: [
-              CircleAvatar(
-                radius: 28,
-                backgroundImage: NetworkImage(user.avatarUrl),
-                backgroundColor: theme.colorScheme.primary,
-                child: user.avatarUrl.isEmpty
-                    ? Text(
-                        user.displayName[0],
-                        style: const TextStyle(
-                          fontSize: 24,
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 28,
+                  backgroundColor: theme.colorScheme.primary.withOpacity(0.15),
+                  child: Icon(
+                    LucideIcons.user,
+                    size: 28,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Join Bookies Sanctuary',
+                        style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
-                      )
-                    : null,
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      user.displayName,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '@${user.username}',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.primary,
-                        fontWeight: FontWeight.w600,
+                      const SizedBox(height: 2),
+                      Text(
+                        'Sign in with Google or Email to join reading clubs',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        _buildStatBadge(theme, '12 Books'),
-                        const SizedBox(width: 8),
-                        _buildStatBadge(theme, '4 Threads'),
-                      ],
-                    ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                FilledButton.tonal(
+                  onPressed: () => context.push('/login'),
+                  child: const Text('Sign In'),
+                ),
+              ],
+            ),
+          );
+        }
+
+        final displayName = currentUser.displayName;
+        final username = currentUser.username;
+        final avatarUrl = currentUser.avatarUrl ?? '';
+
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    theme.colorScheme.primaryContainer.withOpacity(0.6),
+                    theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
                   ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: theme.colorScheme.primary.withOpacity(0.2),
                 ),
               ),
-            ],
-          ),
-        ),
-        Positioned(
-          top: 0,
-          right: 0,
-          child: IconButton.filledTonal(
-            icon: const Icon(LucideIcons.pencil),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Profile editing coming soon!')),
-              );
-            },
-          ),
-        ),
-      ],
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 28,
+                    backgroundImage: avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
+                    backgroundColor: theme.colorScheme.primary,
+                    child: avatarUrl.isEmpty
+                        ? Text(
+                            displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U',
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          )
+                        : null,
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          displayName,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '@$username',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            _buildStatBadge(theme, 'Active Reader'),
+                            const SizedBox(width: 8),
+                            if (currentUser.email != null)
+                              Expanded(
+                                child: Text(
+                                  currentUser.email!,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Positioned(
+              top: 8,
+              right: 8,
+              child: IconButton(
+                tooltip: 'Sign Out',
+                icon: const Icon(LucideIcons.logOut, size: 20),
+                onPressed: () {
+                  context.read<AuthBloc>().add(const LogoutEvent());
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Logged out of Bookies.')),
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
