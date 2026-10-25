@@ -34,9 +34,13 @@ void main() async {
   final localDataService = LocalDataService();
   await localDataService.init();
 
-  final apiClient = ApiClient(baseUrl: 'http://localhost:3000/api/v1');
+  const String backendUrl = String.fromEnvironment(
+    'BACKEND_URL',
+    defaultValue: 'https://bookies-backend-1r9d.onrender.com',
+  );
+  final apiClient = ApiClient(baseUrl: '$backendUrl/api/v1');
   final socketService = SocketService(
-    serverUrl: 'http://localhost:3000',
+    serverUrl: backendUrl,
     tokenProvider: () => apiClient.cachedToken,
   );
   socketService.connect();
