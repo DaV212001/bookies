@@ -17,6 +17,8 @@ import 'package:bookies/features/community/views/management/community_management
 import 'package:bookies/features/community/bloc/community_bloc.dart';
 import 'package:bookies/features/discussion/views/discussion_chat_screen.dart';
 import 'package:bookies/features/reader/views/reader_view.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:bookies/domain/repositories/book_repository.dart';
 import 'package:bookies/domain/repositories/catalog_repository.dart';
 import 'package:bookies/domain/entities/catalog_book_entity.dart';
 
@@ -67,49 +69,91 @@ class _CommunityDetailViewState extends State<CommunityDetailView>
       final catalogRepo = context.read<CatalogRepository>();
       final dataService = context.read<LocalDataService>();
 
-      final catalogBooks = await catalogRepo.getDiscoverCatalog();
-      var matchingCatalogBook = catalogBooks.where((b) => b.id == widget.bookId).firstOrNull;
-      if (matchingCatalogBook == null) {
-        final searchResults = await catalogRepo.searchCatalog(widget.communityName);
-        matchingCatalogBook = searchResults.firstOrNull;
+      final community = dataService.communities
+          .where((c) => c.id == widget.communityId)
+          .firstOrNull;
+
+      // 1. Resolve target download endpoint
+      CatalogBookEntity targetCatalogBook;
+      if (community?.downloadUrl != null && community!.downloadUrl!.isNotEmpty) {
+        targetCatalogBook = CatalogBookEntity(
+          id: widget.bookId,
+          title: widget.communityName,
+          author: community.editionTitle ?? 'Official Edition',
+          downloadUrl: community.downloadUrl,
+        );
+      } else {
+        final catalogBooks = await catalogRepo.getDiscoverCatalog();
+        var matching = catalogBooks.where((b) => b.id == widget.bookId).firstOrNull;
+        if (matching == null) {
+          final searchResults = await catalogRepo.searchCatalog(widget.communityName);
+          matching = searchResults.firstOrNull;
+        }
+        targetCatalogBook = matching ??
+            CatalogBookEntity(
+              id: widget.bookId,
+              title: widget.communityName,
+              author: 'Official Edition',
+              downloadUrl: '/catalog/${widget.bookId}/download',
+            );
       }
 
-      if (matchingCatalogBook != null) {
-        final importedBook = await catalogRepo.downloadAndImportBook(
-          catalogBook: matchingCatalogBook,
-        );
-        await dataService.selectCommunityForBook(
-          bookId: importedBook.id,
-          communityId: widget.communityId,
-        );
-        if (mounted) {
-          setState(() => _isDownloadingCommunityBook = false);
+      // 2. Download and compute structural fingerprint
+      final importedBook = await catalogRepo.downloadAndImportBook(
+        catalogBook: targetCatalogBook,
+      );
+
+      // 3. Confirm fingerprint match against community canonical standard
+      final canonicalFingerprint = community?.canonicalFingerprint;
+      final isVerifiedMatch = canonicalFingerprint == null ||
+          canonicalFingerprint.isEmpty ||
+          importedBook.fingerprint == canonicalFingerprint;
+
+      await dataService.selectCommunityForBook(
+        bookId: importedBook.id,
+        communityId: widget.communityId,
+      );
+
+      if (mounted) {
+        setState(() => _isDownloadingCommunityBook = false);
+        if (isVerifiedMatch) {
           messenger.showSnackBar(
             const SnackBar(
-              content: Text('Official Community Edition ready! You are 100% in sync.'),
+              content: Text('Official Community Edition verified & synced! (100% Match)'),
               backgroundColor: Colors.green,
             ),
           );
-        }
-      } else {
-        final importedBook = await catalogRepo.downloadAndImportBook(
-          catalogBook: CatalogBookEntity(
-            id: widget.bookId,
-            title: widget.communityName,
-            author: 'Community Author',
-            downloadUrl: '/catalog/${widget.bookId}/download',
-          ),
-        );
-        await dataService.selectCommunityForBook(
-          bookId: importedBook.id,
-          communityId: widget.communityId,
-        );
-        if (mounted) {
-          setState(() => _isDownloadingCommunityBook = false);
-          messenger.showSnackBar(
-            const SnackBar(
-              content: Text('Official Community Edition ready! You are 100% in sync.'),
-              backgroundColor: Colors.green,
+        } else {
+          showDialog(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: const Row(
+                children: [
+                  Icon(LucideIcons.triangleAlert, color: Colors.amber),
+                  SizedBox(width: 8),
+                  Text('Fingerprint Notice'),
+                ],
+              ),
+              content: Text(
+                'The downloaded copy has a different chapter or text structure than the one bound by the creator.\n\n'
+                'Expected: ${canonicalFingerprint.length > 20 ? '${canonicalFingerprint.substring(0, 20)}...' : canonicalFingerprint}\n'
+                'Downloaded: ${importedBook.fingerprint.length > 20 ? '${importedBook.fingerprint.substring(0, 20)}...' : importedBook.fingerprint}\n\n'
+                'You can read this copy or import the exact file from your book club channel.',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Dismiss'),
+                ),
+                FilledButton.icon(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    _pickAndImportLocalBook(context);
+                  },
+                  icon: const Icon(LucideIcons.folderOpen, size: 16),
+                  label: const Text('Import Own File'),
+                ),
+              ],
             ),
           );
         }
@@ -122,6 +166,59 @@ class _CommunityDetailViewState extends State<CommunityDetailView>
             content: Text('Download failed: $e'),
             backgroundColor: Colors.red,
           ),
+        );
+      }
+    }
+  }
+
+  Future<void> _pickAndImportLocalBook(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final bookRepo = context.read<BookRepository>();
+    final dataService = context.read<LocalDataService>();
+    try {
+      final result = await FilePicker.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['epub'],
+      );
+      if (result != null && result.files.single.path != null) {
+        final filePath = result.files.single.path!;
+        final imported = await bookRepo.importBook(filePath);
+        final community = dataService.communities
+            .where((c) => c.id == widget.communityId)
+            .firstOrNull;
+        final canonicalFingerprint = community?.canonicalFingerprint;
+        final isMatch = canonicalFingerprint == null ||
+            canonicalFingerprint.isEmpty ||
+            imported.fingerprint == canonicalFingerprint;
+
+        await dataService.selectCommunityForBook(
+          bookId: imported.id,
+          communityId: widget.communityId,
+        );
+
+        if (mounted) {
+          setState(() {});
+          if (isMatch) {
+            messenger.showSnackBar(
+              const SnackBar(
+                content: Text('Imported EPUB matches official edition! 100% in sync.'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          } else {
+            messenger.showSnackBar(
+              const SnackBar(
+                content: Text('Warning: Imported EPUB has structural differences from official edition.'),
+                backgroundColor: Colors.amber,
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        messenger.showSnackBar(
+          SnackBar(content: Text('Failed to import EPUB: $e'), backgroundColor: Colors.red),
         );
       }
     }
@@ -328,6 +425,16 @@ class _CommunityDetailViewState extends State<CommunityDetailView>
                       ),
                       onPressed: () => _downloadAndSyncCommunityEdition(context),
                     ),
+              const SizedBox(height: 10),
+              OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                icon: const Icon(LucideIcons.folderOpen, size: 16),
+                label: const Text('Import Own EPUB (BYOB / Telegram)'),
+                onPressed: () => _pickAndImportLocalBook(context),
+              ),
             ],
           ),
         ),
@@ -354,6 +461,14 @@ class _CommunityDetailViewState extends State<CommunityDetailView>
             onPressed: () => Navigator.pop(ctx),
             child: const Text('Cancel'),
           ),
+          OutlinedButton.icon(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _pickAndImportLocalBook(context);
+            },
+            icon: const Icon(LucideIcons.folderOpen, size: 16),
+            label: const Text('Import File'),
+          ),
           FilledButton.icon(
             style: FilledButton.styleFrom(backgroundColor: Colors.amber.shade800),
             onPressed: () {
@@ -361,7 +476,7 @@ class _CommunityDetailViewState extends State<CommunityDetailView>
               _downloadAndSyncCommunityEdition(context);
             },
             icon: const Icon(LucideIcons.downloadCloud, size: 16),
-            label: const Text('Sync Now'),
+            label: const Text('Download Sync'),
           ),
         ],
       ),
