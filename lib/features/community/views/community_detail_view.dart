@@ -21,6 +21,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:bookies/domain/repositories/book_repository.dart';
 import 'package:bookies/domain/repositories/catalog_repository.dart';
 import 'package:bookies/domain/entities/catalog_book_entity.dart';
+import 'package:bookies/core/widgets/edition_fingerprint_scanner_modal.dart';
 
 class CommunityDetailView extends StatefulWidget {
   final String bookId;
@@ -56,104 +57,84 @@ class _CommunityDetailViewState extends State<CommunityDetailView>
   Future<void> _downloadAndSyncCommunityEdition(BuildContext context) async {
     if (_isDownloadingCommunityBook) return;
     final messenger = ScaffoldMessenger.of(context);
+    final catalogRepo = context.read<CatalogRepository>();
+    final dataService = context.read<LocalDataService>();
+
+    final community = dataService.communities
+        .where((c) => c.id == widget.communityId)
+        .firstOrNull;
+
     setState(() => _isDownloadingCommunityBook = true);
 
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text('Downloading official edition for "${widget.communityName}"...'),
-        duration: const Duration(seconds: 4),
-      ),
-    );
-
     try {
-      final catalogRepo = context.read<CatalogRepository>();
-      final dataService = context.read<LocalDataService>();
+      final scanResult = await EditionFingerprintScannerModal.show(
+        context: context,
+        title: 'Syncing Community Edition',
+        subtitle: widget.communityName,
+        onScan: (updateProgress) async {
+          updateProgress('Connecting to edition stream...', 0.15);
 
-      final community = dataService.communities
-          .where((c) => c.id == widget.communityId)
-          .firstOrNull;
-
-      // 1. Resolve target download endpoint
-      CatalogBookEntity targetCatalogBook;
-      if (community?.downloadUrl != null && community!.downloadUrl!.isNotEmpty) {
-        targetCatalogBook = CatalogBookEntity(
-          id: widget.bookId,
-          title: widget.communityName,
-          author: community.editionTitle ?? 'Official Edition',
-          downloadUrl: community.downloadUrl,
-        );
-      } else {
-        final catalogBooks = await catalogRepo.getDiscoverCatalog();
-        var matching = catalogBooks.where((b) => b.id == widget.bookId).firstOrNull;
-        if (matching == null) {
-          final searchResults = await catalogRepo.searchCatalog(widget.communityName);
-          matching = searchResults.firstOrNull;
-        }
-        targetCatalogBook = matching ??
-            CatalogBookEntity(
+          // 1. Resolve target download endpoint
+          CatalogBookEntity targetCatalogBook;
+          if (community?.downloadUrl != null && community!.downloadUrl!.isNotEmpty) {
+            targetCatalogBook = CatalogBookEntity(
               id: widget.bookId,
               title: widget.communityName,
-              author: 'Official Edition',
-              downloadUrl: '/catalog/${widget.bookId}/download',
+              author: community.editionTitle ?? 'Official Edition',
+              downloadUrl: community.downloadUrl,
             );
-      }
+          } else {
+            final catalogBooks = await catalogRepo.getDiscoverCatalog();
+            var matching = catalogBooks.where((b) => b.id == widget.bookId).firstOrNull;
+            if (matching == null) {
+              final searchResults = await catalogRepo.searchCatalog(widget.communityName);
+              matching = searchResults.firstOrNull;
+            }
+            targetCatalogBook = matching ??
+                CatalogBookEntity(
+                  id: widget.bookId,
+                  title: widget.communityName,
+                  author: 'Official Edition',
+                  downloadUrl: '/catalog/${widget.bookId}/download',
+                );
+          }
 
-      // 2. Download and compute structural fingerprint
-      final importedBook = await catalogRepo.downloadAndImportBook(
-        catalogBook: targetCatalogBook,
-      );
+          updateProgress('Downloading & unpacking EPUB archive...', 0.45);
+          final importedBook = await catalogRepo.downloadAndImportBook(
+            catalogBook: targetCatalogBook,
+          );
 
-      // 3. Confirm fingerprint match against community canonical standard
-      final canonicalFingerprint = community?.canonicalFingerprint;
-      final isVerifiedMatch = canonicalFingerprint == null ||
-          canonicalFingerprint.isEmpty ||
-          importedBook.fingerprint == canonicalFingerprint;
+          updateProgress('Calibrating chapter spine & DOM text nodes...', 0.75);
+          await Future.delayed(const Duration(milliseconds: 250));
 
-      await dataService.selectCommunityForBook(
-        bookId: importedBook.id,
-        communityId: widget.communityId,
+          updateProgress('Verifying Readium CFI compatibility digest...', 0.95);
+          final canonicalFingerprint = community?.canonicalFingerprint;
+          final isMatch = canonicalFingerprint != null &&
+              canonicalFingerprint.isNotEmpty &&
+              importedBook.fingerprint == canonicalFingerprint;
+
+          await dataService.selectCommunityForBook(
+            bookId: importedBook.id,
+            communityId: widget.communityId,
+          );
+
+          return FingerprintScanResult(
+            isSuccess: true,
+            isMatch: isMatch,
+            computedFingerprint: importedBook.fingerprint,
+            expectedFingerprint: canonicalFingerprint,
+            payload: importedBook,
+          );
+        },
       );
 
       if (mounted) {
         setState(() => _isDownloadingCommunityBook = false);
-        if (isVerifiedMatch) {
+        if (scanResult != null && scanResult.isMatch) {
           messenger.showSnackBar(
             const SnackBar(
               content: Text('Official Community Edition verified & synced! (100% Match)'),
               backgroundColor: Colors.green,
-            ),
-          );
-        } else {
-          showDialog(
-            context: context,
-            builder: (ctx) => AlertDialog(
-              title: const Row(
-                children: [
-                  Icon(LucideIcons.triangleAlert, color: Colors.amber),
-                  SizedBox(width: 8),
-                  Text('Fingerprint Notice'),
-                ],
-              ),
-              content: Text(
-                'The downloaded copy has a different chapter or text structure than the one bound by the creator.\n\n'
-                'Expected: ${canonicalFingerprint.length > 20 ? '${canonicalFingerprint.substring(0, 20)}...' : canonicalFingerprint}\n'
-                'Downloaded: ${importedBook.fingerprint.length > 20 ? '${importedBook.fingerprint.substring(0, 20)}...' : importedBook.fingerprint}\n\n'
-                'You can read this copy or import the exact file from your book club channel.',
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Dismiss'),
-                ),
-                FilledButton.icon(
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    _pickAndImportLocalBook(context);
-                  },
-                  icon: const Icon(LucideIcons.folderOpen, size: 16),
-                  label: const Text('Import Own File'),
-                ),
-              ],
             ),
           );
         }
@@ -176,40 +157,55 @@ class _CommunityDetailViewState extends State<CommunityDetailView>
     final bookRepo = context.read<BookRepository>();
     final dataService = context.read<LocalDataService>();
     try {
-      final result = await FilePicker.pickFiles(
+      final pickResult = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['epub'],
       );
-      if (result != null && result.files.single.path != null) {
-        final filePath = result.files.single.path!;
-        final imported = await bookRepo.importBook(filePath);
+      if (pickResult != null && pickResult.files.single.path != null) {
+        final filePath = pickResult.files.single.path!;
         final community = dataService.communities
             .where((c) => c.id == widget.communityId)
             .firstOrNull;
-        final canonicalFingerprint = community?.canonicalFingerprint;
-        final isMatch = canonicalFingerprint == null ||
-            canonicalFingerprint.isEmpty ||
-            imported.fingerprint == canonicalFingerprint;
 
-        await dataService.selectCommunityForBook(
-          bookId: imported.id,
-          communityId: widget.communityId,
+        if (!context.mounted) return;
+
+        final scanResult = await EditionFingerprintScannerModal.show(
+          context: context,
+          title: 'Scanning Imported EPUB',
+          subtitle: pickResult.files.single.name,
+          onScan: (updateProgress) async {
+            updateProgress('Reading local EPUB file...', 0.25);
+            updateProgress('Extracting reading spine & DOM elements...', 0.60);
+            final imported = await bookRepo.importBook(filePath);
+
+            updateProgress('Calibrating CFI anchors with community...', 0.90);
+            final canonicalFingerprint = community?.canonicalFingerprint;
+            final isMatch = canonicalFingerprint != null &&
+                canonicalFingerprint.isNotEmpty &&
+                imported.fingerprint == canonicalFingerprint;
+
+            await dataService.selectCommunityForBook(
+              bookId: imported.id,
+              communityId: widget.communityId,
+            );
+
+            return FingerprintScanResult(
+              isSuccess: true,
+              isMatch: isMatch,
+              computedFingerprint: imported.fingerprint,
+              expectedFingerprint: canonicalFingerprint,
+              payload: imported,
+            );
+          },
         );
 
         if (mounted) {
           setState(() {});
-          if (isMatch) {
+          if (scanResult != null && scanResult.isMatch) {
             messenger.showSnackBar(
               const SnackBar(
-                content: Text('Imported EPUB matches official edition! 100% in sync.'),
+                content: Text('Imported EPUB verified! 100% in sync.'),
                 backgroundColor: Colors.green,
-              ),
-            );
-          } else {
-            messenger.showSnackBar(
-              const SnackBar(
-                content: Text('Warning: Imported EPUB has structural differences from official edition.'),
-                backgroundColor: Colors.amber,
               ),
             );
           }
@@ -229,10 +225,16 @@ class _CommunityDetailViewState extends State<CommunityDetailView>
     final community = dataService.communities
         .where((c) => c.id == widget.communityId)
         .firstOrNull;
-    if (community == null) return true;
+    if (community == null) return false;
     final canonicalFingerprint = community.canonicalFingerprint;
+    // Strict edition verification: Fail closed!
     if (canonicalFingerprint == null || canonicalFingerprint.isEmpty) {
-      return true;
+      // If current user created this community and has the book, calibrate it now!
+      if (community.creatorId == dataService.currentUser.id && exactBook.fingerprint.isNotEmpty) {
+        dataService.calibrateCommunityCanonicalFingerprint(community.id, exactBook.fingerprint);
+        return true;
+      }
+      return false; // Regular members cannot progress until canonical standard is established
     }
     return exactBook.fingerprint == canonicalFingerprint;
   }

@@ -1038,6 +1038,31 @@ class LocalDataService extends ChangeNotifier {
     }
   }
 
+  Future<void> calibrateCommunityCanonicalFingerprint(
+    String communityId,
+    String fingerprint, {
+    String? editionTitle,
+  }) async {
+    final commIdx = communities.indexWhere((c) => c.id == communityId);
+    if (commIdx != -1) {
+      final old = communities[commIdx];
+      communities[commIdx] = Community(
+        id: old.id,
+        name: old.name,
+        description: old.description,
+        bookId: old.bookId,
+        memberCount: old.memberCount,
+        creatorId: old.creatorId,
+        canonicalFingerprint: fingerprint,
+        editionTitle: editionTitle ?? old.editionTitle,
+        downloadUrl: old.downloadUrl,
+      );
+      await _saveCommunities();
+      _markCommunityCatalogChanged();
+      notifyListeners();
+    }
+  }
+
   void _markCommunityCatalogChanged() {
     communityCatalogRevision.value++;
   }
