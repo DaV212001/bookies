@@ -1,0 +1,321 @@
+{
+  "ok": false,
+  "strict": false,
+  "browserSkipped": false,
+  "lint": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 2,
+    "infoCount": 0,
+    "findings": [
+      {
+        "code": "composition_file_too_large",
+        "severity": "warning",
+        "message": "This HTML composition file has 314 lines. Smaller sub-compositions are easier to read, iterate on, and diff.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "C:\\flutter_dev\\projects\\bookies\\promo\\index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Split coherent scenes or layers into separate .html files under compositions/, then mount them from the parent with data-composition-src so each file stays small enough to inspect, revise, and validate independently."
+      },
+      {
+        "code": "composition_file_too_large",
+        "severity": "warning",
+        "message": "This HTML composition file has 310 lines. Smaller sub-compositions are easier to read, iterate on, and diff.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "C:\\flutter_dev\\projects\\bookies\\promo\\compositions\\portrait.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Split this sub-composition further into smaller .html files, then mount them from the parent with data-composition-src so each file stays small enough to inspect, revise, and validate independently."
+      }
+    ],
+    "filesScanned": 2
+  },
+  "runtime": {
+    "ok": false,
+    "errorCount": 1,
+    "warningCount": 0,
+    "infoCount": 0,
+    "findings": [
+      {
+        "code": "request_failed",
+        "severity": "error",
+        "message": "Failed to load view_archive.php: net::ERR_BLOCKED_BY_ORB",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {
+          "data-composition-id": "main",
+          "data-start": "0",
+          "data-duration": "20",
+          "data-width": "1920",
+          "data-height": "1080",
+          "data-fps": "30"
+        },
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 1920,
+          "height": 1080
+        },
+        "time": 0,
+        "url": "https://ia800404.us.archive.org/view_archive.php?archive=/33/items/l_covers_0010/l_covers_0010_57.zip&file=0010574889-L.jpg"
+      }
+    ]
+  },
+  "layout": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 0,
+    "infoCount": 0,
+    "findings": [],
+    "duration": 20,
+    "samples": [
+      1.111,
+      3.333,
+      5.556,
+      7.778,
+      10,
+      12.222,
+      14.444,
+      16.667,
+      18.889
+    ],
+    "transitionSamples": [],
+    "transitionSamplesDropped": 0,
+    "tolerance": 2,
+    "totalIssueCount": 0,
+    "truncated": false
+  },
+  "motion": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 0,
+    "infoCount": 0,
+    "findings": [],
+    "enabled": false,
+    "samples": 0
+  },
+  "contrast": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 1,
+    "infoCount": 0,
+    "findings": [
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 3.89:1; WCAG AA requires 4.5:1.",
+        "text": "Start Reading with Your Club",
+        "fg": "rgb(255,255,255)",
+        "bg": "rgb(200,103,7)",
+        "ratio": 3.89,
+        "requiredRatio": 4.5,
+        "suggestedColor": "rgb(25,25,25)",
+        "large": false,
+        "selector": "div > div:nth-of-type(8) > div:nth-of-type(2) > span",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 819.5,
+          "y": 675,
+          "width": 248.984375,
+          "height": 21
+        },
+        "time": 18.889,
+        "times": [
+          18.889
+        ]
+      }
+    ],
+    "enabled": true,
+    "samples": [
+      1.111,
+      5.556,
+      10,
+      14.444,
+      18.889
+    ],
+    "checked": 17,
+    "passed": 16
+  },
+  "craft": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 4,
+    "infoCount": 0,
+    "findings": [
+      {
+        "code": "line_unread",
+        "severity": "warning",
+        "message": "\"Meet Bookies — the dark-academia e-reader where book club...\" (18 words) is on screen 3.46 s (±0.01 s), under its 4.42 s floor: hold it about 0.5 s + 0.3 s a word (5.90 s here) before it leaves or changes; see references/motion.md.",
+        "text": "Meet Bookies — the dark-academia e-reader where book clubs share live presence, highlights, and real-time discussions.",
+        "selector": "#hookSubtitle",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 606.97,
+          "y": 617.39,
+          "width": 706.05,
+          "height": 109
+        },
+        "time": 0,
+        "words": 18,
+        "seconds": 3.465,
+        "floorSeconds": 4.425
+      },
+      {
+        "code": "film_silent",
+        "severity": "warning",
+        "message": "This 20 s film has no sound source (no <audio>, no <video> with sound): add a music bed and sounds on the visible actions unless the person asked for silence; see references/sound.md.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0
+      },
+      {
+        "code": "text_below_floor",
+        "severity": "warning",
+        "message": "Type floor is 28 px (2.6% of the 1080 px short side, what a phone can read) and 9 text elements stay under it for 0.5 s or more, the smallest \"Instant Catalog\" at 14 px: set reading text to at least 28 px, or put data-layout-ignore on text that is texture rather than reading; see references/look.md.",
+        "text": "Instant Catalog",
+        "selector": "#callout1 > span:nth-of-type(1)",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 92.96,
+          "y": 382,
+          "width": 148.91,
+          "height": 17
+        },
+        "time": 4.25,
+        "times": [
+          0,
+          0,
+          4.25,
+          4.25,
+          9.25,
+          9.25,
+          14.875,
+          14.875,
+          14.875
+        ],
+        "fontPx": 14,
+        "floorPx": 28,
+        "seconds": 4.125,
+        "elements": [
+          {
+            "selector": "#callout1 > span:nth-of-type(1)",
+            "text": "Instant Catalog",
+            "fontPx": 14,
+            "time": 4.25,
+            "seconds": 4.125
+          },
+          {
+            "selector": "#callout2 > span:nth-of-type(1)",
+            "text": "Live Co-Presence",
+            "fontPx": 14,
+            "time": 9.25,
+            "seconds": 5.125
+          },
+          {
+            "selector": "#outroFooter",
+            "text": "Available on iOS • Android • Desktop",
+            "fontPx": 14.45,
+            "time": 14.875,
+            "seconds": 5.125
+          },
+          {
+            "selector": "#hookBadge",
+            "text": "A New Era of Reading",
+            "fontPx": 15,
+            "time": 0,
+            "seconds": 3.5
+          },
+          {
+            "selector": "#outroCta > span:nth-of-type(1)",
+            "text": "Start Reading with Your Club",
+            "fontPx": 17.34,
+            "time": 14.875,
+            "seconds": 5.125
+          },
+          {
+            "selector": "#callout1 > p:nth-of-type(1)",
+            "text": "Stream and download titles directly from the cloud or import your personal EPUB collection.",
+            "fontPx": 20,
+            "time": 4.25,
+            "seconds": 4.125
+          },
+          {
+            "selector": "#callout2 > p:nth-of-type(1)",
+            "text": "Watch fellow club members advance chapter by chapter. Share passage reactions without audio clutter.",
+            "fontPx": 20,
+            "time": 9.25,
+            "seconds": 5.125
+          },
+          {
+            "selector": "#outroTagline",
+            "text": "The Dark-Academia EPUB Reader with Real-Time Community Reading.",
+            "fontPx": 23.12,
+            "time": 14.875,
+            "seconds": 5.125
+          },
+          {
+            "selector": "#hookSubtitle",
+            "text": "Meet Bookies — the dark-academia e-reader where book clubs share live presence, highlights, and real-time discussions.",
+            "fontPx": 26,
+            "time": 0,
+            "seconds": 3.5
+          }
+        ]
+      },
+      {
+        "code": "dead_stretch",
+        "severity": "warning",
+        "message": "Nothing on screen changes for 3.75 s (10.00–13.75 s): start the next move within 3 s, or put data-hold on the element whose stillness is deliberate; see references/motion.md.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 10,
+        "seconds": 3.75,
+        "floorSeconds": 3,
+        "until": 13.75
+      }
+    ],
+    "enabled": true,
+    "step": 0.125,
+    "samples": 160
+  },
+  "hdr": {
+    "autoPromotion": null,
+    "inspection": "available"
+  },
+  "snapshots": {
+    "enabled": false,
+    "files": [],
+    "times": [],
+    "findingFiles": []
+  }
+}

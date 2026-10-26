@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import 'package:bookies/core/network/api_client.dart';
 import 'package:bookies/core/network/socket_service.dart';
+import 'package:bookies/core/services/incoming_file_service.dart';
 import 'package:bookies/core/theme/app_theme.dart';
 import 'package:bookies/core/routing/app_router.dart';
 import 'package:bookies/core/theme/theme_cubit.dart';
@@ -53,6 +54,10 @@ void main() async {
         ),
         Provider<ApiClient>.value(value: apiClient),
         Provider<SocketService>.value(value: socketService),
+        Provider<IncomingFileService>(
+          create: (_) => IncomingFileService(),
+          dispose: (_, service) => service.dispose(),
+        ),
         Provider<AuthRepository>(
           create: (context) => ApiAuthRepository(
             context.read<ApiClient>(),
@@ -99,7 +104,13 @@ class BookiesApp extends StatelessWidget {
           create: (context) => ThemeCubit(context.read<LocalDataService>()),
         ),
         BlocProvider(
-          create: (context) => LibraryBloc(context.read<LocalDataService>())..add(LoadLibrary()),
+          create: (context) {
+            final bloc = LibraryBloc(context.read<LocalDataService>())..add(LoadLibrary());
+            context.read<IncomingFileService>().initialize(
+              onFileOpened: (filePath) => bloc.add(ImportBook(filePath)),
+            );
+            return bloc;
+          },
         ),
         BlocProvider(
           create: (context) => ReaderBloc(context.read<LocalDataService>()),

@@ -185,7 +185,7 @@ class LocalDataService extends ChangeNotifier {
           ),
           title: 'Chapter 1 Character Development',
           content:
-              'What are your thoughts on Richard’s unreliable narration in the first chapter?',
+              'What are your thoughts on RichardÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢s unreliable narration in the first chapter?',
           scope: ThreadScope.chapter,
           chapterTitle: 'Chapter 1: The Gathering',
           chapterIndex: 1,
@@ -207,7 +207,7 @@ class LocalDataService extends ChangeNotifier {
           ),
           title: 'Global Book Theme: Aestheticism & Guilt',
           content:
-              'Let’s talk about the overarching theme of aestheticism vs morality throughout the book.',
+              'LetÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢s talk about the overarching theme of aestheticism vs morality throughout the book.',
           scope: ThreadScope.book,
           rating: 5.0,
           upvotes: 89,
@@ -411,7 +411,14 @@ class LocalDataService extends ChangeNotifier {
   List<Book> getBooks() => List.unmodifiable(_books);
 
   Future<void> addBook(Book book) async {
-    _books.add(book);
+    final existingIndex = _books.indexWhere(
+      (b) => b.id == book.id || (b.fingerprint.isNotEmpty && b.fingerprint == book.fingerprint),
+    );
+    if (existingIndex >= 0) {
+      _books[existingIndex] = book;
+    } else {
+      _books.add(book);
+    }
     await _saveBooks();
     _markCommunityCatalogChanged();
   }
@@ -423,6 +430,19 @@ class LocalDataService extends ChangeNotifier {
       await _saveBooks();
       _markCommunityCatalogChanged();
     }
+  }
+
+  Future<void> setAutoSyncFolder(String? folderPath) async {
+    if (folderPath == null || folderPath.isEmpty) {
+      await _prefs.remove('auto_sync_folder');
+    } else {
+      await _prefs.setString('auto_sync_folder', folderPath);
+    }
+    notifyListeners();
+  }
+
+  String? getAutoSyncFolder() {
+    return _prefs.getString('auto_sync_folder');
   }
 
   Future<void> saveProgress(
@@ -784,7 +804,7 @@ class LocalDataService extends ChangeNotifier {
           createdAt: baseTime.add(const Duration(minutes: 18)),
           status: MessageStatus.sent,
           reactions: {
-            '👍': ['user-1', 'user-3'],
+            'ÃƒÂ°Ã…Â¸Ã¢â‚¬ËœÃ‚Â': ['user-1', 'user-3'],
           },
         ),
         ChatMessage(
@@ -806,7 +826,7 @@ class LocalDataService extends ChangeNotifier {
           createdAt: baseTime.add(const Duration(minutes: 34)),
           status: MessageStatus.sent,
           reactions: {
-            '❤️': ['user-2'],
+            'ÃƒÂ¢Ã‚ÂÃ‚Â¤ÃƒÂ¯Ã‚Â¸Ã‚Â': ['user-2'],
           },
         ),
       ]);
@@ -1009,6 +1029,9 @@ class LocalDataService extends ChangeNotifier {
         bookId: old.bookId,
         memberCount: activeCount > 0 ? activeCount : old.memberCount,
         creatorId: old.creatorId,
+        canonicalFingerprint: old.canonicalFingerprint,
+        editionTitle: old.editionTitle,
+        downloadUrl: old.downloadUrl,
       );
       _saveCommunities();
       _markCommunityCatalogChanged();
@@ -1072,6 +1095,7 @@ class LocalDataService extends ChangeNotifier {
     bool skipRestrictedOrBanned = true,
   }) async {
     final newId = _uuid.v4();
+    final book = _books.where((b) => b.id == bookId).firstOrNull;
     final newComm = Community(
       id: newId,
       name: name,
@@ -1079,6 +1103,8 @@ class LocalDataService extends ChangeNotifier {
       bookId: bookId,
       memberCount: 1,
       creatorId: currentUser.id,
+      canonicalFingerprint: book?.fingerprint,
+      editionTitle: book != null ? '${book.title} (${book.author})' : null,
     );
     communities.add(newComm);
     _markCommunityCatalogChanged();

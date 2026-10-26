@@ -14,6 +14,7 @@ import 'package:bookies/data/providers/local_data_service.dart';
 import 'package:bookies/data/models/book.dart';
 import 'package:bookies/core/widgets/create_community_dialog.dart';
 import 'package:bookies/core/widgets/responsive_text.dart';
+import 'package:bookies/core/services/incoming_file_service.dart';
 
 enum LibraryViewMode { grid, list }
 
@@ -28,11 +29,194 @@ class _LibraryViewState extends State<LibraryView> {
   LibraryViewMode _viewMode = LibraryViewMode.grid;
   bool _isSearching = false;
   final TextEditingController _searchController = TextEditingController();
+  final IncomingFileService _incomingFileService = IncomingFileService();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _incomingFileService.initialize(
+        onFileOpened: (filePath) {
+          AppLogger.i('LibraryView', 'Handling incoming opened file: $filePath');
+          if (mounted) {
+            context.read<LibraryBloc>().add(ImportBook(filePath));
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Importing opened EPUB: ' + filePath.split(Platform.pathSeparator).last)),
+            );
+          }
+        },
+      );
+    });
+  }
 
   @override
   void dispose() {
+    _incomingFileService.dispose();
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _showAutoSyncDialog(BuildContext context, String? currentFolder) async {
+    final theme = Theme.of(context);
+    final bloc = context.read<LibraryBloc>();
+
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: theme.colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(LucideIcons.folderSync, color: theme.colorScheme.secondary),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Auto-Sync Book Folder',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Designate a folder on your device (like Reasily). Any EPUB placed inside will be automatically added to your library.',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(LucideIcons.folder, size: 20, color: theme.colorScheme.primary),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        currentFolder ?? 'No folder selected',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontFamily: 'monospace',
+                          color: currentFolder != null ? theme.colorScheme.onSurface : theme.colorScheme.onSurfaceVariant,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        Navigator.pop(sheetContext);
+                        final selectedDir = await FilePicker.getDirectoryPath();
+                        if (selectedDir != null && selectedDir.isNotEmpty) {
+                          bloc.add(SetAutoSyncFolder(selectedDir));
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Watching folder: ')),
+                            );
+                          }
+                        }
+                      },
+                      icon: const Icon(LucideIcons.folderOpen, size: 18),
+                      label: Text(currentFolder == null ? 'Choose Folder' : 'Change Folder'),
+                    ),
+                  ),
+                  if (currentFolder != null) ...[
+                    const SizedBox(width: 8),
+                    IconButton(
+                      tooltip: 'Scan Now',
+                      icon: const Icon(LucideIcons.refreshCw),
+                      onPressed: () {
+                        Navigator.pop(sheetContext);
+                        bloc.add(ScanAutoSyncFolder());
+                      },
+                    ),
+                    IconButton(
+                      tooltip: 'Clear Watched Folder',
+                      icon: const Icon(LucideIcons.trash2, color: Colors.red),
+                      onPressed: () {
+                        Navigator.pop(sheetContext);
+                        bloc.add(const SetAutoSyncFolder(null));
+                      },
+                    ),
+                  ],
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildAutoSyncBanner(BuildContext context, ThemeData theme, String folderPath) {
+    final folderName = folderPath.split(Platform.pathSeparator).last;
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.secondary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: theme.colorScheme.secondary.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        children: [
+          Icon(LucideIcons.folderSync, size: 16, color: theme.colorScheme.secondary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Watching: $folderName (Auto-Syncing EPUBs)',
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.secondary,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          InkWell(
+            onTap: () {
+              context.read<LibraryBloc>().add(ScanAutoSyncFolder());
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Scanning auto-sync folder for new EPUBs...')),
+              );
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(4),
+              child: Text(
+                'Sync Now',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.secondary,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _pickAndImportBook(BuildContext context) async {
@@ -226,6 +410,15 @@ class _LibraryViewState extends State<LibraryView> {
               ),
         actions: [
           IconButton(
+            icon: const Icon(LucideIcons.folderSync),
+            tooltip: 'Auto-Sync Folder',
+            onPressed: () {
+              final curState = context.read<LibraryBloc>().state;
+              final folder = curState is LibraryLoaded ? curState.autoSyncFolder : null;
+              _showAutoSyncDialog(context, folder);
+            },
+          ),
+          IconButton(
             icon: Icon(_isSearching ? LucideIcons.x : LucideIcons.search),
             tooltip: _isSearching ? 'Close Search' : 'Search Library',
             onPressed: () {
@@ -325,6 +518,10 @@ class _LibraryViewState extends State<LibraryView> {
                     child: _buildReadingStreakCard(theme),
                   ),
                 ),
+                if (state.autoSyncFolder != null)
+                  SliverToBoxAdapter(
+                    child: _buildAutoSyncBanner(context, theme, state.autoSyncFolder!),
+                  ),
 
                 // Library Section Header & Controls
                 SliverToBoxAdapter(
@@ -348,7 +545,7 @@ class _LibraryViewState extends State<LibraryView> {
                               ),
                               const SizedBox(height: 2),
                               ResponsiveText.label(
-                                '${allBooks.length} Books • $currentlyReadingCount Reading',
+                                '${allBooks.length} Books ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ $currentlyReadingCount Reading',
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   color: theme.colorScheme.onSurfaceVariant,
                                 ),

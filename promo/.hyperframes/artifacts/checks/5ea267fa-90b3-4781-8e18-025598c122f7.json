@@ -1,0 +1,1560 @@
+{
+  "ok": false,
+  "strict": false,
+  "browserSkipped": false,
+  "lint": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 2,
+    "infoCount": 0,
+    "findings": [
+      {
+        "code": "composition_file_too_large",
+        "severity": "warning",
+        "message": "This HTML composition file has 315 lines. Smaller sub-compositions are easier to read, iterate on, and diff.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "C:\\flutter_dev\\projects\\bookies\\promo\\index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Split coherent scenes or layers into separate .html files under compositions/, then mount them from the parent with data-composition-src so each file stays small enough to inspect, revise, and validate independently."
+      },
+      {
+        "code": "composition_file_too_large",
+        "severity": "warning",
+        "message": "This HTML composition file has 311 lines. Smaller sub-compositions are easier to read, iterate on, and diff.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "C:\\flutter_dev\\projects\\bookies\\promo\\compositions\\portrait.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Split this sub-composition further into smaller .html files, then mount them from the parent with data-composition-src so each file stays small enough to inspect, revise, and validate independently."
+      }
+    ],
+    "filesScanned": 2
+  },
+  "runtime": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 0,
+    "infoCount": 0,
+    "findings": []
+  },
+  "layout": {
+    "ok": false,
+    "errorCount": 18,
+    "warningCount": 1,
+    "infoCount": 3,
+    "findings": [
+      {
+        "code": "text_occluded",
+        "severity": "error",
+        "time": 10,
+        "selector": "div.discover-logo",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 617.28,
+          "top": 150.24,
+          "right": 723.8,
+          "bottom": 189.44,
+          "width": 106.52,
+          "height": 39.2
+        },
+        "containerSelector": "#readerCopresence",
+        "text": "Bookies",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 617.28,
+          "y": 150.24,
+          "width": 106.52,
+          "height": 39.2
+        },
+        "firstSeen": 10,
+        "lastSeen": 14.444,
+        "occurrences": 3,
+        "heldMs": 0,
+        "times": [
+          10,
+          12.222,
+          14.444
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "error",
+        "time": 10,
+        "selector": "span.tag",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 964.32,
+          "top": 162,
+          "right": 1010.4,
+          "bottom": 177.68,
+          "width": 46.08,
+          "height": 15.68
+        },
+        "containerSelector": "#readerCopresence",
+        "text": "Catalog",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 964.32,
+          "y": 162,
+          "width": 46.08,
+          "height": 15.68
+        },
+        "firstSeen": 10,
+        "lastSeen": 14.444,
+        "occurrences": 3,
+        "heldMs": 0,
+        "times": [
+          10,
+          12.222,
+          14.444
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "error",
+        "time": 10,
+        "selector": "div.discover-search > span:nth-of-type(1)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 662.08,
+          "top": 228.64,
+          "right": 930.29,
+          "bottom": 246.56,
+          "width": 268.21,
+          "height": 17.92
+        },
+        "containerSelector": "#readerCopresence",
+        "text": "Search contemporary books, authors...",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 662.08,
+          "y": 228.64,
+          "width": 268.21,
+          "height": 17.92
+        },
+        "firstSeen": 10,
+        "lastSeen": 14.444,
+        "occurrences": 3,
+        "heldMs": 0,
+        "times": [
+          10,
+          12.222,
+          14.444
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "error",
+        "time": 10,
+        "selector": "span.bento-badge",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 755.04,
+          "top": 323.42,
+          "right": 885.75,
+          "bottom": 336.86,
+          "width": 130.71,
+          "height": 13.44
+        },
+        "containerSelector": "#screenReader",
+        "text": "Trending Club Pick",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 755.04,
+          "y": 323.42,
+          "width": 130.71,
+          "height": 13.44
+        },
+        "firstSeen": 10,
+        "lastSeen": 14.444,
+        "occurrences": 3,
+        "heldMs": 0,
+        "times": [
+          10,
+          12.222,
+          14.444
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "error",
+        "time": 10,
+        "selector": "h3.bento-title",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 755.04,
+          "top": 339.1,
+          "right": 938.11,
+          "bottom": 368.22,
+          "width": 183.07,
+          "height": 29.12
+        },
+        "containerSelector": "#screenReader",
+        "text": "The Secret History",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 755.04,
+          "y": 339.1,
+          "width": 183.07,
+          "height": 29.12
+        },
+        "firstSeen": 10,
+        "lastSeen": 14.444,
+        "occurrences": 3,
+        "heldMs": 0,
+        "times": [
+          10,
+          12.222,
+          14.444
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "error",
+        "time": 10,
+        "selector": "span.bento-author",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 755.04,
+          "top": 372.42,
+          "right": 829.31,
+          "bottom": 389.22,
+          "width": 74.27,
+          "height": 16.8
+        },
+        "containerSelector": "#screenReader",
+        "text": "Donna Tartt",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 755.04,
+          "y": 372.42,
+          "width": 74.27,
+          "height": 16.8
+        },
+        "firstSeen": 10,
+        "lastSeen": 14.444,
+        "occurrences": 3,
+        "heldMs": 0,
+        "times": [
+          10,
+          12.222,
+          14.444
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "error",
+        "time": 10,
+        "selector": "div.bento-readers > span:nth-of-type(1)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 786.4,
+          "top": 404.9,
+          "right": 896.21,
+          "bottom": 420.58,
+          "width": 109.81,
+          "height": 15.68
+        },
+        "containerSelector": "#screenReader",
+        "text": "1,420 reading now",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 786.4,
+          "y": 404.9,
+          "width": 109.81,
+          "height": 15.68
+        },
+        "firstSeen": 10,
+        "lastSeen": 14.444,
+        "occurrences": 3,
+        "heldMs": 0,
+        "times": [
+          10,
+          12.222,
+          14.444
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "error",
+        "time": 10,
+        "selector": "div.shelf-title",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 617.28,
+          "top": 485.12,
+          "right": 814.33,
+          "bottom": 504.16,
+          "width": 197.05,
+          "height": 19.04
+        },
+        "containerSelector": "#screenReader",
+        "text": "Popular in Dark Academia",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 617.28,
+          "y": 485.12,
+          "width": 197.05,
+          "height": 19.04
+        },
+        "firstSeen": 10,
+        "lastSeen": 14.444,
+        "occurrences": 3,
+        "heldMs": 0,
+        "times": [
+          10,
+          12.222,
+          14.444
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "error",
+        "time": 10,
+        "selector": "#shelfCarousel > div:nth-of-type(2) > span:nth-of-type(1)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 602.72,
+          "top": 678.88,
+          "right": 675.78,
+          "bottom": 694.56,
+          "width": 73.06,
+          "height": 15.68
+        },
+        "containerSelector": "#screenReader",
+        "text": "Fourth Wing",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 602.72,
+          "y": 678.88,
+          "width": 73.06,
+          "height": 15.68
+        },
+        "firstSeen": 10,
+        "lastSeen": 14.444,
+        "occurrences": 3,
+        "heldMs": 0,
+        "times": [
+          10,
+          12.222,
+          14.444
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "error",
+        "time": 10,
+        "selector": "#shelfCarousel > div:nth-of-type(2) > span:nth-of-type(2)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 602.72,
+          "top": 695.68,
+          "right": 664.36,
+          "bottom": 709.12,
+          "width": 61.64,
+          "height": 13.44
+        },
+        "containerSelector": "#screenReader",
+        "text": "★ 4.8 • 2.1k",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 602.72,
+          "y": 695.68,
+          "width": 61.64,
+          "height": 13.44
+        },
+        "firstSeen": 10,
+        "lastSeen": 14.444,
+        "occurrences": 3,
+        "heldMs": 0,
+        "times": [
+          10,
+          12.222,
+          14.444
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "error",
+        "time": 10,
+        "selector": "#shelfCarousel > div:nth-of-type(3) > span:nth-of-type(1)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 722.56,
+          "top": 678.88,
+          "right": 824.36,
+          "bottom": 694.56,
+          "width": 101.8,
+          "height": 15.68
+        },
+        "containerSelector": "#screenReader",
+        "text": "Project Hail Mary",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 722.56,
+          "y": 678.88,
+          "width": 101.8,
+          "height": 15.68
+        },
+        "firstSeen": 10,
+        "lastSeen": 14.444,
+        "occurrences": 3,
+        "heldMs": 0,
+        "times": [
+          10,
+          12.222,
+          14.444
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "error",
+        "time": 10,
+        "selector": "#shelfCarousel > div:nth-of-type(3) > span:nth-of-type(2)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 722.56,
+          "top": 695.68,
+          "right": 785.21,
+          "bottom": 709.12,
+          "width": 62.65,
+          "height": 13.44
+        },
+        "containerSelector": "#screenReader",
+        "text": "★ 4.9 • 1.8k",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 722.56,
+          "y": 695.68,
+          "width": 62.65,
+          "height": 13.44
+        },
+        "firstSeen": 10,
+        "lastSeen": 14.444,
+        "occurrences": 3,
+        "heldMs": 0,
+        "times": [
+          10,
+          12.222,
+          14.444
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "error",
+        "time": 10,
+        "selector": "#shelfCarousel > div:nth-of-type(4) > span:nth-of-type(1)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 842.4,
+          "top": 678.88,
+          "right": 907.48,
+          "bottom": 694.56,
+          "width": 65.08,
+          "height": 15.68
+        },
+        "containerSelector": "#screenReader",
+        "text": "Yellowface",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 842.4,
+          "y": 678.88,
+          "width": 65.08,
+          "height": 15.68
+        },
+        "firstSeen": 10,
+        "lastSeen": 14.444,
+        "occurrences": 3,
+        "heldMs": 0,
+        "times": [
+          10,
+          12.222,
+          14.444
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "error",
+        "time": 10,
+        "selector": "#shelfCarousel > div:nth-of-type(4) > span:nth-of-type(2)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 842.4,
+          "top": 695.68,
+          "right": 905,
+          "bottom": 709.12,
+          "width": 62.6,
+          "height": 13.44
+        },
+        "containerSelector": "#screenReader",
+        "text": "★ 4.6 • 1.2k",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 842.4,
+          "y": 695.68,
+          "width": 62.6,
+          "height": 13.44
+        },
+        "firstSeen": 10,
+        "lastSeen": 14.444,
+        "occurrences": 3,
+        "heldMs": 0,
+        "times": [
+          10,
+          12.222,
+          14.444
+        ]
+      },
+      {
+        "code": "content_overlap",
+        "severity": "error",
+        "time": 10,
+        "selector": "h3.bento-title",
+        "message": "Two text blocks overlap and may render unreadable.",
+        "rect": {
+          "left": 755.04,
+          "top": 339.1,
+          "right": 938.11,
+          "bottom": 368.22,
+          "width": 183.07,
+          "height": 29.12
+        },
+        "containerSelector": "p.reader-passage",
+        "text": "The Secret History",
+        "fixHint": "Give each block its own zone, or put data-layout-allow-overlap on the text or on a container inside the scene. A marker on the scene root does not apply.",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 755.04,
+          "y": 339.1,
+          "width": 183.07,
+          "height": 29.12
+        },
+        "firstSeen": 8.75,
+        "lastSeen": 14.625,
+        "occurrences": 50,
+        "heldMs": 5875,
+        "times": [
+          8.75,
+          8.875,
+          9,
+          9.125,
+          9.25,
+          9.375,
+          9.5,
+          9.625,
+          9.75,
+          9.875,
+          10,
+          10.125,
+          10.25,
+          10.375,
+          10.5,
+          10.625,
+          10.75,
+          10.875,
+          11,
+          11.125,
+          11.25,
+          11.375,
+          11.5,
+          11.625,
+          11.75,
+          11.875,
+          12,
+          12.125,
+          12.222,
+          12.25,
+          12.375,
+          12.5,
+          12.625,
+          12.75,
+          12.875,
+          13,
+          13.125,
+          13.25,
+          13.375,
+          13.5,
+          13.625,
+          13.75,
+          13.875,
+          14,
+          14.125,
+          14.25,
+          14.375,
+          14.444,
+          14.5,
+          14.625
+        ]
+      },
+      {
+        "code": "content_overlap",
+        "severity": "error",
+        "time": 10,
+        "selector": "span.bento-author",
+        "message": "Two text blocks overlap and may render unreadable.",
+        "rect": {
+          "left": 755.04,
+          "top": 372.42,
+          "right": 829.31,
+          "bottom": 389.22,
+          "width": 74.27,
+          "height": 16.8
+        },
+        "containerSelector": "p.reader-passage",
+        "text": "Donna Tartt",
+        "fixHint": "Give each block its own zone, or put data-layout-allow-overlap on the text or on a container inside the scene. A marker on the scene root does not apply.",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 755.04,
+          "y": 372.42,
+          "width": 74.27,
+          "height": 16.8
+        },
+        "firstSeen": 8.75,
+        "lastSeen": 14.625,
+        "occurrences": 50,
+        "heldMs": 5875,
+        "times": [
+          8.75,
+          8.875,
+          9,
+          9.125,
+          9.25,
+          9.375,
+          9.5,
+          9.625,
+          9.75,
+          9.875,
+          10,
+          10.125,
+          10.25,
+          10.375,
+          10.5,
+          10.625,
+          10.75,
+          10.875,
+          11,
+          11.125,
+          11.25,
+          11.375,
+          11.5,
+          11.625,
+          11.75,
+          11.875,
+          12,
+          12.125,
+          12.222,
+          12.25,
+          12.375,
+          12.5,
+          12.625,
+          12.75,
+          12.875,
+          13,
+          13.125,
+          13.25,
+          13.375,
+          13.5,
+          13.625,
+          13.75,
+          13.875,
+          14,
+          14.125,
+          14.25,
+          14.375,
+          14.444,
+          14.5,
+          14.625
+        ]
+      },
+      {
+        "code": "content_overlap",
+        "severity": "error",
+        "time": 10,
+        "selector": "div.bento-readers > span:nth-of-type(1)",
+        "message": "Two text blocks overlap and may render unreadable.",
+        "rect": {
+          "left": 786.4,
+          "top": 404.9,
+          "right": 896.21,
+          "bottom": 420.58,
+          "width": 109.81,
+          "height": 15.68
+        },
+        "containerSelector": "#highlightPassage",
+        "text": "1,420 reading now",
+        "fixHint": "Give each block its own zone, or put data-layout-allow-overlap on the text or on a container inside the scene. A marker on the scene root does not apply.",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 786.4,
+          "y": 404.9,
+          "width": 109.81,
+          "height": 15.68
+        },
+        "firstSeen": 8.75,
+        "lastSeen": 14.625,
+        "occurrences": 50,
+        "heldMs": 5875,
+        "times": [
+          8.75,
+          8.875,
+          9,
+          9.125,
+          9.25,
+          9.375,
+          9.5,
+          9.625,
+          9.75,
+          9.875,
+          10,
+          10.125,
+          10.25,
+          10.375,
+          10.5,
+          10.625,
+          10.75,
+          10.875,
+          11,
+          11.125,
+          11.25,
+          11.375,
+          11.5,
+          11.625,
+          11.75,
+          11.875,
+          12,
+          12.125,
+          12.222,
+          12.25,
+          12.375,
+          12.5,
+          12.625,
+          12.75,
+          12.875,
+          13,
+          13.125,
+          13.25,
+          13.375,
+          13.5,
+          13.625,
+          13.75,
+          13.875,
+          14,
+          14.125,
+          14.25,
+          14.375,
+          14.444,
+          14.5,
+          14.625
+        ]
+      },
+      {
+        "code": "content_overlap",
+        "severity": "error",
+        "time": 10,
+        "selector": "div.shelf-title",
+        "message": "Two text blocks overlap and may render unreadable.",
+        "rect": {
+          "left": 617.28,
+          "top": 485.12,
+          "right": 814.33,
+          "bottom": 504.16,
+          "width": 197.05,
+          "height": 19.04
+        },
+        "containerSelector": "p.reader-passage",
+        "text": "Popular in Dark Academia",
+        "fixHint": "Give each block its own zone, or put data-layout-allow-overlap on the text or on a container inside the scene. A marker on the scene root does not apply.",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 617.28,
+          "y": 485.12,
+          "width": 197.05,
+          "height": 19.04
+        },
+        "firstSeen": 8.75,
+        "lastSeen": 14.625,
+        "occurrences": 50,
+        "heldMs": 5875,
+        "times": [
+          8.75,
+          8.875,
+          9,
+          9.125,
+          9.25,
+          9.375,
+          9.5,
+          9.625,
+          9.75,
+          9.875,
+          10,
+          10.125,
+          10.25,
+          10.375,
+          10.5,
+          10.625,
+          10.75,
+          10.875,
+          11,
+          11.125,
+          11.25,
+          11.375,
+          11.5,
+          11.625,
+          11.75,
+          11.875,
+          12,
+          12.125,
+          12.222,
+          12.25,
+          12.375,
+          12.5,
+          12.625,
+          12.75,
+          12.875,
+          13,
+          13.125,
+          13.25,
+          13.375,
+          13.5,
+          13.625,
+          13.75,
+          13.875,
+          14,
+          14.125,
+          14.25,
+          14.375,
+          14.444,
+          14.5,
+          14.625
+        ]
+      },
+      {
+        "code": "container_overflow",
+        "severity": "warning",
+        "time": 5.556,
+        "selector": "#shelfCarousel > div:nth-of-type(4)",
+        "message": "Element extends outside a clipping layout container.",
+        "rect": {
+          "left": 1062.86,
+          "top": 523.22,
+          "right": 1161.39,
+          "bottom": 689.78,
+          "width": 98.53,
+          "height": 166.55
+        },
+        "containerSelector": "#shelfCarousel",
+        "fixHint": "Resize/reposition the child or container, or mark intentional overflow with data-layout-allow-overflow.",
+        "containerRect": {
+          "left": 744.03,
+          "top": 512.09,
+          "right": 1129.6,
+          "bottom": 688.67,
+          "width": 385.57,
+          "height": 176.58
+        },
+        "overflow": {
+          "right": 31.79
+        },
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 1062.86,
+          "y": 523.22,
+          "width": 98.53,
+          "height": 166.55
+        },
+        "firstSeen": 5.556,
+        "lastSeen": 14.444,
+        "occurrences": 5,
+        "heldMs": 0,
+        "times": [
+          5.556,
+          7.778,
+          10,
+          12.222,
+          14.444
+        ]
+      },
+      {
+        "code": "content_overlap",
+        "severity": "info",
+        "time": 3.5,
+        "selector": "#hookSubtitle",
+        "message": "Two text blocks overlap and may render unreadable.",
+        "rect": {
+          "left": 606.97,
+          "top": 565.48,
+          "right": 1313.02,
+          "bottom": 674.48,
+          "width": 706.05,
+          "height": 109
+        },
+        "containerSelector": "div.phone-status > span:nth-of-type(2)",
+        "text": "Meet Bookies — the dark-academia e-reader where book clubs share live presence, highlights, and real-time discussions.",
+        "fixHint": "Give each block its own zone, or put data-layout-allow-overlap on the text or on a container inside the scene. A marker on the scene root does not apply.",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 606.97,
+          "y": 565.48,
+          "width": 706.05,
+          "height": 109
+        },
+        "firstSeen": 3.5,
+        "lastSeen": 3.5,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          3.5
+        ]
+      },
+      {
+        "code": "content_overlap",
+        "severity": "info",
+        "time": 8.75,
+        "selector": "div.discover-search > span:nth-of-type(1)",
+        "message": "Two text blocks overlap and may render unreadable.",
+        "rect": {
+          "left": 811.62,
+          "top": 266.06,
+          "right": 1044.12,
+          "bottom": 288.33,
+          "width": 232.5,
+          "height": 22.27
+        },
+        "containerSelector": "div.copresence-readers-row > div:nth-of-type(2) > span:nth-of-type(1)",
+        "text": "Search contemporary books, authors...",
+        "fixHint": "Give each block its own zone, or put data-layout-allow-overlap on the text or on a container inside the scene. A marker on the scene root does not apply.",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 811.62,
+          "y": 266.06,
+          "width": 232.5,
+          "height": 22.27
+        },
+        "firstSeen": 8.75,
+        "lastSeen": 8.75,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          8.75
+        ]
+      },
+      {
+        "code": "content_overlap",
+        "severity": "info",
+        "time": 8.75,
+        "selector": "span.bento-badge",
+        "message": "Two text blocks overlap and may render unreadable.",
+        "rect": {
+          "left": 888.36,
+          "top": 350.58,
+          "right": 1001.85,
+          "bottom": 365.51,
+          "width": 113.49,
+          "height": 14.93
+        },
+        "containerSelector": "p.reader-passage",
+        "text": "TRENDING CLUB PICK",
+        "fixHint": "Give each block its own zone, or put data-layout-allow-overlap on the text or on a container inside the scene. A marker on the scene root does not apply.",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 888.36,
+          "y": 350.58,
+          "width": 113.49,
+          "height": 14.93
+        },
+        "firstSeen": 8.75,
+        "lastSeen": 8.75,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          8.75
+        ]
+      }
+    ],
+    "duration": 20,
+    "samples": [
+      1.111,
+      3.333,
+      5.556,
+      7.778,
+      10,
+      12.222,
+      14.444,
+      16.667,
+      18.889
+    ],
+    "transitionSamples": [],
+    "transitionSamplesDropped": 0,
+    "tolerance": 2,
+    "totalIssueCount": 22,
+    "truncated": false
+  },
+  "motion": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 0,
+    "infoCount": 0,
+    "findings": [],
+    "enabled": false,
+    "samples": 0
+  },
+  "contrast": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 2,
+    "infoCount": 0,
+    "findings": [
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 3.89:1; WCAG AA requires 4.5:1.",
+        "text": "Start Reading with Your Club",
+        "fg": "rgb(255,255,255)",
+        "bg": "rgb(200,103,7)",
+        "ratio": 3.89,
+        "requiredRatio": 4.5,
+        "suggestedColor": "rgb(25,25,25)",
+        "large": false,
+        "selector": "div > div:nth-of-type(8) > div:nth-of-type(2) > span",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 819.5,
+          "y": 676,
+          "width": 248.984375,
+          "height": 21
+        },
+        "time": 18.889,
+        "times": [
+          18.889
+        ]
+      },
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 3.09:1; WCAG AA requires 4.5:1.",
+        "text": "Available on iOS • Android • Desktop",
+        "fg": "rgb(100,116,139)",
+        "bg": "rgb(50,38,28)",
+        "ratio": 3.09,
+        "requiredRatio": 4.5,
+        "suggestedColor": "rgb(131,144,162)",
+        "large": false,
+        "selector": "#outroFooter",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 803.875,
+          "y": 738,
+          "width": 312.234375,
+          "height": 17
+        },
+        "time": 18.889,
+        "times": [
+          18.889
+        ]
+      }
+    ],
+    "enabled": true,
+    "samples": [
+      1.111,
+      5.556,
+      10,
+      14.444,
+      18.889
+    ],
+    "checked": 89,
+    "passed": 87
+  },
+  "craft": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 6,
+    "infoCount": 0,
+    "findings": [
+      {
+        "code": "first_frame_empty",
+        "severity": "warning",
+        "message": "Frame 0 shows only the background, and the first frame is the thumbnail on social players: have the title or key image already on screen at 0 s instead of entering from nothing; see references/review.md.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0
+      },
+      {
+        "code": "film_silent",
+        "severity": "warning",
+        "message": "This 20 s film has no sound source (no <audio>, no <video> with sound): add a music bed and sounds on the visible actions unless the person asked for silence; see references/sound.md.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0
+      },
+      {
+        "code": "line_unread",
+        "severity": "warning",
+        "message": "\"Meet Bookies — the dark-academia e-reader where book club...\" (18 words) is on screen 2.50 s (±0.01 s), under its 4.42 s floor: hold it about 0.5 s + 0.3 s a word (5.90 s here) before it leaves or changes; see references/motion.md.",
+        "text": "Meet Bookies — the dark-academia e-reader where book clubs share live presence, highlights, and real-time discussions.",
+        "selector": "#hookSubtitle",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 606.97,
+          "y": 629.68,
+          "width": 706.05,
+          "height": 109
+        },
+        "time": 0.969,
+        "words": 18,
+        "seconds": 2.5,
+        "floorSeconds": 4.425
+      },
+      {
+        "code": "line_unread",
+        "severity": "warning",
+        "message": "\"The Secret History\" (3 words) is on screen 0.30 s (±0.01 s), under its 1.05 s floor: hold it about 0.5 s + 0.3 s a word (1.40 s here) before it leaves or changes; see references/motion.md.",
+        "text": "The Secret History",
+        "selector": "h3.bento-title",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 921.75,
+          "y": 640.66,
+          "width": 146.8499999999999,
+          "height": 30.190000000000055
+        },
+        "time": 3.57,
+        "words": 3,
+        "seconds": 0.297,
+        "floorSeconds": 1.05
+      },
+      {
+        "code": "text_below_floor",
+        "severity": "warning",
+        "message": "Type floor is 28 px (2.6% of the 1080 px short side, what a phone can read) and 37 text elements stay under it for 0.5 s or more, the smallest \"Trending Club Pick\" at 9 px: set reading text to at least 28 px, or put data-layout-ignore on text that is texture rather than reading; see references/look.md.",
+        "text": "Trending Club Pick",
+        "selector": "span.bento-badge",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 924.14,
+          "y": 628.31,
+          "width": 104.29,
+          "height": 15.76
+        },
+        "time": 3.625,
+        "times": [
+          0.375,
+          1,
+          3.625,
+          3.625,
+          3.625,
+          3.625,
+          3.625,
+          3.625,
+          3.625,
+          3.625,
+          3.625,
+          3.625,
+          3.625,
+          3.625,
+          3.625,
+          3.625,
+          3.625,
+          3.625,
+          3.625,
+          3.625,
+          4.25,
+          4.25,
+          8.875,
+          8.875,
+          8.875,
+          8.875,
+          8.875,
+          8.875,
+          8.875,
+          8.875,
+          9.25,
+          9.25,
+          11,
+          11,
+          14.875,
+          14.875,
+          14.875
+        ],
+        "fontPx": 8.86,
+        "floorPx": 28,
+        "seconds": 11.125,
+        "elements": [
+          {
+            "selector": "span.bento-badge",
+            "text": "Trending Club Pick",
+            "fontPx": 8.86,
+            "time": 3.625,
+            "seconds": 11.125
+          },
+          {
+            "selector": "#shelfCarousel > div:nth-of-type(1) > span:nth-of-type(2)",
+            "text": "★ 4.9 • 2.4k",
+            "fontPx": 8.86,
+            "time": 3.625,
+            "seconds": 3.25
+          },
+          {
+            "selector": "#shelfCarousel > div:nth-of-type(2) > span:nth-of-type(2)",
+            "text": "★ 4.8 • 2.1k",
+            "fontPx": 8.86,
+            "time": 3.625,
+            "seconds": 11.125
+          },
+          {
+            "selector": "#shelfCarousel > div:nth-of-type(3) > span:nth-of-type(2)",
+            "text": "★ 4.9 • 1.8k",
+            "fontPx": 8.86,
+            "time": 3.625,
+            "seconds": 11.125
+          },
+          {
+            "selector": "#shelfCarousel > div:nth-of-type(4) > span:nth-of-type(2)",
+            "text": "★ 4.6 • 1.2k",
+            "fontPx": 8.86,
+            "time": 3.625,
+            "seconds": 11.125
+          },
+          {
+            "selector": "div.copresence-readers-row > div:nth-of-type(1) > span:nth-of-type(1)",
+            "text": "Alice",
+            "fontPx": 9.35,
+            "time": 8.875,
+            "seconds": 5.875
+          },
+          {
+            "selector": "div.copresence-readers-row > div:nth-of-type(2) > span:nth-of-type(1)",
+            "text": "Julian",
+            "fontPx": 9.35,
+            "time": 8.875,
+            "seconds": 5.875
+          },
+          {
+            "selector": "div.copresence-readers-row > div:nth-of-type(3) > span:nth-of-type(1)",
+            "text": "Henry",
+            "fontPx": 9.35,
+            "time": 8.875,
+            "seconds": 5.875
+          },
+          {
+            "selector": "span.tag",
+            "text": "Catalog",
+            "fontPx": 9.74,
+            "time": 3.625,
+            "seconds": 11.125
+          },
+          {
+            "selector": "div.bento-readers > span:nth-of-type(1)",
+            "text": "1,420 reading now",
+            "fontPx": 9.74,
+            "time": 3.625,
+            "seconds": 11.125
+          },
+          {
+            "selector": "#shelfCarousel > div:nth-of-type(1) > span:nth-of-type(1)",
+            "text": "Dune",
+            "fontPx": 9.74,
+            "time": 3.625,
+            "seconds": 2.75
+          },
+          {
+            "selector": "#shelfCarousel > div:nth-of-type(2) > span:nth-of-type(1)",
+            "text": "Fourth Wing",
+            "fontPx": 9.74,
+            "time": 3.625,
+            "seconds": 11.125
+          },
+          {
+            "selector": "#shelfCarousel > div:nth-of-type(3) > span:nth-of-type(1)",
+            "text": "Project Hail Mary",
+            "fontPx": 9.74,
+            "time": 3.625,
+            "seconds": 11.125
+          },
+          {
+            "selector": "#shelfCarousel > div:nth-of-type(4) > span:nth-of-type(1)",
+            "text": "Yellowface",
+            "fontPx": 9.74,
+            "time": 3.625,
+            "seconds": 11.125
+          },
+          {
+            "selector": "span.copresence-live-tag",
+            "text": "Live Co-Presence",
+            "fontPx": 10.29,
+            "time": 8.875,
+            "seconds": 5.875
+          },
+          {
+            "selector": "span.copresence-stats",
+            "text": "3 members online",
+            "fontPx": 10.29,
+            "time": 8.875,
+            "seconds": 5.875
+          },
+          {
+            "selector": "span.reader-chapter",
+            "text": "Chapter One",
+            "fontPx": 10.29,
+            "time": 8.875,
+            "seconds": 5.875
+          },
+          {
+            "selector": "#reactionPill > span:nth-of-type(1)",
+            "text": "❤️ 14",
+            "fontPx": 10.29,
+            "time": 11,
+            "seconds": 3.75
+          },
+          {
+            "selector": "#reactionPill > span:nth-of-type(2)",
+            "text": "💡 \"Brilliant\"",
+            "fontPx": 10.29,
+            "time": 11,
+            "seconds": 3.75
+          },
+          {
+            "selector": "span.bento-author",
+            "text": "Donna Tartt",
+            "fontPx": 10.63,
+            "time": 3.625,
+            "seconds": 11.125
+          },
+          {
+            "selector": "div.phone-status > span:nth-of-type(1)",
+            "text": "9:41",
+            "fontPx": 11.51,
+            "time": 3.625,
+            "seconds": 11.125
+          },
+          {
+            "selector": "div.phone-status > span:nth-of-type(2)",
+            "text": "5G • 100%",
+            "fontPx": 11.51,
+            "time": 3.625,
+            "seconds": 11.125
+          },
+          {
+            "selector": "div.discover-search > span:nth-of-type(1)",
+            "text": "Search contemporary books, authors...",
+            "fontPx": 11.51,
+            "time": 3.625,
+            "seconds": 11.125
+          },
+          {
+            "selector": "div.shelf-title",
+            "text": "Popular in Dark Academia",
+            "fontPx": 12.4,
+            "time": 3.625,
+            "seconds": 11.125
+          },
+          {
+            "selector": "#callout1 > span:nth-of-type(1)",
+            "text": "Instant Catalog",
+            "fontPx": 13,
+            "time": 4.25,
+            "seconds": 4.125
+          },
+          {
+            "selector": "#callout2 > span:nth-of-type(1)",
+            "text": "Live Co-Presence",
+            "fontPx": 13,
+            "time": 9.25,
+            "seconds": 5.125
+          },
+          {
+            "selector": "#outroFooter",
+            "text": "Available on iOS • Android • Desktop",
+            "fontPx": 13.49,
+            "time": 14.875,
+            "seconds": 5.125
+          },
+          {
+            "selector": "#hookBadge",
+            "text": "A New Era of Reading",
+            "fontPx": 15,
+            "time": 0.375,
+            "seconds": 3.125
+          },
+          {
+            "selector": "h3.bento-title",
+            "text": "The Secret History",
+            "fontPx": 16.83,
+            "time": 3.625,
+            "seconds": 11.125
+          },
+          {
+            "selector": "p.reader-passage",
+            "text": "Under the influence of their charismatic classics professor, discover a way of thinking and living that is a world away from the humdrum existence of their contemporaries.",
+            "fontPx": 16.83,
+            "time": 8.875,
+            "seconds": 5.875
+          },
+          {
+            "selector": "#highlightPassage",
+            "text": "a group of clever, eccentric misfits at an elite New England college",
+            "fontPx": 16.83,
+            "time": 8.875,
+            "seconds": 5.875
+          },
+          {
+            "selector": "#outroCta > span:nth-of-type(1)",
+            "text": "Start Reading with Your Club",
+            "fontPx": 17.34,
+            "time": 14.875,
+            "seconds": 5.125
+          },
+          {
+            "selector": "#callout1 > p:nth-of-type(1)",
+            "text": "Stream and download titles directly from the cloud or import your personal EPUB collection.",
+            "fontPx": 18,
+            "time": 4.25,
+            "seconds": 4.125
+          },
+          {
+            "selector": "#callout2 > p:nth-of-type(1)",
+            "text": "Watch fellow club members advance chapter by chapter. Share passage reactions without audio clutter.",
+            "fontPx": 18,
+            "time": 9.25,
+            "seconds": 5.125
+          },
+          {
+            "selector": "div.discover-logo",
+            "text": "Bookies",
+            "fontPx": 23.03,
+            "time": 3.625,
+            "seconds": 5.375
+          },
+          {
+            "selector": "#outroTagline",
+            "text": "The Dark-Academia EPUB Reader with Real-Time Community Reading.",
+            "fontPx": 23.12,
+            "time": 14.875,
+            "seconds": 5.125
+          },
+          {
+            "selector": "#hookSubtitle",
+            "text": "Meet Bookies — the dark-academia e-reader where book clubs share live presence, highlights, and real-time discussions.",
+            "fontPx": 26,
+            "time": 1,
+            "seconds": 2.5
+          }
+        ]
+      },
+      {
+        "code": "line_unread",
+        "severity": "warning",
+        "message": "\"Under the influence of their charismatic classics profess...\" (39 words) is on screen 5.87 s (±0.01 s), under its 9.15 s floor: hold it about 0.5 s + 0.3 s a word (12.20 s here) before it leaves or changes; see references/motion.md.",
+        "text": "Under the influence of their charismatic classics professor, discover a way of thinking and living that is a world away from the humdrum existence of their contemporaries. a group of clever, eccentric misfits at an elite New England college",
+        "selector": "p.reader-passage",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 725.11,
+          "y": 349.4,
+          "width": 356.02999999999986,
+          "height": 185.44999999999993
+        },
+        "time": 8.773,
+        "words": 39,
+        "seconds": 5.867,
+        "floorSeconds": 9.15
+      }
+    ],
+    "enabled": true,
+    "step": 0.125,
+    "samples": 160
+  },
+  "hdr": {
+    "autoPromotion": null,
+    "inspection": "available"
+  },
+  "snapshots": {
+    "enabled": false,
+    "files": [],
+    "times": [],
+    "findingFiles": []
+  }
+}

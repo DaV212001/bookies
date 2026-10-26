@@ -18,6 +18,17 @@ class ImportBook extends LibraryEvent {
   List<Object> get props => [filePath];
 }
 
+class SetAutoSyncFolder extends LibraryEvent {
+  final String? folderPath;
+
+  const SetAutoSyncFolder(this.folderPath);
+
+  @override
+  List<Object?> get props => [folderPath];
+}
+
+class ScanAutoSyncFolder extends LibraryEvent {}
+
 class UpdateLibraryView extends LibraryEvent {
   final String? query;
   final LibrarySortOrder? sortOrder;

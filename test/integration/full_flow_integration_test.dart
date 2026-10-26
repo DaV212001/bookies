@@ -210,6 +210,15 @@ class InMemoryBookRepository implements BookRepository {
   Future<void> deleteBook(String bookId) async {
     _library.removeWhere((b) => b.id == bookId);
   }
+
+  @override
+  Future<String?> getAutoSyncFolder() async => null;
+
+  @override
+  Future<void> setAutoSyncFolder(String? folderPath) async {}
+
+  @override
+  Future<List<BookEntity>> scanAndSyncFolder(String folderPath) async => [];
 }
 
 class InMemoryCommunityRepository implements CommunityRepository {

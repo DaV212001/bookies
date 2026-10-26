@@ -1,0 +1,941 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Bookies Promo - 16:9 Landscape</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,400;1,600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg-midnight: #090e17;
+        --bg-surface: #131a29;
+        --accent-amber: #d97706;
+        --accent-ochre: #b45309;
+        --text-parchment: #f8f9ff;
+        --text-muted: #94a3b8;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html, body {
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: var(--bg-midnight);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        color: var(--text-parchment);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      #root {
+        position: relative;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: radial-gradient(circle at 75% 20%, rgba(217, 119, 6, 0.12) 0%, transparent 50%),
+                    radial-gradient(circle at 20% 80%, rgba(30, 41, 59, 0.6) 0%, transparent 60%),
+                    #090e17;
+      }
+
+      .ambient-grid {
+        position: absolute;
+        inset: 0;
+        background-image: linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                          linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+        background-size: 64px 64px;
+        opacity: 0.6;
+        pointer-events: none;
+      }
+
+      .glow-orb-1 {
+        position: absolute;
+        width: 600px;
+        height: 600px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(217, 119, 6, 0.15) 0%, transparent 70%);
+        top: -100px;
+        right: 100px;
+        filter: blur(60px);
+        pointer-events: none;
+      }
+
+      .glow-orb-2 {
+        position: absolute;
+        width: 500px;
+        height: 500px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(56, 189, 248, 0.08) 0%, transparent 70%);
+        bottom: -100px;
+        left: 200px;
+        filter: blur(80px);
+        pointer-events: none;
+      }
+
+      /* SCENE 1: HOOK */
+      .scene-hook {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        z-index: 20;
+        padding: 0 100px;
+      }
+
+      .hook-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 18px;
+        border-radius: 100px;
+        background: rgba(217, 119, 6, 0.1);
+        border: 1px solid rgba(217, 119, 6, 0.3);
+        color: #f59e0b;
+        font-size: 15px;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        margin-bottom: 28px;
+      }
+
+      .hook-badge .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #f59e0b;
+        box-shadow: 0 0 12px #f59e0b;
+      }
+
+      .hook-title {
+        font-family: 'Playfair Display', serif;
+        font-size: 76px;
+        font-weight: 700;
+        line-height: 1.15;
+        letter-spacing: -0.02em;
+        margin-bottom: 24px;
+        max-width: 1100px;
+        color: #ffffff;
+      }
+
+      .hook-title em {
+        font-style: italic;
+        color: #fbbf24;
+      }
+
+      .hook-subtitle {
+        font-size: 26px;
+        color: var(--text-muted);
+        max-width: 760px;
+        line-height: 1.5;
+        font-weight: 400;
+      }
+
+      /* PHONE CONTAINER */
+      .phone-stage {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10;
+        pointer-events: none;
+      }
+
+      .phone-frame {
+        position: relative;
+        width: 410px;
+        height: 840px;
+        background: #000000;
+        border-radius: 56px;
+        border: 4px solid #334155;
+        box-shadow: 0 35px 80px rgba(0, 0, 0, 0.8),
+                    0 0 0 1px rgba(255, 255, 255, 0.15) inset,
+                    0 0 60px rgba(217, 119, 6, 0.18);
+        overflow: hidden;
+        transform-origin: center center;
+      }
+
+      .phone-notch {
+        position: absolute;
+        top: 14px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 120px;
+        height: 32px;
+        background: #000000;
+        border-radius: 20px;
+        z-index: 50;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 14px;
+      }
+
+      .phone-notch .lens {
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+        background: #111827;
+        border: 1px solid #1f2937;
+      }
+
+      .phone-notch .sensor {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #111827;
+      }
+
+      .phone-screen {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        background: #090e17;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .phone-status {
+        height: 52px;
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        padding: 0 28px 8px;
+        font-size: 13px;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.7);
+        z-index: 40;
+      }
+
+      /* Discover Screen */
+      .screen-discover {
+        position: absolute;
+        inset: 0;
+        padding-top: 52px;
+        display: flex;
+        flex-direction: column;
+        background: #0b111c;
+      }
+
+      .discover-header {
+        padding: 16px 20px 12px;
+      }
+
+      .discover-logo {
+        font-family: 'Playfair Display', serif;
+        font-size: 26px;
+        font-weight: 700;
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .discover-logo .tag {
+        font-family: 'Inter', sans-serif;
+        font-size: 11px;
+        font-weight: 600;
+        background: rgba(217, 119, 6, 0.2);
+        color: #fbbf24;
+        border: 1px solid rgba(217, 119, 6, 0.35);
+        padding: 3px 10px;
+        border-radius: 12px;
+      }
+
+      .discover-search {
+        margin: 12px 20px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 10px 14px;
+        font-size: 13px;
+        color: #94a3b8;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .bento-hero {
+        margin: 8px 20px 16px;
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        border: 1px solid rgba(217, 119, 6, 0.25);
+        border-radius: 20px;
+        padding: 16px;
+        display: flex;
+        gap: 16px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+      }
+
+      .bento-hero img {
+        width: 90px;
+        height: 132px;
+        border-radius: 8px;
+        object-fit: cover;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
+      }
+
+      .bento-info {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+
+      .bento-badge {
+        font-size: 10px;
+        font-weight: 700;
+        color: #f59e0b;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 4px;
+      }
+
+      .bento-title {
+        font-family: 'Playfair Display', serif;
+        font-size: 19px;
+        font-weight: 700;
+        color: #ffffff;
+        line-height: 1.25;
+        margin-bottom: 4px;
+      }
+
+      .bento-author {
+        font-size: 12px;
+        color: #94a3b8;
+        margin-bottom: 10px;
+      }
+
+      .bento-readers {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(217, 119, 6, 0.15);
+        color: #f59e0b;
+        font-size: 11px;
+        font-weight: 600;
+        padding: 4px 10px;
+        border-radius: 12px;
+        align-self: flex-start;
+      }
+
+      .shelf-title {
+        padding: 0 20px;
+        font-size: 14px;
+        font-weight: 700;
+        color: #e2e8f0;
+        margin-bottom: 10px;
+      }
+
+      .shelf-carousel {
+        display: flex;
+        gap: 12px;
+        padding: 0 20px;
+        overflow: hidden;
+      }
+
+      .shelf-item {
+        flex: 0 0 95px;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .shelf-item img {
+        width: 95px;
+        height: 140px;
+        border-radius: 8px;
+        object-fit: cover;
+        box-shadow: 0 6px 14px rgba(0, 0, 0, 0.4);
+        margin-bottom: 6px;
+      }
+
+      .shelf-item .title {
+        font-size: 11px;
+        font-weight: 600;
+        color: #ffffff;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .shelf-item .rating {
+        font-size: 10px;
+        color: #fbbf24;
+      }
+
+      /* Reader Screen */
+      .screen-reader {
+        position: absolute;
+        inset: 0;
+        background: #111723;
+        display: flex;
+        flex-direction: column;
+        z-index: 10;
+        opacity: 0;
+      }
+
+      .reader-copresence-bar {
+        padding: 56px 20px 14px;
+        background: rgba(15, 23, 42, 0.95);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .copresence-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+      }
+
+      .copresence-live-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #10b981;
+      }
+
+      .copresence-live-tag .pulse {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #10b981;
+        box-shadow: 0 0 8px #10b981;
+      }
+
+      .copresence-stats {
+        font-size: 11px;
+        color: #94a3b8;
+      }
+
+      .copresence-readers-row {
+        display: flex;
+        gap: 14px;
+      }
+
+      .reader-avatar-card {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 8px 6px;
+      }
+
+      .reader-avatar-card img {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        border: 2px solid #d97706;
+        margin-bottom: 4px;
+      }
+
+      .reader-avatar-card .name {
+        font-size: 10px;
+        font-weight: 600;
+        color: #f1f5f9;
+        margin-bottom: 4px;
+      }
+
+      .reader-progress-track {
+        width: 100%;
+        height: 4px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 2px;
+        overflow: hidden;
+      }
+
+      .reader-progress-fill {
+        height: 100%;
+        background: #d97706;
+        border-radius: 2px;
+      }
+
+      .reader-body {
+        flex: 1;
+        padding: 30px 26px;
+        display: flex;
+        flex-direction: column;
+        font-family: 'Playfair Display', serif;
+      }
+
+      .reader-chapter {
+        font-family: 'Inter', sans-serif;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: #d97706;
+        margin-bottom: 12px;
+      }
+
+      .reader-passage {
+        font-size: 18px;
+        line-height: 1.7;
+        color: #e2e8f0;
+        letter-spacing: -0.01em;
+      }
+
+      .reader-highlight {
+        background: rgba(217, 119, 6, 0.25);
+        border-bottom: 2px solid #d97706;
+        color: #ffffff;
+        position: relative;
+        padding: 2px 4px;
+        border-radius: 2px;
+      }
+
+      .highlight-reaction-pill {
+        position: absolute;
+        top: -30px;
+        left: 20px;
+        background: #0f172a;
+        border: 1px solid #d97706;
+        border-radius: 16px;
+        padding: 4px 10px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-family: 'Inter', sans-serif;
+        font-size: 11px;
+        font-weight: 600;
+        color: #f59e0b;
+        box-shadow: 0 8px 18px rgba(0, 0, 0, 0.6);
+        white-space: nowrap;
+      }
+
+      /* Callout Labels */
+      .callout-overlay {
+        position: absolute;
+        z-index: 30;
+        pointer-events: none;
+      }
+
+      .feature-callout-1 {
+        left: 120px;
+        top: 380px;
+        max-width: 440px;
+        opacity: 0;
+      }
+
+      .feature-callout-2 {
+        right: 120px;
+        top: 400px;
+        max-width: 440px;
+        opacity: 0;
+      }
+
+      .callout-badge {
+        display: inline-block;
+        font-size: 14px;
+        font-weight: 700;
+        color: #fbbf24;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 12px;
+      }
+
+      .callout-title {
+        font-family: 'Playfair Display', serif;
+        font-size: 44px;
+        font-weight: 700;
+        line-height: 1.2;
+        color: #ffffff;
+        margin-bottom: 12px;
+      }
+
+      .callout-desc {
+        font-size: 20px;
+        color: #94a3b8;
+        line-height: 1.5;
+      }
+
+      /* SCENE 4: BRAND OUTRO */
+      .scene-outro {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        z-index: 40;
+        opacity: 0;
+      }
+
+      .outro-logo-icon {
+        width: 104px;
+        height: 104px;
+        border-radius: 26px;
+        background: linear-gradient(135deg, #1e293b 0%, #090e17 100%);
+        border: 2px solid #d97706;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 0 50px rgba(217, 119, 6, 0.4);
+        margin-bottom: 28px;
+      }
+
+      .outro-logo-icon svg {
+        width: 54px;
+        height: 54px;
+        fill: #fbbf24;
+      }
+
+      .outro-brand-name {
+        font-family: 'Playfair Display', serif;
+        font-size: 72px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        color: #ffffff;
+        margin-bottom: 14px;
+      }
+
+      .outro-tagline {
+        font-size: 24px;
+        font-weight: 500;
+        color: #e2e8f0;
+        margin-bottom: 34px;
+        max-width: 600px;
+      }
+
+      .outro-cta-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+        color: #ffffff;
+        font-size: 18px;
+        font-weight: 600;
+        padding: 16px 40px;
+        border-radius: 100px;
+        box-shadow: 0 12px 30px rgba(217, 119, 6, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        margin-bottom: 24px;
+      }
+
+      .outro-footer-note {
+        font-size: 15px;
+        color: #94a3b8;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="20"
+      data-width="1920"
+      data-height="1080"
+      data-fps="30"
+    >
+      <div class="ambient-grid"></div>
+      <div class="glow-orb-1" id="orb1"></div>
+      <div class="glow-orb-2" id="orb2"></div>
+
+      <!-- SCENE 1: THE HOOK (First frame active) -->
+      <div class="scene-hook" id="sceneHook">
+        <div class="hook-badge" id="hookBadge">
+          <span class="dot"></span>
+          A New Era of Reading
+        </div>
+        <h1 class="hook-title" id="hookTitle">
+          Reading is intimate.<br />
+          Now, it’s <em>never solitary.</em>
+        </h1>
+        <p class="hook-subtitle" id="hookSubtitle">
+          Meet Bookies — the dark-academia e-reader where book clubs share live presence, highlights, and real-time discussions.
+        </p>
+      </div>
+
+      <!-- CALLOUT LABELS ON THE SIDES -->
+      <div class="callout-overlay feature-callout-1" id="callout1">
+        <span class="callout-badge">Instant Catalog</span>
+        <h2 class="callout-title">Contemporary Bestsellers at Your Fingertips</h2>
+        <p class="callout-desc">Stream and download titles directly from the cloud or import your personal EPUB collection.</p>
+      </div>
+
+      <div class="callout-overlay feature-callout-2" id="callout2">
+        <span class="callout-badge">Live Co-Presence</span>
+        <h2 class="callout-title">Read Together in Real Time</h2>
+        <p class="callout-desc">Watch fellow club members advance chapter by chapter. Share passage reactions without audio clutter.</p>
+      </div>
+
+      <!-- PHONE STAGE with data-layout-allow-overlap -->
+      <div class="phone-stage">
+        <div class="phone-frame" id="phoneFrame" data-layout-allow-overlap="true">
+          <div class="phone-notch">
+            <span class="sensor"></span>
+            <span class="lens"></span>
+          </div>
+
+          <div class="phone-screen" data-layout-allow-overlap="true">
+            <div class="phone-status" data-layout-ignore="true">
+              <span>9:41</span>
+              <span>5G • 100%</span>
+            </div>
+
+            <!-- Screen 1: Discover -->
+            <div class="screen-discover" id="screenDiscover" data-layout-ignore="true">
+              <div class="discover-header">
+                <div class="discover-logo">
+                  Bookies
+                  <span class="tag">Catalog</span>
+                </div>
+              </div>
+
+              <div class="discover-search">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <span>Search contemporary books, authors...</span>
+              </div>
+
+              <div class="bento-hero" id="bentoHero">
+                <img src="assets/secret_history.jpg" alt="The Secret History" />
+                <div class="bento-info">
+                  <span class="bento-badge">Trending Club Pick</span>
+                  <h3 class="bento-title">The Secret History</h3>
+                  <span class="bento-author">Donna Tartt</span>
+                  <div class="bento-readers">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                    </svg>
+                    <span>1,420 reading now</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="shelf-title">Popular in Dark Academia</div>
+              <div class="shelf-carousel" id="shelfCarousel" data-layout-allow-overflow="true">
+                <div class="shelf-item">
+                  <img src="assets/dune.jpg" alt="Dune" />
+                  <span class="title">Dune</span>
+                  <span class="rating">★ 4.9 • 2.4k</span>
+                </div>
+                <div class="shelf-item">
+                  <img src="assets/fourth_wing.jpg" alt="Fourth Wing" />
+                  <span class="title">Fourth Wing</span>
+                  <span class="rating">★ 4.8 • 2.1k</span>
+                </div>
+                <div class="shelf-item">
+                  <img src="assets/hail_mary.jpg" alt="Project Hail Mary" />
+                  <span class="title">Project Hail Mary</span>
+                  <span class="rating">★ 4.9 • 1.8k</span>
+                </div>
+                <div class="shelf-item">
+                  <img src="assets/yellowface.jpg" alt="Yellowface" />
+                  <span class="title">Yellowface</span>
+                  <span class="rating">★ 4.6 • 1.2k</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Screen 2: Reader with Live Co-Presence -->
+            <div class="screen-reader" id="screenReader" data-layout-ignore="true">
+              <div class="reader-copresence-bar" id="readerCopresence">
+                <div class="copresence-header">
+                  <span class="copresence-live-tag">
+                    <span class="pulse"></span>
+                    Live Co-Presence
+                  </span>
+                  <span class="copresence-stats">3 members online</span>
+                </div>
+
+                <div class="copresence-readers-row">
+                  <div class="reader-avatar-card">
+                    <img src="assets/alice.jpg" alt="Alice" />
+                    <span class="name">Alice</span>
+                    <div class="reader-progress-track">
+                      <div class="reader-progress-fill" id="progAlice" style="width: 42%;"></div>
+                    </div>
+                  </div>
+                  <div class="reader-avatar-card">
+                    <img src="assets/julian.jpg" alt="Julian" />
+                    <span class="name">Julian</span>
+                    <div class="reader-progress-track">
+                      <div class="reader-progress-fill" id="progJulian" style="width: 38%;"></div>
+                    </div>
+                  </div>
+                  <div class="reader-avatar-card">
+                    <img src="assets/henry.jpg" alt="Henry" />
+                    <span class="name">Henry</span>
+                    <div class="reader-progress-track">
+                      <div class="reader-progress-fill" id="progHenry" style="width: 45%;"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="reader-body">
+                <span class="reader-chapter">Chapter One</span>
+                <p class="reader-passage">
+                  Under the influence of their charismatic classics professor,
+                  <span class="reader-highlight" id="highlightPassage">
+                    a group of clever, eccentric misfits at an elite New England college
+                    <span class="highlight-reaction-pill" id="reactionPill">
+                      <span>❤️ 14</span>
+                      <span>💡 "Brilliant"</span>
+                    </span>
+                  </span>
+                  discover a way of thinking and living that is a world away from the humdrum existence of their contemporaries.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SCENE 4: BRAND OUTRO -->
+      <div class="scene-outro" id="sceneOutro">
+        <div class="outro-logo-icon" id="outroLogo">
+          <svg viewBox="0 0 24 24">
+            <path d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z"/>
+          </svg>
+        </div>
+        <h1 class="outro-brand-name" id="outroTitle">BOOKIES</h1>
+        <p class="outro-tagline" id="outroTagline">
+          The Dark-Academia EPUB Reader with Real-Time Community Reading.
+        </p>
+        <div class="outro-cta-btn" id="outroCta">
+          <span>Start Reading with Your Club</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
+        </div>
+        <span class="outro-footer-note" id="outroFooter">Available on iOS • Android • Desktop</span>
+      </div>
+    </div>
+
+    <!-- GSAP TIMELINE DEFINITION -->
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // Frame 0: Hook is visibly present on first frame
+      gsap.set("#sceneHook", { opacity: 1 });
+      gsap.set("#hookBadge", { opacity: 1, y: 0 });
+      gsap.set("#hookTitle", { opacity: 1, y: 0 });
+      gsap.set("#hookSubtitle", { opacity: 1, y: 0 });
+
+      gsap.set("#phoneFrame", {
+        opacity: 0,
+        y: 600,
+        rotateX: 18,
+        rotateY: -15,
+        rotateZ: 4,
+        scale: 0.85
+      });
+
+      gsap.set("#callout1", { opacity: 0, x: -60 });
+      gsap.set("#callout2", { opacity: 0, x: 60 });
+      gsap.set("#reactionPill", { opacity: 0, scale: 0.4, y: 15 });
+      gsap.set("#sceneOutro", { opacity: 0, scale: 0.9 });
+
+      // ================= TIMELINE SEQUENCE =================
+
+      // 0.0s - 3.2s: Hold Hook with gentle floating drift
+      tl.to("#hookTitle", { y: -6, duration: 3.0, ease: "sine.inOut" }, 0);
+
+      // 3.0s - 4.5s: Hook exits, Phone Enters with dynamic 3D angle
+      tl.to("#sceneHook", { opacity: 0, y: -80, duration: 0.9, ease: "power2.inOut" }, 3.0)
+        .to("#phoneFrame", {
+          opacity: 1,
+          y: 0,
+          rotateX: 8,
+          rotateY: -10,
+          rotateZ: 2,
+          scale: 0.95,
+          duration: 1.6,
+          ease: "power3.out"
+        }, 3.3)
+        .to("#callout1", { opacity: 1, x: 0, duration: 1.0, ease: "power2.out" }, 4.0);
+
+      // 4.5s - 8.0s: Carousel shelf scrolls smoothly
+      tl.to("#shelfCarousel", {
+        x: -120,
+        duration: 3.5,
+        ease: "power1.inOut"
+      }, 4.5);
+
+      // 7.8s - 9.0s: Transition from Catalog to Reader
+      tl.to("#callout1", { opacity: 0, x: -40, duration: 0.7, ease: "power2.in" }, 7.8)
+        .to("#phoneFrame", {
+          rotateX: 0,
+          rotateY: 0,
+          rotateZ: 0,
+          scale: 1.12,
+          x: -140,
+          duration: 1.4,
+          ease: "power3.inOut"
+        }, 8.2)
+        .to("#screenReader", { opacity: 1, duration: 0.8, ease: "power2.out" }, 8.6)
+        .set("#screenDiscover", { display: "none" }, 8.8)
+        .to("#callout2", { opacity: 1, x: 0, duration: 1.0, ease: "power3.out" }, 9.0);
+
+      // 9.5s - 13.5s: Co-Presence in Action!
+      tl.to("#progAlice", { width: "68%", duration: 3.0, ease: "power1.inOut" }, 9.5)
+        .to("#progJulian", { width: "59%", duration: 3.0, ease: "power1.inOut" }, 9.7)
+        .to("#progHenry", { width: "72%", duration: 3.0, ease: "power1.inOut" }, 9.6);
+
+      // Reaction Pill pops onto the highlighted passage
+      tl.to("#reactionPill", {
+        opacity: 1,
+        scale: 1,
+        y: 0,
+        duration: 0.6,
+        ease: "back.out(2.0)"
+      }, 10.8);
+
+      // 14.0s - 16.0s: Phone zooms back and fades out; Outro rises
+      tl.to("#callout2", { opacity: 0, x: 40, duration: 0.7, ease: "power2.in" }, 13.8)
+        .to("#phoneFrame", {
+          opacity: 0,
+          scale: 0.75,
+          y: -150,
+          duration: 1.2,
+          ease: "power3.inOut"
+        }, 14.0)
+        .to("#sceneOutro", {
+          opacity: 1,
+          scale: 1,
+          duration: 1.2,
+          ease: "power3.out"
+        }, 14.6);
+
+      // Finite repeat on CTA button pulse (within 20s window)
+      tl.fromTo("#outroCta", 
+        { boxShadow: "0 12px 30px rgba(217, 119, 6, 0.3)" },
+        { boxShadow: "0 18px 45px rgba(217, 119, 6, 0.65)", duration: 1.0, repeat: 3, yoyo: true, ease: "sine.inOut" },
+        16.0
+      );
+
+      // Register with HyperFrames
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>

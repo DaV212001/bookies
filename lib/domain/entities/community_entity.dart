@@ -7,6 +7,9 @@ class CommunityEntity extends Equatable {
   final String bookId;
   final int memberCount;
   final String creatorId;
+  final String? canonicalFingerprint;
+  final String? editionTitle;
+  final String? downloadUrl;
 
   const CommunityEntity({
     required this.id,
@@ -15,6 +18,9 @@ class CommunityEntity extends Equatable {
     required this.bookId,
     required this.memberCount,
     required this.creatorId,
+    this.canonicalFingerprint,
+    this.editionTitle,
+    this.downloadUrl,
   });
 
   @override
@@ -25,5 +31,8 @@ class CommunityEntity extends Equatable {
         bookId,
         memberCount,
         creatorId,
+        canonicalFingerprint,
+        editionTitle,
+        downloadUrl,
       ];
 }

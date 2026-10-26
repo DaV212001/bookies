@@ -1,11 +1,12 @@
 import 'dart:io';
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
-import 'package:flutter_readium/flutter_readium.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../../../data/models/book.dart';
 import '../../../data/providers/local_data_service.dart';
+import '../../../data/repositories/local_book_repository.dart';
+import '../../../domain/repositories/book_repository.dart';
 import '../../../core/utils/app_logger.dart';
 import '../../../core/utils/epub_cover_extractor.dart';
 import 'library_view_filter.dart';
@@ -17,10 +18,17 @@ part 'library_state.dart';
 
 class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
   final LocalDataService _dataService;
+  final BookRepository _bookRepository;
 
-  LibraryBloc(this._dataService) : super(LibraryInitial()) {
+  LibraryBloc(
+    this._dataService, {
+    BookRepository? bookRepository,
+  })  : _bookRepository = bookRepository ?? LocalBookRepository(_dataService),
+        super(LibraryInitial()) {
     on<LoadLibrary>(_onLoadLibrary);
     on<ImportBook>(_onImportBook);
+    on<SetAutoSyncFolder>(_onSetAutoSyncFolder);
+    on<ScanAutoSyncFolder>(_onScanAutoSyncFolder);
     on<UpdateLibraryView>(_onUpdateLibraryView);
   }
 
@@ -28,6 +36,12 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     AppLogger.i('LibraryBloc', 'Handling LoadLibrary event');
     emit(LibraryLoading());
     try {
+      final autoSyncFolder = _dataService.getAutoSyncFolder();
+      if (autoSyncFolder != null && autoSyncFolder.isNotEmpty) {
+        AppLogger.i('LibraryBloc', 'Auto-sync folder configured: $autoSyncFolder. Running background sync...');
+        await _bookRepository.scanAndSyncFolder(autoSyncFolder);
+      }
+
       final books = List<Book>.from(_dataService.getBooks());
       AppLogger.i(
         'LibraryBloc',
@@ -71,10 +85,55 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
         }
       }
 
-      emit(LibraryLoaded(books));
+      emit(LibraryLoaded(books, autoSyncFolder: autoSyncFolder));
     } catch (e, stackTrace) {
       AppLogger.e('LibraryBloc', 'Error loading library', e, stackTrace);
       emit(LibraryError('Failed to load library: $e'));
+    }
+  }
+
+  void _onSetAutoSyncFolder(SetAutoSyncFolder event, Emitter<LibraryState> emit) async {
+    AppLogger.i('LibraryBloc', 'Setting auto-sync folder to: ${event.folderPath}');
+    try {
+      await _dataService.setAutoSyncFolder(event.folderPath);
+      if (event.folderPath != null && event.folderPath!.isNotEmpty) {
+        await _bookRepository.scanAndSyncFolder(event.folderPath!);
+      }
+      final books = List<Book>.from(_dataService.getBooks());
+      final currentState = state;
+      final query = currentState is LibraryLoaded ? currentState.query : '';
+      final sortOrder = currentState is LibraryLoaded ? currentState.sortOrder : LibrarySortOrder.recent;
+      emit(LibraryLoaded(
+        books,
+        query: query,
+        sortOrder: sortOrder,
+        autoSyncFolder: event.folderPath,
+      ));
+    } catch (e, stackTrace) {
+      AppLogger.e('LibraryBloc', 'Error setting auto-sync folder', e, stackTrace);
+      emit(LibraryError('Failed to update sync folder: $e'));
+    }
+  }
+
+  void _onScanAutoSyncFolder(ScanAutoSyncFolder event, Emitter<LibraryState> emit) async {
+    final folder = _dataService.getAutoSyncFolder();
+    if (folder == null || folder.isEmpty) return;
+
+    AppLogger.i('LibraryBloc', 'Manually triggering scan of auto-sync folder: $folder');
+    try {
+      await _bookRepository.scanAndSyncFolder(folder);
+      final books = List<Book>.from(_dataService.getBooks());
+      final currentState = state;
+      final query = currentState is LibraryLoaded ? currentState.query : '';
+      final sortOrder = currentState is LibraryLoaded ? currentState.sortOrder : LibrarySortOrder.recent;
+      emit(LibraryLoaded(
+        books,
+        query: query,
+        sortOrder: sortOrder,
+        autoSyncFolder: folder,
+      ));
+    } catch (e, stackTrace) {
+      AppLogger.e('LibraryBloc', 'Error scanning auto-sync folder', e, stackTrace);
     }
   }
 
@@ -87,126 +146,42 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     List<Book> existingBooks = [];
     var query = '';
     var sortOrder = LibrarySortOrder.recent;
+    String? autoSyncFolder;
     if (currentState is LibraryLoaded) {
       existingBooks = currentState.books;
       query = currentState.query;
       sortOrder = currentState.sortOrder;
+      autoSyncFolder = currentState.autoSyncFolder;
     }
 
     emit(LibraryLoading());
     try {
-      final file = File(event.filePath);
-      final exists = await file.exists();
-      AppLogger.d(
-        'LibraryBloc',
-        'Source file exists check: $exists for path: ${event.filePath}',
-      );
-      if (!exists) {
-        throw Exception("File not found at path: ${event.filePath}");
-      }
-
-      final fileSize = await file.length();
-      AppLogger.i('LibraryBloc', 'Source file size: $fileSize bytes');
-
-      // Copy to app documents directory with a sanitized filename
-      final appDocsDir = await getApplicationDocumentsDirectory();
-      final rawFileName = file.uri.pathSegments.last;
-
-      String ext = '.epub';
-      String baseName = rawFileName;
-      if (rawFileName.contains('.')) {
-        final lastDotIndex = rawFileName.lastIndexOf('.');
-        ext = rawFileName.substring(lastDotIndex);
-        baseName = rawFileName.substring(0, lastDotIndex);
-      }
-      final sanitizedBase = baseName.replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '_');
-      final sanitizedFileName = '$sanitizedBase$ext';
-
-      final targetPath = '${appDocsDir.path}/$sanitizedFileName';
-      AppLogger.i(
-        'LibraryBloc',
-        'Raw filename: "$rawFileName" sanitized to: "$sanitizedFileName"',
-      );
-      AppLogger.i('LibraryBloc', 'Copying file to target path: $targetPath');
-
-      final savedFile = await file.copy(targetPath);
-      final copiedExists = await savedFile.exists();
-      final copiedSize = copiedExists ? await savedFile.length() : 0;
-      AppLogger.i(
-        'LibraryBloc',
-        'Copied file exists: $copiedExists, size: $copiedSize bytes (source size: $fileSize bytes)',
-      );
-
-      if (!copiedExists || copiedSize == 0) {
-        throw Exception(
-          "Failed to write target EPUB file to path: $targetPath",
-        );
-      }
-
-      // Extract metadata using Readium
-      AppLogger.i(
-        'LibraryBloc',
-        'Calling FlutterReadium().loadPublication("${savedFile.path}")',
-      );
-      final publication = await FlutterReadium().loadPublication(
-        savedFile.path,
-      );
-      AppLogger.i(
-        'LibraryBloc',
-        'FlutterReadium loaded publication successfully. Title: ${publication.metadata.title}',
-      );
-
-      // Extract cover image
-      final bookId = DateTime.now().millisecondsSinceEpoch.toString();
-      final targetCoverPath = '${appDocsDir.path}/${bookId}_cover.png';
-      final extractedCoverPath = await EpubCoverExtractor.extractCover(
-        savedFile,
-        targetCoverPath,
-      );
-
-      final newBook = Book(
-        id: bookId,
-        title: publication.metadata.title.isEmpty
-            ? 'Unknown Title'
-            : publication.metadata.title,
-        author:
-            (publication.metadata.authors.firstOrNull ??
-                    Contributor(
-                      localizedName: LocalizedString(
-                        translations: {'en': Translation("")},
-                      ),
-                    ))
-                .localizedName
-                ?.string ??
-            'Unknown Author',
-        fingerprint: 'hash_${DateTime.now().millisecondsSinceEpoch}',
-        coverUrl: extractedCoverPath,
-        localPath: savedFile.path,
-      );
-
-      AppLogger.i(
-        'LibraryBloc',
-        'Adding book to LocalDataService: ID=${newBook.id}, Title="${newBook.title}", Cover=${newBook.coverUrl}',
-      );
-      await _dataService.addBook(newBook);
+      // Delegate import logic to BookRepository which computes cryptographic SHA-256 fingerprint
+      await _bookRepository.importBook(event.filePath);
 
       final updatedList = _dataService.getBooks();
       AppLogger.i(
         'LibraryBloc',
         'Book import complete. Total library books: ${updatedList.length}',
       );
-      emit(LibraryLoaded(updatedList, query: query, sortOrder: sortOrder));
+      emit(LibraryLoaded(
+        updatedList,
+        query: query,
+        sortOrder: sortOrder,
+        autoSyncFolder: autoSyncFolder,
+      ));
     } catch (e, stackTrace) {
-      AppLogger.e(
-        'LibraryBloc',
-        'Failed to import book from path: ${event.filePath}',
-        e,
-        stackTrace,
-      );
-
-      emit(LibraryError(e.toString()));
-      await Future.delayed(const Duration(milliseconds: 100));
-      emit(LibraryLoaded(existingBooks, query: query, sortOrder: sortOrder));
+      AppLogger.e('LibraryBloc', 'Failed to import book', e, stackTrace);
+      emit(LibraryError('Failed to import book: $e'));
+      // Restore previous library state
+      if (existingBooks.isNotEmpty) {
+        emit(LibraryLoaded(
+          existingBooks,
+          query: query,
+          sortOrder: sortOrder,
+          autoSyncFolder: autoSyncFolder,
+        ));
+      }
     }
   }
 
@@ -215,14 +190,15 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     Emitter<LibraryState> emit,
   ) {
     final currentState = state;
-    if (currentState is! LibraryLoaded) return;
-
-    final query = event.query ?? currentState.query;
-    final sortOrder = event.sortOrder ?? currentState.sortOrder;
-    if (query == currentState.query && sortOrder == currentState.sortOrder) {
-      return;
+    if (currentState is LibraryLoaded) {
+      emit(
+        LibraryLoaded(
+          currentState.books,
+          query: event.query ?? currentState.query,
+          sortOrder: event.sortOrder ?? currentState.sortOrder,
+          autoSyncFolder: currentState.autoSyncFolder,
+        ),
+      );
     }
-
-    emit(LibraryLoaded(currentState.books, query: query, sortOrder: sortOrder));
   }
 }

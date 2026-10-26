@@ -1,0 +1,14 @@
+{
+  "name": "promo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "hyperframes preview",
+    "check": "hyperframes check",
+    "render": "hyperframes render -c landscape.html -o renders/bookies_promo_16x9.mp4",
+    "render:landscape": "hyperframes render -c landscape.html -o renders/bookies_promo_16x9.mp4",
+    "render:portrait": "hyperframes render -c portrait.html -o renders/bookies_promo_9x16.mp4",
+    "render:all": "npm run render:landscape && npm run render:portrait",
+    "publish": "hyperframes publish"
+  }
+}

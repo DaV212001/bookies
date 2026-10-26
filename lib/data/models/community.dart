@@ -7,6 +7,9 @@ class Community {
   final String bookId; // The reference book for this community
   final int memberCount;
   final String creatorId;
+  final String? canonicalFingerprint;
+  final String? editionTitle;
+  final String? downloadUrl;
 
   Community({
     required this.id,
@@ -15,6 +18,9 @@ class Community {
     required this.bookId,
     required this.memberCount,
     this.creatorId = 'user-1',
+    this.canonicalFingerprint,
+    this.editionTitle,
+    this.downloadUrl,
   });
 
   CommunityEntity toDomain() => CommunityEntity(
@@ -24,6 +30,9 @@ class Community {
         bookId: bookId,
         memberCount: memberCount,
         creatorId: creatorId,
+        canonicalFingerprint: canonicalFingerprint,
+        editionTitle: editionTitle,
+        downloadUrl: downloadUrl,
       );
 
   factory Community.fromDomain(CommunityEntity entity) => Community(
@@ -33,6 +42,9 @@ class Community {
         bookId: entity.bookId,
         memberCount: entity.memberCount,
         creatorId: entity.creatorId,
+        canonicalFingerprint: entity.canonicalFingerprint,
+        editionTitle: entity.editionTitle,
+        downloadUrl: entity.downloadUrl,
       );
 
   factory Community.fromJson(Map<String, dynamic> json) {
@@ -43,6 +55,9 @@ class Community {
       bookId: json['bookId'] as String,
       memberCount: json['memberCount'] as int,
       creatorId: (json['creatorId'] as String?) ?? 'user-1',
+      canonicalFingerprint: json['canonicalFingerprint'] as String?,
+      editionTitle: json['editionTitle'] as String?,
+      downloadUrl: json['downloadUrl'] as String?,
     );
   }
 
@@ -54,6 +69,9 @@ class Community {
       'bookId': bookId,
       'memberCount': memberCount,
       'creatorId': creatorId,
+      'canonicalFingerprint': canonicalFingerprint,
+      'editionTitle': editionTitle,
+      'downloadUrl': downloadUrl,
     };
   }
 }

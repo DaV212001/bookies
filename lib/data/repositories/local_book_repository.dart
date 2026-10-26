@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:crypto/crypto.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_readium/flutter_readium.dart';
 
@@ -14,6 +15,18 @@ class LocalBookRepository implements BookRepository {
   final LocalDataService _localDataService;
 
   LocalBookRepository(this._localDataService);
+
+  Future<String> _computeSha256(File file) async {
+    try {
+      final stream = file.openRead();
+      final hash = await sha256.bind(stream).first;
+      return hash.toString();
+    } catch (e) {
+      AppLogger.w('LocalBookRepository', 'Failed to compute SHA-256 for ${file.path}: $e');
+      final length = await file.length();
+      return 'pathhash_${file.path.hashCode}_$length';
+    }
+  }
 
   @override
   Future<List<BookEntity>> getLibraryBooks() async {
@@ -61,6 +74,22 @@ class LocalBookRepository implements BookRepository {
       throw Exception('Source file not found at: $sourceFilePath');
     }
 
+    // Compute cryptographic fingerprint of the source file
+    final sourceFingerprint = await _computeSha256(file);
+
+    // Check if this exact book edition is already in the library
+    final existingBooks = _localDataService.getBooks();
+    final duplicate = existingBooks.where((b) {
+      if (b.fingerprint.isNotEmpty && b.fingerprint == sourceFingerprint) return true;
+      if (b.localPath != null && b.localPath == sourceFilePath) return true;
+      return false;
+    }).firstOrNull;
+
+    if (duplicate != null) {
+      AppLogger.i('LocalBookRepository', 'Book already exists in library: ${duplicate.title} (${duplicate.id})');
+      return duplicate.toDomain();
+    }
+
     final appDocsDir = await getApplicationDocumentsDirectory();
     final rawFileName = file.uri.pathSegments.last;
 
@@ -75,7 +104,8 @@ class LocalBookRepository implements BookRepository {
     final sanitizedFileName = '$sanitizedBase$ext';
     final targetPath = '${appDocsDir.path}/$sanitizedFileName';
 
-    final savedFile = await file.copy(targetPath);
+    // If copying from outside app directory, copy; if already inside, keep
+    final savedFile = file.path == targetPath ? file : await file.copy(targetPath);
 
     // Readium metadata extraction
     final publication = await FlutterReadium().loadPublication(savedFile.path);
@@ -102,13 +132,53 @@ class LocalBookRepository implements BookRepository {
               .localizedName
               ?.string ??
           'Unknown Author',
-      fingerprint: 'hash_${DateTime.now().millisecondsSinceEpoch}',
+      fingerprint: sourceFingerprint,
       coverUrl: extractedCoverPath,
       localPath: savedFile.path,
     );
 
     await _localDataService.addBook(newBook);
     return newBook.toDomain();
+  }
+
+  @override
+  Future<List<BookEntity>> scanAndSyncFolder(String folderPath) async {
+    final dir = Directory(folderPath);
+    if (!await dir.exists()) {
+      AppLogger.w('LocalBookRepository', 'Auto-sync folder does not exist: $folderPath');
+      return [];
+    }
+
+    AppLogger.i('LocalBookRepository', 'Scanning auto-sync folder for EPUBs: $folderPath');
+    final newlyImported = <BookEntity>[];
+
+    try {
+      final entries = dir.listSync(recursive: false, followLinks: false);
+      for (final entity in entries) {
+        if (entity is File && entity.path.toLowerCase().endsWith('.epub')) {
+          try {
+            final book = await importBook(entity.path);
+            newlyImported.add(book);
+          } catch (e) {
+            AppLogger.w('LocalBookRepository', 'Failed to auto-import ${entity.path}: $e');
+          }
+        }
+      }
+    } catch (e) {
+      AppLogger.e('LocalBookRepository', 'Error while scanning sync folder $folderPath: $e');
+    }
+
+    return newlyImported;
+  }
+
+  @override
+  Future<String?> getAutoSyncFolder() async {
+    return _localDataService.getAutoSyncFolder();
+  }
+
+  @override
+  Future<void> setAutoSyncFolder(String? folderPath) async {
+    await _localDataService.setAutoSyncFolder(folderPath);
   }
 
   @override

@@ -16,6 +16,8 @@ import 'package:bookies/features/community/views/management/community_management
 import 'package:bookies/features/community/bloc/community_bloc.dart';
 import 'package:bookies/features/discussion/views/discussion_chat_screen.dart';
 import 'package:bookies/features/reader/views/reader_view.dart';
+import 'package:bookies/domain/repositories/catalog_repository.dart';
+import 'package:bookies/domain/entities/catalog_book_entity.dart';
 
 class CommunityDetailView extends StatefulWidget {
   final String bookId;
@@ -44,6 +46,210 @@ class _CommunityDetailViewState extends State<CommunityDetailView>
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
+  }
+
+  bool _isDownloadingCommunityBook = false;
+
+  Future<void> _downloadAndSyncCommunityEdition(BuildContext context) async {
+    if (_isDownloadingCommunityBook) return;
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _isDownloadingCommunityBook = true);
+
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text('Downloading official edition for "${widget.communityName}"...'),
+        duration: const Duration(seconds: 4),
+      ),
+    );
+
+    try {
+      final catalogRepo = context.read<CatalogRepository>();
+      final dataService = context.read<LocalDataService>();
+
+      final catalogBooks = await catalogRepo.getDiscoverCatalog();
+      var matchingCatalogBook = catalogBooks.where((b) => b.id == widget.bookId).firstOrNull;
+      if (matchingCatalogBook == null) {
+        final searchResults = await catalogRepo.searchCatalog(widget.communityName);
+        matchingCatalogBook = searchResults.firstOrNull;
+      }
+
+      if (matchingCatalogBook != null) {
+        final importedBook = await catalogRepo.downloadAndImportBook(
+          catalogBook: matchingCatalogBook,
+        );
+        await dataService.selectCommunityForBook(
+          bookId: importedBook.id,
+          communityId: widget.communityId,
+        );
+        if (mounted) {
+          setState(() => _isDownloadingCommunityBook = false);
+          messenger.showSnackBar(
+            const SnackBar(
+              content: Text('Official Community Edition ready! You are 100% in sync.'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } else {
+        final importedBook = await catalogRepo.downloadAndImportBook(
+          catalogBook: CatalogBookEntity(
+            id: widget.bookId,
+            title: widget.communityName,
+            author: 'Community Author',
+            downloadUrl: '/catalog/${widget.bookId}/download',
+          ),
+        );
+        await dataService.selectCommunityForBook(
+          bookId: importedBook.id,
+          communityId: widget.communityId,
+        );
+        if (mounted) {
+          setState(() => _isDownloadingCommunityBook = false);
+          messenger.showSnackBar(
+            const SnackBar(
+              content: Text('Official Community Edition ready! You are 100% in sync.'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isDownloadingCommunityBook = false);
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text('Download failed: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Widget _buildEditionSyncBadge(
+    ThemeData theme,
+    LocalDataService dataService,
+    Book? exactBook,
+  ) {
+    if (exactBook != null) {
+      return Container(
+        margin: const EdgeInsets.only(top: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.green.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(100),
+          border: Border.all(color: Colors.green.withValues(alpha: 0.35)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(LucideIcons.checkCheck, size: 14, color: Colors.green),
+            const SizedBox(width: 6),
+            Text(
+              'Official Community Edition (100% Synced)',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: Colors.green,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final allBooks = dataService.getBooks();
+    final normalizedCommName = widget.communityName.toLowerCase();
+    final alternateBook = allBooks.where((b) {
+      final normalizedTitle = b.title.toLowerCase();
+      return normalizedTitle.contains(normalizedCommName) ||
+          normalizedCommName.contains(normalizedTitle);
+    }).firstOrNull;
+
+    if (alternateBook != null) {
+      return Container(
+        margin: const EdgeInsets.only(top: 14),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.amber.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.amber.withValues(alpha: 0.35)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(LucideIcons.triangleAlert, size: 16, color: Colors.amber.shade700),
+                const SizedBox(width: 8),
+                Text(
+                  'Alternate EPUB Edition Detected',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: Colors.amber.shade800,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'You are reading an alternate edition (${alternateBook.title}). Discussions and page progress may not align with members.',
+              style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant),
+            ),
+            const SizedBox(height: 8),
+            _isDownloadingCommunityBook
+                ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                : FilledButton.tonalIcon(
+                    style: FilledButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    ),
+                    icon: const Icon(LucideIcons.downloadCloud, size: 14),
+                    label: const Text('Download Official Community Edition', style: TextStyle(fontSize: 12)),
+                    onPressed: () => _downloadAndSyncCommunityEdition(context),
+                  ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(top: 14),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.secondary.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: theme.colorScheme.secondary.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(LucideIcons.bookDown, color: theme.colorScheme.secondary),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Official Community Book',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+                Text(
+                  'Download the shared EPUB to read along in sync.',
+                  style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant),
+                ),
+              ],
+            ),
+          ),
+          _isDownloadingCommunityBook
+              ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
+              : FilledButton.tonal(
+                  style: FilledButton.styleFrom(visualDensity: VisualDensity.compact),
+                  onPressed: () => _downloadAndSyncCommunityEdition(context),
+                  child: const Text('Download', style: TextStyle(fontSize: 12)),
+                ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -302,6 +508,7 @@ class _CommunityDetailViewState extends State<CommunityDetailView>
               ),
             ),
           ],
+          _buildEditionSyncBadge(theme, dataService, book),
           if (activeLiveSession != null) ...[
             const SizedBox(height: 16),
             Container(
@@ -339,7 +546,7 @@ class _CommunityDetailViewState extends State<CommunityDetailView>
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              '• ${activeLiveSession.participantUserIds.length} listening',
+                              'ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ ${activeLiveSession.participantUserIds.length} listening',
                               style: theme.textTheme.labelSmall?.copyWith(
                                 color: theme.colorScheme.onSurfaceVariant,
                               ),
@@ -354,7 +561,7 @@ class _CommunityDetailViewState extends State<CommunityDetailView>
                           minFontSize: 11,
                         ),
                         ResponsiveText.label(
-                          'Host: ${activeLiveSession.host.displayName} • ${activeLiveSession.chapterTitle ?? 'Reading in sync'}',
+                          'Host: ${activeLiveSession.host.displayName} ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ ${activeLiveSession.chapterTitle ?? 'Reading in sync'}',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                             fontSize: 11,
@@ -860,7 +1067,7 @@ class _CommunityDetailViewState extends State<CommunityDetailView>
                 const SizedBox(height: 5),
                 _metadata(
                   theme,
-                  '${threads.length} discussions · ${threads.fold<int>(0, (sum, item) => sum + (item.replies?.length ?? 1))} messages',
+                  '${threads.length} discussions Ãƒâ€šÃ‚Â· ${threads.fold<int>(0, (sum, item) => sum + (item.replies?.length ?? 1))} messages',
                 ),
               ],
             ),

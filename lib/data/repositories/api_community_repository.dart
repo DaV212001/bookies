@@ -299,6 +299,9 @@ class ApiCommunityRepository implements CommunityRepository {
           json['memberCount'] as int? ??
           1,
       creatorId: json['creatorId']?.toString() ?? '',
+      canonicalFingerprint: json['canonicalFingerprint']?.toString() ?? json['book']?['fingerprint']?.toString(),
+      editionTitle: json['editionTitle']?.toString() ?? json['book']?['title']?.toString(),
+      downloadUrl: json['downloadUrl']?.toString() ?? json['book']?['downloadUrl']?.toString(),
     );
   }
 
