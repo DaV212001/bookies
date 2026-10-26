@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
@@ -126,35 +127,27 @@ class _CommunityDetailViewState extends State<CommunityDetailView>
     }
   }
 
+  bool _isEditionSynced(LocalDataService dataService, Book? exactBook) {
+    if (exactBook == null) return false;
+    final community = dataService.communities
+        .where((c) => c.id == widget.communityId)
+        .firstOrNull;
+    if (community == null) return true;
+    final canonicalFingerprint = community.canonicalFingerprint;
+    if (canonicalFingerprint == null || canonicalFingerprint.isEmpty) {
+      return true;
+    }
+    return exactBook.fingerprint == canonicalFingerprint;
+  }
+
   Widget _buildEditionSyncBadge(
     ThemeData theme,
     LocalDataService dataService,
     Book? exactBook,
   ) {
-    if (exactBook != null) {
-      return Container(
-        margin: const EdgeInsets.only(top: 14),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        decoration: BoxDecoration(
-          color: Colors.green.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(100),
-          border: Border.all(color: Colors.green.withValues(alpha: 0.35)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(LucideIcons.checkCheck, size: 14, color: Colors.green),
-            const SizedBox(width: 6),
-            Text(
-              'Official Community Edition (100% Synced)',
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: Colors.green,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      );
+    // If the book edition matches canonical fingerprint, remove the exact match badge completely
+    if (_isEditionSynced(dataService, exactBook)) {
+      return const SizedBox.shrink();
     }
 
     final allBooks = dataService.getBooks();
@@ -182,7 +175,7 @@ class _CommunityDetailViewState extends State<CommunityDetailView>
                 Icon(LucideIcons.triangleAlert, size: 16, color: Colors.amber.shade700),
                 const SizedBox(width: 8),
                 Text(
-                  'Alternate EPUB Edition Detected',
+                  'Different EPUB Edition Detected',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 13,
@@ -193,7 +186,7 @@ class _CommunityDetailViewState extends State<CommunityDetailView>
             ),
             const SizedBox(height: 4),
             Text(
-              'You are reading an alternate edition (${alternateBook.title}). Discussions and page progress may not align with members.',
+              'You have an alternate edition (${alternateBook.title}). You must sync to the official community edition before you can participate in discussions or reading.',
               style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant),
             ),
             const SizedBox(height: 8),
@@ -217,24 +210,28 @@ class _CommunityDetailViewState extends State<CommunityDetailView>
       margin: const EdgeInsets.only(top: 14),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: theme.colorScheme.secondary.withValues(alpha: 0.1),
+        color: Colors.amber.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: theme.colorScheme.secondary.withValues(alpha: 0.3)),
+        border: Border.all(color: Colors.amber.withValues(alpha: 0.35)),
       ),
       child: Row(
         children: [
-          Icon(LucideIcons.bookDown, color: theme.colorScheme.secondary),
+          Icon(LucideIcons.bookDown, color: Colors.amber.shade800),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Official Community Book',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                Text(
+                  'Official Community Edition Required',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: Colors.amber.shade800,
+                  ),
                 ),
                 Text(
-                  'Download the shared EPUB to read along in sync.',
+                  'Download the verified EPUB to unlock community discussions and reading.',
                   style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant),
                 ),
               ],
@@ -247,6 +244,125 @@ class _CommunityDetailViewState extends State<CommunityDetailView>
                   onPressed: () => _downloadAndSyncCommunityEdition(context),
                   child: const Text('Download', style: TextStyle(fontSize: 12)),
                 ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEditionSyncGate(ThemeData theme) {
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: Colors.amber.withValues(alpha: 0.35),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 16,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  LucideIcons.gitFork,
+                  size: 32,
+                  color: Colors.amber.shade800,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Edition Sync Required',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: -0.2,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'This community is synchronized to a specific EPUB release. To participate in passage discussions, view shared chapter highlights, and join co-reading sessions, you must sync to the official edition.',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 20),
+              _isDownloadingCommunityBook
+                  ? const SizedBox(
+                      height: 32,
+                      width: 32,
+                      child: CircularProgressIndicator(strokeWidth: 3),
+                    )
+                  : FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: Colors.amber.shade800,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      icon: const Icon(LucideIcons.downloadCloud, size: 16),
+                      label: const Text(
+                        'Download & Sync Official Edition',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      onPressed: () => _downloadAndSyncCommunityEdition(context),
+                    ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showEditionSyncRequiredDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(LucideIcons.triangleAlert, color: Colors.amber),
+            SizedBox(width: 8),
+            Text('Edition Sync Required'),
+          ],
+        ),
+        content: const Text(
+          'Your EPUB edition differs from the community edition (or is not yet in your library). Page numbers, chapter DOM markers, and CFI anchors must match so everyone\'s highlights and live reading stay aligned.\n\nPlease sync to the official community edition to continue.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton.icon(
+            style: FilledButton.styleFrom(backgroundColor: Colors.amber.shade800),
+            onPressed: () {
+              Navigator.pop(ctx);
+              _downloadAndSyncCommunityEdition(context);
+            },
+            icon: const Icon(LucideIcons.downloadCloud, size: 16),
+            label: const Text('Sync Now'),
+          ),
         ],
       ),
     );
@@ -331,16 +447,34 @@ class _CommunityDetailViewState extends State<CommunityDetailView>
     final highlights = dataService.getHighlightsForBook(widget.bookId);
     final quotes = dataService.getFavoriteQuotes(widget.bookId);
 
+    final isSynced = _isEditionSynced(dataService, book);
+
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: isMember ? _openCreateThreadModal : _joinCommunity,
+        onPressed: () {
+          if (!isSynced) {
+            _showEditionSyncRequiredDialog(context);
+            return;
+          }
+          if (isMember) {
+            _openCreateThreadModal();
+          } else {
+            _joinCommunity();
+          }
+        },
         backgroundColor: theme.colorScheme.secondary,
         foregroundColor: theme.colorScheme.onSecondary,
         icon: Icon(
-          isMember ? LucideIcons.messageSquarePlus : LucideIcons.userPlus,
+          !isSynced
+              ? LucideIcons.downloadCloud
+              : (isMember ? LucideIcons.messageSquarePlus : LucideIcons.userPlus),
           size: 18,
         ),
-        label: Text(isMember ? 'Start Discussion' : 'Join community'),
+        label: Text(
+          !isSynced
+              ? 'Sync Edition to Discuss'
+              : (isMember ? 'Start Discussion' : 'Join community'),
+        ),
       ),
       body: SafeArea(
         child: NestedScrollView(
@@ -351,6 +485,7 @@ class _CommunityDetailViewState extends State<CommunityDetailView>
                 book,
                 discussions.length,
                 dataService,
+                isSynced,
               ),
             ),
             SliverPersistentHeader(
@@ -371,15 +506,17 @@ class _CommunityDetailViewState extends State<CommunityDetailView>
               ),
             ),
           ],
-          body: TabBarView(
-            controller: _tabController,
-            children: [
-              _buildGlobalTab(theme, discussions, bookThreads),
-              _buildChapterTab(theme, book, chapterThreads),
-              _buildHighlightsTab(theme, book, highlights, highlightThreads),
-              _buildQuotesTab(theme, quotes),
-            ],
-          ),
+          body: !isSynced
+              ? _buildEditionSyncGate(theme)
+              : TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildGlobalTab(theme, discussions, bookThreads),
+                    _buildChapterTab(theme, book, chapterThreads),
+                    _buildHighlightsTab(theme, book, highlights, highlightThreads),
+                    _buildQuotesTab(theme, quotes),
+                  ],
+                ),
         ),
       ),
     );
@@ -390,6 +527,7 @@ class _CommunityDetailViewState extends State<CommunityDetailView>
     Book? book,
     int discussionCount,
     LocalDataService dataService,
+    bool isSynced,
   ) {
     final canManage = dataService.canManageCommunity(widget.communityId);
     final members = dataService.getCommunityMembers(widget.communityId);
@@ -418,30 +556,51 @@ class _CommunityDetailViewState extends State<CommunityDetailView>
                 icon: const Icon(LucideIcons.arrowLeft),
                 onPressed: () => Navigator.of(context).maybePop(),
               ),
-              if (canManage)
-                FilledButton.tonalIcon(
-                  style: FilledButton.styleFrom(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                    visualDensity: VisualDensity.compact,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    tooltip: 'Share Deep Link',
+                    icon: const Icon(LucideIcons.share2),
+                    onPressed: () {
+                      final deepLink = 'https://bookies.app/community/${widget.communityId}';
+                      Clipboard.setData(ClipboardData(text: deepLink));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Deep link copied: $deepLink'),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    },
                   ),
-                  icon: const Icon(LucideIcons.shieldCheck, size: 16),
-                  label: const Text('Reader Management'),
-                  onPressed: () {
-                    Navigator.of(context, rootNavigator: true).push(
-                      MaterialPageRoute(
-                        builder: (_) => CommunityManagementView(
-                          communityId: widget.communityId,
-                          communityName: widget.communityName,
-                          bookId: widget.bookId,
+                  if (canManage) ...[
+                    const SizedBox(width: 4),
+                    FilledButton.tonalIcon(
+                      style: FilledButton.styleFrom(
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        visualDensity: VisualDensity.compact,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                    );
-                  },
-                ),
+                      icon: const Icon(LucideIcons.shieldCheck, size: 16),
+                      label: const Text('Reader Management'),
+                      onPressed: () {
+                        Navigator.of(context, rootNavigator: true).push(
+                          MaterialPageRoute(
+                            builder: (_) => CommunityManagementView(
+                              communityId: widget.communityId,
+                              communityName: widget.communityName,
+                              bookId: widget.bookId,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ],
+              ),
             ],
           ),
           const SizedBox(height: 10),
@@ -584,6 +743,10 @@ class _CommunityDetailViewState extends State<CommunityDetailView>
                     icon: const Icon(LucideIcons.radio, size: 14),
                     label: const Text('Join Live'),
                     onPressed: () async {
+                      if (!isSynced) {
+                        _showEditionSyncRequiredDialog(context);
+                        return;
+                      }
                       final canJoin = dataService.canUserJoinLiveReading(
                         widget.communityId,
                         dataService.currentUser.id,
@@ -617,7 +780,7 @@ class _CommunityDetailViewState extends State<CommunityDetailView>
               ),
             ),
           ],
-          if (book != null) ...[
+          if (book != null && isSynced) ...[
             const SizedBox(height: 18),
             FilledButton.icon(
               onPressed: () {
@@ -632,6 +795,30 @@ class _CommunityDetailViewState extends State<CommunityDetailView>
               style: FilledButton.styleFrom(
                 backgroundColor: theme.colorScheme.primary,
                 foregroundColor: theme.colorScheme.onPrimary,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ] else ...[
+            const SizedBox(height: 18),
+            FilledButton.icon(
+              onPressed: () => _downloadAndSyncCommunityEdition(context),
+              icon: _isDownloadingCommunityBook
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Icon(LucideIcons.downloadCloud, size: 18),
+              label: Text(_isDownloadingCommunityBook
+                  ? 'Syncing Edition...'
+                  : 'Sync Community Edition to Read'),
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.amber.shade800,
+                foregroundColor: Colors.white,
                 padding:
                     const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 shape: RoundedRectangleBorder(

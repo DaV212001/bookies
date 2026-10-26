@@ -1,11 +1,13 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:bookies/data/models/book.dart';
 import 'package:bookies/data/providers/local_data_service.dart';
 import 'package:bookies/data/repositories/local_book_repository.dart';
 import 'package:bookies/domain/entities/community_entity.dart';
 import 'package:bookies/features/library/bloc/library_bloc.dart';
+import 'package:bookies/core/routing/app_router.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -113,6 +115,45 @@ void main() {
 
       expect(newComm.canonicalFingerprint, 'sha256_canonical_dune_hash_999');
       expect(newComm.editionTitle, 'Dune (Frank Herbert)');
+    });
+
+    test('Edition sync verification distinguishes canonical and alternate EPUBs', () async {
+      final canonicalBook = Book(
+        id: 'book-canon',
+        title: 'Project Hail Mary',
+        author: 'Andy Weir',
+        fingerprint: 'sha256_phm_canon_edition',
+      );
+      final alternateBook = Book(
+        id: 'book-alt',
+        title: 'Project Hail Mary',
+        author: 'Andy Weir',
+        fingerprint: 'sha256_phm_different_publisher_edition',
+      );
+
+      await localDataService.addBook(canonicalBook);
+      final community = await localDataService.createCommunity(
+        name: 'Hail Mary Readers',
+        description: 'Rocky and Ryland reading club',
+        bookId: 'book-canon',
+      );
+
+      // Verify canonical matching
+      expect(community.canonicalFingerprint, canonicalBook.fingerprint);
+      expect(canonicalBook.fingerprint == community.canonicalFingerprint, isTrue);
+
+      // Verify alternate edition mismatch detection
+      expect(alternateBook.fingerprint == community.canonicalFingerprint, isFalse);
+    });
+  });
+
+  group('Deep Linking Architecture Tests', () {
+    test('appRouter contains routes for /community/:id and /book/:id', () {
+      final routes = appRouter.configuration.routes.whereType<GoRoute>();
+      final topLevelPaths = routes.map((r) => r.path).toList();
+
+      expect(topLevelPaths, contains('/community/:id'));
+      expect(topLevelPaths, contains('/book/:id'));
     });
   });
 }

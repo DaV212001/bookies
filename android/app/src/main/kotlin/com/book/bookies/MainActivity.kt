@@ -47,11 +47,17 @@ class MainActivity: FlutterFragmentActivity() {
         val action = intent.action
         val data: Uri? = intent.data
         if (Intent.ACTION_VIEW == action && data != null) {
-            val localPath = copyUriToInternalStorage(data)
-            if (localPath != null) {
-                pendingFilePath = localPath
-                methodChannel?.invokeMethod("onFileOpened", localPath)
+            val scheme = data.scheme?.lowercase()
+            val path = data.path?.lowercase() ?: ""
+            // Only process as an incoming file if it's a file/content scheme or points to an .epub file
+            if (scheme == "file" || scheme == "content" || path.endsWith(".epub")) {
+                val localPath = copyUriToInternalStorage(data)
+                if (localPath != null) {
+                    pendingFilePath = localPath
+                    methodChannel?.invokeMethod("onFileOpened", localPath)
+                }
             }
+            // For custom deep links (bookies:// or https://bookies.app), Flutter's router handles it automatically.
         }
     }
 

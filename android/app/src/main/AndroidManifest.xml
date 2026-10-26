@@ -57,6 +57,22 @@
                 <data android:pathPattern=".*\\.epub" />
                 <data android:host="*" />
             </intent-filter>
+            <!-- Deep Linking: Custom URI Scheme bookies:// (e.g. bookies://community/:id, bookies://book/:id) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="bookies" />
+            </intent-filter>
+
+            <!-- Deep Linking: Universal App Links https://bookies.app -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="bookies.app" />
+                <data android:scheme="http" android:host="bookies.app" />
+            </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
