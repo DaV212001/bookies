@@ -1,11 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:crypto/crypto.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_readium/flutter_readium.dart';
 
 import 'package:bookies/core/utils/app_logger.dart';
 import 'package:bookies/core/utils/epub_cover_extractor.dart';
+import 'package:bookies/core/utils/epub_sync_fingerprinter.dart';
 import 'package:bookies/data/models/book.dart';
 import 'package:bookies/data/providers/local_data_service.dart';
 import 'package:bookies/domain/entities/book_entity.dart';
@@ -16,13 +16,11 @@ class LocalBookRepository implements BookRepository {
 
   LocalBookRepository(this._localDataService);
 
-  Future<String> _computeSha256(File file) async {
+  Future<String> _computeFingerprint(File file) async {
     try {
-      final stream = file.openRead();
-      final hash = await sha256.bind(stream).first;
-      return hash.toString();
+      return await EpubSyncFingerprinter.computeFingerprint(file);
     } catch (e) {
-      AppLogger.w('LocalBookRepository', 'Failed to compute SHA-256 for ${file.path}: $e');
+      AppLogger.w('LocalBookRepository', 'Failed to compute sync fingerprint for ${file.path}: $e');
       final length = await file.length();
       return 'pathhash_${file.path.hashCode}_$length';
     }
@@ -74,8 +72,8 @@ class LocalBookRepository implements BookRepository {
       throw Exception('Source file not found at: $sourceFilePath');
     }
 
-    // Compute cryptographic fingerprint of the source file
-    final sourceFingerprint = await _computeSha256(file);
+    // Compute airtight structural sync fingerprint of the source file
+    final sourceFingerprint = await _computeFingerprint(file);
 
     // Check if this exact book edition is already in the library
     final existingBooks = _localDataService.getBooks();

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:go_router/go_router.dart';
@@ -8,6 +9,7 @@ import 'package:bookies/data/repositories/local_book_repository.dart';
 import 'package:bookies/domain/entities/community_entity.dart';
 import 'package:bookies/features/library/bloc/library_bloc.dart';
 import 'package:bookies/core/routing/app_router.dart';
+import 'package:bookies/core/utils/epub_sync_fingerprinter.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -144,6 +146,17 @@ void main() {
 
       // Verify alternate edition mismatch detection
       expect(alternateBook.fingerprint == community.canonicalFingerprint, isFalse);
+    });
+
+    test('EpubSyncFingerprinter calculates deterministic structural fingerprint for EPUB file', () async {
+      final sampleEpub = File('packages/flutter_epub_viewer/example/assets/sample.epub');
+      if (await sampleEpub.exists()) {
+        final fp1 = await EpubSyncFingerprinter.computeFingerprint(sampleEpub);
+        final fp2 = await EpubSyncFingerprinter.computeFingerprint(sampleEpub);
+
+        expect(fp1, startsWith('epub_sync_v1:'));
+        expect(fp1, equals(fp2));
+      }
     });
   });
 
