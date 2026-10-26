@@ -100,6 +100,10 @@ class ApiCommunityRepository implements CommunityRepository {
     required String bookId,
     String? importMembersFromCommunityId,
   }) async {
+    final book = _localDataService.books.where((b) => b.id == bookId).firstOrNull;
+    final canonicalFingerprint = book?.fingerprint;
+    final editionTitle = book != null ? '${book.title} (${book.author})' : null;
+
     try {
       final response = await _apiClient.dio.post(
         '/communities',
@@ -107,6 +111,10 @@ class ApiCommunityRepository implements CommunityRepository {
           'name': name.trim(),
           'description': description.trim(),
           'bookId': bookId,
+          if (canonicalFingerprint != null && canonicalFingerprint.isNotEmpty)
+            'canonicalFingerprint': canonicalFingerprint,
+          if (editionTitle != null && editionTitle.isNotEmpty)
+            'editionTitle': editionTitle,
           if (importMembersFromCommunityId != null)
             'importMembersFromCommunityId': importMembersFromCommunityId,
         },
