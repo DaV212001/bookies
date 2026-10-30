@@ -8,7 +8,6 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flutter/services.dart';
 
 import 'package:bookies/data/models/book.dart';
-import 'package:bookies/data/models/user.dart';
 import 'package:bookies/data/models/discussion.dart';
 import 'package:bookies/data/models/thread_scope.dart';
 import 'package:bookies/data/models/community.dart';
@@ -469,23 +468,6 @@ class _ReaderViewState extends State<ReaderView> {
     );
   }
 
-  void _rateSelection(ReaderLoaded state, EpubTextSelection selection) {
-    final text = selection.selectedText.trim();
-    if (text.isEmpty) return;
-    context.read<LocalDataService>().addFavoriteQuote(
-      bookId: state.book.id,
-      bookTitle: state.book.title,
-      chapterTitle: _currentChapterTitle ?? 'Current passage',
-      quoteText: text,
-      authorName: state.book.author,
-    );
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Passage saved and rated in your favorites.'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
 
   @override
   void didChangeDependencies() {
@@ -1007,19 +989,10 @@ class _ReaderViewState extends State<ReaderView> {
                         child: SafeArea(
                           child: PassageSelectionContextMenu(
                             selectedText: _activeSelection!.selectedText,
-                            canExpand: false,
-                            canShorten: false,
-                            onExpandSelection: () {},
-                            onShortenSelection: () {},
                             onStartThread: () {
                               final sel = _activeSelection!;
                               setState(() => _activeSelection = null);
                               _discussSelection(state, sel);
-                            },
-                            onRatePassage: () {
-                              final sel = _activeSelection!;
-                              setState(() => _activeSelection = null);
-                              _rateSelection(state, sel);
                             },
                             onSaveQuote: () {
                               final sel = _activeSelection!;
@@ -1146,21 +1119,7 @@ class _ReaderViewState extends State<ReaderView> {
                         ),
                       ),
 
-                    // Quick Live Passage Reaction Button
-                    Positioned(
-                      bottom: _isFullScreen ? 32 : 24,
-                      right: 20,
-                      child: FloatingActionButton.small(
-                        heroTag: 'live_reaction_fab',
-                        tooltip: 'React to current passage',
-                        elevation: 3,
-                        backgroundColor: theme.colorScheme.surfaceContainerHighest.withOpacity(0.9),
-                        child: const Text('✨', style: TextStyle(fontSize: 18)),
-                        onPressed: () {
-                          _showReactionPicker(context, state);
-                        },
-                      ),
-                    ),
+
                   ],
                 ),
               );
@@ -1173,60 +1132,6 @@ class _ReaderViewState extends State<ReaderView> {
     );
   }
 
-  void _showReactionPicker(BuildContext context, ReaderLoaded state) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) {
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 40),
-          child: Center(
-            child: QuickPassageReactionPicker(
-              onEmojiSelected: (emoji) {
-                Navigator.pop(ctx);
-                User? currentUser;
-                try {
-                  currentUser = context.read<LocalDataService>().currentUser;
-                } catch (_) {}
-                final userId = currentUser?.id ?? 'user-me';
-                final displayName = currentUser?.displayName ?? 'You';
-
-                final reaction = LivePassageReaction(
-                  userId: userId,
-                  displayName: displayName,
-                  avatarUrl: currentUser?.avatarUrl,
-                  cfi: state.currentCfi ?? '',
-                  emoji: emoji,
-                  quoteText: _currentChapterTitle,
-                  timestamp: DateTime.now(),
-                );
-                context.read<ReaderBloc>().add(LivePassageReactionReceivedEvent(reaction));
-
-                if (_currentSessionId != null && _socketService != null) {
-                  _socketService!.emit('live_reading:react_passage', {
-                    'sessionId': _currentSessionId,
-                    'userId': userId,
-                    'displayName': displayName,
-                    'avatarUrl': currentUser?.avatarUrl,
-                    'cfi': state.currentCfi ?? '',
-                    'emoji': emoji,
-                    'quoteText': _currentChapterTitle,
-                  });
-                }
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Reacted $emoji to current passage'),
-                    duration: const Duration(seconds: 1),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
-              },
-            ),
-          ),
-        );
-      },
-    );
-  }
 
   EpubChapter? _firstNavigableChapter(List<EpubChapter> chapters) {
     for (final chapter in chapters) {
