@@ -22,6 +22,7 @@ import 'package:bookies/core/network/socket_service.dart';
 import 'package:bookies/core/network/api_client.dart';
 import 'package:bookies/core/widgets/ambient_progress_bar.dart';
 import 'package:bookies/core/widgets/passage_reaction_bubble.dart';
+import 'package:bookies/core/widgets/passage_selection_context_menu.dart';
 import 'package:bookies/domain/entities/live_passage_reaction.dart';
 import 'package:bookies/domain/entities/live_participant_progress.dart';
 import 'package:bookies/features/reader/views/reading_settings_modal.dart';
@@ -65,6 +66,7 @@ class _ReaderViewState extends State<ReaderView> {
   SocketService? _socketService;
   String? _currentSessionId;
   final Map<String, LiveParticipantProgress> _activeParticipantsMap = {};
+  EpubTextSelection? _activeSelection;
 
 
   void _setupSocketListeners() {
@@ -464,6 +466,24 @@ class _ReaderViewState extends State<ReaderView> {
       chapterTitle: _currentChapterTitle ?? 'Current passage',
       quoteText: selection.selectedText,
       authorName: state.book.author,
+    );
+  }
+
+  void _rateSelection(ReaderLoaded state, EpubTextSelection selection) {
+    final text = selection.selectedText.trim();
+    if (text.isEmpty) return;
+    context.read<LocalDataService>().addFavoriteQuote(
+      bookId: state.book.id,
+      bookTitle: state.book.title,
+      chapterTitle: _currentChapterTitle ?? 'Current passage',
+      quoteText: text,
+      authorName: state.book.author,
+    );
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Passage saved and rated in your favorites.'),
+        behavior: SnackBarBehavior.floating,
+      ),
     );
   }
 
@@ -948,6 +968,16 @@ class _ReaderViewState extends State<ReaderView> {
                                   _highlightSelection(state, selection),
                               onSaveQuoteSelection: (selection) =>
                                   _saveQuoteSelection(state, selection),
+                              onTextSelected: (selection) {
+                                if (mounted) {
+                                  setState(() => _activeSelection = selection);
+                                }
+                              },
+                              onDeselection: () {
+                                if (mounted && _activeSelection != null) {
+                                  setState(() => _activeSelection = null);
+                                }
+                              },
                               onDiscussionIndicatorTapped: (cfi) =>
                                   _showDiscussions(
                                     context,
@@ -967,6 +997,46 @@ class _ReaderViewState extends State<ReaderView> {
                         ),
                       ],
                     ),
+
+                    // Custom Floating Passage Selection Context Menu
+                    if (_activeSelection != null)
+                      Positioned(
+                        left: 16,
+                        right: 16,
+                        bottom: 24,
+                        child: SafeArea(
+                          child: PassageSelectionContextMenu(
+                            selectedText: _activeSelection!.selectedText,
+                            canExpand: false,
+                            canShorten: false,
+                            onExpandSelection: () {},
+                            onShortenSelection: () {},
+                            onStartThread: () {
+                              final sel = _activeSelection!;
+                              setState(() => _activeSelection = null);
+                              _discussSelection(state, sel);
+                            },
+                            onRatePassage: () {
+                              final sel = _activeSelection!;
+                              setState(() => _activeSelection = null);
+                              _rateSelection(state, sel);
+                            },
+                            onSaveQuote: () {
+                              final sel = _activeSelection!;
+                              setState(() => _activeSelection = null);
+                              _saveQuoteSelection(state, sel);
+                            },
+                            onHighlight: () {
+                              final sel = _activeSelection!;
+                              setState(() => _activeSelection = null);
+                              _highlightSelection(state, sel);
+                            },
+                            onDismiss: () {
+                              setState(() => _activeSelection = null);
+                            },
+                          ),
+                        ),
+                      ),
 
                     // Zoom indicator toast overlay
                     if (_isZooming && _displayFontSizeRatio != null)

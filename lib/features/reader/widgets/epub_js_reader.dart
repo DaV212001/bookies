@@ -21,6 +21,8 @@ class EpubJsReader extends StatefulWidget {
   final ValueChanged<EpubTextSelection>? onDiscussSelection;
   final ValueChanged<EpubTextSelection>? onHighlightSelection;
   final ValueChanged<EpubTextSelection>? onSaveQuoteSelection;
+  final ValueChanged<EpubTextSelection>? onTextSelected;
+  final VoidCallback? onDeselection;
   final ValueChanged<String>? onDiscussionIndicatorTapped;
   final void Function(String cfi, Map<String, dynamic>? rect)?
       onDiscussionIndicatorLongPressed;
@@ -36,6 +38,8 @@ class EpubJsReader extends StatefulWidget {
     this.onDiscussSelection,
     this.onHighlightSelection,
     this.onSaveQuoteSelection,
+    this.onTextSelected,
+    this.onDeselection,
     this.onDiscussionIndicatorTapped,
     this.onDiscussionIndicatorLongPressed,
   });
@@ -374,13 +378,19 @@ class _EpubJsReaderState extends State<EpubJsReader> {
               ),
             ],
           ),
-          onTextSelected: (selection) => _lastSelection = selection,
+          onTextSelected: (selection) {
+            _lastSelection = selection;
+            widget.onTextSelected?.call(selection);
+          },
           onAnnotationClicked: (cfiRange, rect) =>
               widget.onDiscussionIndicatorTapped?.call(cfiRange),
           onAnnotationLongPressed: (cfiRange, rect) =>
               widget.onDiscussionIndicatorLongPressed?.call(cfiRange, rect),
           onSelectionChanging: () => widget.showControls.value = false,
-          onDeselection: () => widget.showControls.value = true,
+          onDeselection: () {
+            widget.showControls.value = true;
+            widget.onDeselection?.call();
+          },
         );
       },
     );
