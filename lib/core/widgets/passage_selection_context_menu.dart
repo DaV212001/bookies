@@ -135,64 +135,68 @@ class PassageSelectionContextMenu extends StatelessWidget {
 
           // Action Toolbar Strip
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // 1. Start Thread (Prominent Primary Action)
-                _buildThreadButton(
-                  context,
-                  accentColor: accentOchre,
-                  onTap: onStartThread,
-                ),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // 1. Start Thread (Prominent Primary Action)
+                  _buildThreadButton(
+                    context,
+                    accentColor: accentOchre,
+                    onTap: onStartThread,
+                  ),
 
-                _buildDivider(isDark),
+                  _buildDivider(isDark),
 
-                // 2. Highlight
-                _buildActionButton(
-                  context,
-                  icon: LucideIcons.highlighter,
-                  label: 'Highlight',
-                  textColor: buttonTextColor,
-                  onTap: onHighlight,
-                ),
+                  // 2. Highlight
+                  _buildActionButton(
+                    context,
+                    icon: LucideIcons.highlighter,
+                    label: 'Highlight',
+                    textColor: buttonTextColor,
+                    onTap: onHighlight,
+                  ),
 
-                _buildDivider(isDark),
+                  _buildDivider(isDark),
 
-                // 3. Save Quote
-                _buildActionButton(
-                  context,
-                  icon: LucideIcons.bookmark,
-                  label: 'Save',
-                  textColor: buttonTextColor,
-                  onTap: onSaveQuote,
-                ),
+                  // 3. Save Quote
+                  _buildActionButton(
+                    context,
+                    icon: LucideIcons.bookmark,
+                    label: 'Save',
+                    textColor: buttonTextColor,
+                    onTap: onSaveQuote,
+                  ),
 
-                _buildDivider(isDark),
+                  _buildDivider(isDark),
 
-                // 4. Copy
-                _buildActionButton(
-                  context,
-                  icon: LucideIcons.copy,
-                  label: 'Copy',
-                  textColor: buttonTextColor,
-                  onTap: () {
-                    if (onCopy != null) {
-                      onCopy!();
-                    } else {
-                      Clipboard.setData(ClipboardData(text: selectedText));
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Passage copied to clipboard'),
-                          duration: Duration(seconds: 1),
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
-                      onDismiss();
-                    }
-                  },
-                ),
-              ],
+                  // 4. Copy
+                  _buildActionButton(
+                    context,
+                    icon: LucideIcons.copy,
+                    label: 'Copy',
+                    textColor: buttonTextColor,
+                    onTap: () {
+                      if (onCopy != null) {
+                        onCopy!();
+                      } else {
+                        Clipboard.setData(ClipboardData(text: selectedText));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Passage copied to clipboard'),
+                            duration: Duration(seconds: 1),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                        onDismiss();
+                      }
+                    },
+                  ),
+                ],
+              ),
             ),
           ),
         ],
