@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import 'package:file_picker/file_picker.dart';
+import 'package:bookies/features/library/bloc/library_event.dart';
 import 'package:bookies/core/widgets/responsive_text.dart';
 import 'package:bookies/data/models/book.dart';
 import 'package:bookies/domain/entities/catalog_book_entity.dart';
@@ -64,7 +66,8 @@ class _DiscoverViewState extends State<DiscoverView> {
               backgroundColor: theme.colorScheme.error,
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              duration: const Duration(seconds: 4),
+              duration: const Duration(seconds: 5),
+              action: state.errorMessage!.toLowerCase().contains('import') ? SnackBarAction(label: 'Import EPUB', textColor: Colors.white, onPressed: () async { try { final result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['epub']); if (result != null && result.files.single.path != null) { final path = result.files.single.path!; if (context.mounted) { context.read<LibraryBloc>().add(ImportBook(path)); } } } catch (_) {} }) : null,
             ),
           );
         }

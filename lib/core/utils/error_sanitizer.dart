@@ -37,10 +37,15 @@ class ErrorSanitizer {
       final statusCode = error.response?.statusCode;
 
       if (statusCode == 404) {
+        final data = error.response?.data;
+        if (data is Map && data['message'] != null) {
+          final serverMsg = data['message'].toString();
+          return '$serverMsg You can import an EPUB file directly into your library.';
+        }
         if (bookTitle != null && bookTitle.isNotEmpty) {
           return '“$bookTitle” is currently unavailable for direct download. You can import an EPUB file directly into your library.';
         }
-        return 'The requested book or resource could not be found.';
+        return 'The requested book is currently unavailable for direct download. You can import an EPUB file directly into your library.';
       }
 
       if (statusCode == 401 || statusCode == 403) {
@@ -113,7 +118,7 @@ class ErrorSanitizer {
     final isTechnical = technicalIndicators.any((tech) => raw.toLowerCase().contains(tech));
     if (isTechnical) {
       if (bookTitle != null && bookTitle.isNotEmpty) {
-        return 'Unable to download “$bookTitle” right now. Please try again later or import an EPUB.';
+        return 'Unable to download “$bookTitle” right now. You can import an EPUB file directly into your library.';
       }
       return 'Something went wrong while completing this request. Please try again.';
     }
