@@ -1,3 +1,4 @@
+import 'package:bookies/core/utils/error_sanitizer.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:bookies/core/utils/app_logger.dart';
@@ -12,12 +13,18 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final AuthRepository _authRepository;
   final GoogleSignIn _googleSignIn;
   static const String _tag = 'AuthBloc';
+  static const String googleServerClientId =
+      '986736228685-nsu7ll0pnrmo4tmjb7re41dnl28ql5jv.apps.googleusercontent.com';
 
   AuthBloc({
     required AuthRepository authRepository,
     GoogleSignIn? googleSignIn,
   })  : _authRepository = authRepository,
-        _googleSignIn = googleSignIn ?? GoogleSignIn(scopes: ['email', 'profile']),
+        _googleSignIn = googleSignIn ??
+            GoogleSignIn(
+              serverClientId: googleServerClientId,
+              scopes: ['email', 'profile'],
+            ),
         super(const AuthState()) {
     on<CheckAuthStatusEvent>(_onCheckAuthStatus);
     on<LoginWithEmailEvent>(_onLoginWithEmail);
@@ -112,12 +119,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(state.copyWith(status: AuthStatus.loading, errorMessage: null));
     try {
       String? idToken = event.idToken;
-      String? email = event.email;
       String? displayName = event.displayName;
       String? avatarUrl = event.avatarUrl;
 
-      // If native credentials not pre-provided, prompt Google Sign-In SDK
-      if (idToken == null && email == null) {
+      // If native token not pre-provided, prompt Google Sign-In SDK
+      if (idToken == null || idToken.isEmpty) {
         try {
           final account = await _googleSignIn.signIn();
           if (account == null) {
@@ -127,21 +133,20 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           }
           final auth = await account.authentication;
           idToken = auth.idToken;
-          email = account.email;
-          displayName = account.displayName;
-          avatarUrl = account.photoUrl;
+          displayName ??= account.displayName;
+          avatarUrl ??= account.photoUrl;
         } catch (sdkError) {
-          AppLogger.w(_tag, 'Native GoogleSignIn SDK unavailable, using provided claims or demo: $sdkError');
-          // If SDK fails in desktop/test environment, throw or fallback to claims
-          if (email == null) {
-            rethrow;
-          }
+          AppLogger.w(_tag, 'Native GoogleSignIn SDK error: $sdkError');
+          rethrow;
         }
+      }
+
+      if (idToken == null || idToken.isEmpty) {
+        throw Exception('Google authentication failed: ID token is required');
       }
 
       final user = await _authRepository.signInWithGoogle(
         idToken: idToken,
-        email: email,
         displayName: displayName,
         avatarUrl: avatarUrl,
       );
@@ -184,6 +189,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     if (str.contains('409') || str.contains('Conflict')) {
       return 'An account with this email or username already exists.';
     }
-    return str.replaceAll('Exception:', '').trim();
+    return ErrorSanitizer.formatAndReport(error, contextTag: 'Auth');
   }
 }

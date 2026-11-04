@@ -43,19 +43,17 @@ class RegisterWithEmailEvent extends AuthEvent {
 
 class SignInWithGoogleEvent extends AuthEvent {
   final String? idToken;
-  final String? email;
   final String? displayName;
   final String? avatarUrl;
 
   const SignInWithGoogleEvent({
     this.idToken,
-    this.email,
     this.displayName,
     this.avatarUrl,
   });
 
   @override
-  List<Object?> get props => [idToken, email, displayName, avatarUrl];
+  List<Object?> get props => [idToken, displayName, avatarUrl];
 }
 
 class LogoutEvent extends AuthEvent {

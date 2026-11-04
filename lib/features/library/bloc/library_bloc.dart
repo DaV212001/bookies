@@ -9,6 +9,7 @@ import '../../../data/repositories/local_book_repository.dart';
 import '../../../domain/repositories/book_repository.dart';
 import '../../../core/utils/app_logger.dart';
 import '../../../core/utils/epub_cover_extractor.dart';
+import '../../../core/utils/error_sanitizer.dart';
 import 'library_view_filter.dart';
 
 export 'library_view_filter.dart';
@@ -88,7 +89,12 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
       emit(LibraryLoaded(books, autoSyncFolder: autoSyncFolder));
     } catch (e, stackTrace) {
       AppLogger.e('LibraryBloc', 'Error loading library', e, stackTrace);
-      emit(LibraryError('Failed to load library: $e'));
+      final msg = ErrorSanitizer.formatAndReport(
+        e,
+        stackTrace: stackTrace,
+        contextTag: 'LibraryLoad',
+      );
+      emit(LibraryError(msg));
     }
   }
 
@@ -111,7 +117,12 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
       ));
     } catch (e, stackTrace) {
       AppLogger.e('LibraryBloc', 'Error setting auto-sync folder', e, stackTrace);
-      emit(LibraryError('Failed to update sync folder: $e'));
+      final msg = ErrorSanitizer.formatAndReport(
+        e,
+        stackTrace: stackTrace,
+        contextTag: 'LibraryAutoSyncFolder',
+      );
+      emit(LibraryError(msg));
     }
   }
 
@@ -172,7 +183,13 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
       ));
     } catch (e, stackTrace) {
       AppLogger.e('LibraryBloc', 'Failed to import book', e, stackTrace);
-      emit(LibraryError('Failed to import book: $e'));
+      final msg = ErrorSanitizer.formatAndReport(
+        e,
+        stackTrace: stackTrace,
+        contextTag: 'LibraryImport',
+        extra: {'file_path': event.filePath},
+      );
+      emit(LibraryError(msg));
       // Restore previous library state
       if (existingBooks.isNotEmpty) {
         emit(LibraryLoaded(

@@ -9,6 +9,7 @@ import 'package:bookies/core/theme/app_theme.dart';
 import 'package:bookies/core/routing/app_router.dart';
 import 'package:bookies/core/theme/theme_cubit.dart';
 
+import 'package:bookies/data/models/user.dart';
 import 'package:bookies/data/providers/local_data_service.dart';
 import 'package:bookies/data/repositories/discussion_repository.dart';
 import 'package:bookies/data/repositories/api_discussion_repository.dart';
@@ -28,6 +29,7 @@ import 'package:bookies/features/discussion/bloc/discussion_bloc.dart';
 import 'package:bookies/features/community/bloc/community_bloc.dart';
 import 'package:bookies/features/discover/bloc/catalog_bloc.dart';
 import 'package:bookies/features/auth/bloc/auth_bloc.dart';
+import 'package:bookies/core/diagnostics/diagnostics_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,17 +39,27 @@ void main() async {
 
   const String backendUrl = String.fromEnvironment(
     'BACKEND_URL',
-    defaultValue: 'https://bookies-backend-1r9d.onrender.com',
+    defaultValue: 'https://bookies-backend-mfdk.onrender.com',
   );
   final apiClient = ApiClient(baseUrl: '$backendUrl/api/v1');
   final socketService = SocketService(
     serverUrl: backendUrl,
     tokenProvider: () => apiClient.cachedToken,
   );
-  socketService.connect();
+  final initialToken = await apiClient.getToken();
+  if (initialToken != null && initialToken.isNotEmpty) {
+    socketService.connect();
+    DiagnosticsService.instance.setUser(
+      id: localDataService.currentUser.id,
+      username: localDataService.currentUser.username,
+      displayName: localDataService.currentUser.displayName,
+    );
+  }
 
-  runApp(
-    MultiProvider(
+  await DiagnosticsService.instance.init(
+    appRunner: () async {
+      runApp(
+        MultiProvider(
       providers: [
         ChangeNotifierProvider<LocalDataService>.value(
           value: localDataService,
@@ -90,6 +102,8 @@ void main() async {
       ],
       child: const BookiesApp(),
     ),
+  );
+    },
   );
 }
 
@@ -135,7 +149,32 @@ class BookiesApp extends StatelessWidget {
           )..add(const CheckAuthStatusEvent()),
         ),
       ],
-      child: BlocBuilder<ThemeCubit, ThemeState>(
+      child: BlocListener<AuthBloc, AuthState>(
+        listener: (context, authState) {
+          final dataService = context.read<LocalDataService>();
+          final socket = context.read<SocketService>();
+          final apiClient = context.read<ApiClient>();
+
+          if (authState.isAuthenticated && authState.user != null) {
+            dataService.setCurrentUser(User(
+              id: authState.user!.id,
+              username: authState.user!.username,
+              displayName: authState.user!.displayName,
+              avatarUrl: authState.user!.avatarUrl,
+            ));
+            socket.updateAuthToken(apiClient.cachedToken);
+            DiagnosticsService.instance.setUser(
+              id: authState.user!.id,
+              username: authState.user!.username,
+              displayName: authState.user!.displayName,
+            );
+          } else if (authState.status == AuthStatus.unauthenticated) {
+            dataService.resetToDefaultUser();
+            socket.updateAuthToken(null);
+            DiagnosticsService.instance.clearUser();
+          }
+        },
+        child: BlocBuilder<ThemeCubit, ThemeState>(
         builder: (context, themeState) {
           return MaterialApp.router(
             title: 'Bookies',
@@ -146,6 +185,7 @@ class BookiesApp extends StatelessWidget {
             debugShowCheckedModeBanner: false,
           );
         },
+      ),
       ),
     );
   }

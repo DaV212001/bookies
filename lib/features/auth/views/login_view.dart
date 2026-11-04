@@ -84,16 +84,30 @@ class _LoginViewState extends State<LoginView> {
                         // Header
                         Center(
                           child: Container(
-                            width: 64,
-                            height: 64,
+                            width: 72,
+                            height: 72,
                             decoration: BoxDecoration(
                               color: theme.colorScheme.primaryContainer,
                               borderRadius: BorderRadius.circular(20),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.12),
+                                  blurRadius: 16,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
                             ),
-                            child: Icon(
-                              LucideIcons.bookMarked,
-                              size: 32,
-                              color: theme.colorScheme.onPrimaryContainer,
+                            clipBehavior: Clip.antiAlias,
+                            child: Image.asset(
+                              'assets/logo.png',
+                              width: 72,
+                              height: 72,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Icon(
+                                LucideIcons.bookMarked,
+                                size: 32,
+                                color: theme.colorScheme.onPrimaryContainer,
+                              ),
                             ),
                           ),
                         ),

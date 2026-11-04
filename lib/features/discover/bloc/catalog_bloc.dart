@@ -1,3 +1,4 @@
+import 'package:bookies/core/utils/error_sanitizer.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:bookies/core/utils/app_logger.dart';
 import 'package:bookies/domain/repositories/catalog_repository.dart';
@@ -35,11 +36,16 @@ class CatalogBloc extends Bloc<CatalogEvent, CatalogState> {
         featuredBooks: books,
         errorMessage: null,
       ));
-    } catch (e) {
+    } catch (e, stack) {
       AppLogger.e(_tag, 'Catalog fetch error: $e');
+      final msg = ErrorSanitizer.formatAndReport(
+        e,
+        stackTrace: stack,
+        contextTag: 'CatalogFetch',
+      );
       emit(state.copyWith(
         status: CatalogStatus.failure,
-        errorMessage: e.toString(),
+        errorMessage: msg,
       ));
     }
   }
@@ -64,11 +70,17 @@ class CatalogBloc extends Bloc<CatalogEvent, CatalogState> {
         searchResults: results,
         errorMessage: null,
       ));
-    } catch (e) {
+    } catch (e, stack) {
       AppLogger.e(_tag, 'Catalog search error: $e');
+      final msg = ErrorSanitizer.formatAndReport(
+        e,
+        stackTrace: stack,
+        contextTag: 'CatalogSearch',
+        extra: {'query': query},
+      );
       emit(state.copyWith(
         status: CatalogStatus.failure,
-        errorMessage: e.toString(),
+        errorMessage: msg,
       ));
     }
   }
@@ -87,11 +99,17 @@ class CatalogBloc extends Bloc<CatalogEvent, CatalogState> {
         featuredBooks: books,
         errorMessage: null,
       ));
-    } catch (e) {
+    } catch (e, stack) {
       AppLogger.e(_tag, 'Genre filter error: $e');
+      final msg = ErrorSanitizer.formatAndReport(
+        e,
+        stackTrace: stack,
+        contextTag: 'CatalogGenreFilter',
+        extra: {'genre': event.genre},
+      );
       emit(state.copyWith(
         status: CatalogStatus.failure,
-        errorMessage: e.toString(),
+        errorMessage: msg,
       ));
     }
   }
@@ -124,13 +142,20 @@ class CatalogBloc extends Bloc<CatalogEvent, CatalogState> {
         downloadedBooks: Map.from(updatedDownloaded),
         downloadProgress: finalProgress,
       ));
-    } catch (e) {
+    } catch (e, stack) {
       AppLogger.e(_tag, 'Download book error: $e');
       final failedProgress = Map<String, double>.from(state.downloadProgress);
       failedProgress.remove(book.id);
+      final userMessage = ErrorSanitizer.formatAndReport(
+        e,
+        stackTrace: stack,
+        contextTag: 'CatalogDownload',
+        bookTitle: book.title,
+        extra: {'book_id': book.id},
+      );
       emit(state.copyWith(
         downloadProgress: failedProgress,
-        errorMessage: 'Failed to download ${book.title}: $e',
+        errorMessage: userMessage,
       ));
     }
   }
