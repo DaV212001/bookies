@@ -25,7 +25,7 @@ android {
 
     defaultConfig {
         applicationId = "com.book.bookies"
-        minSdk = 24
+        minSdk = 26
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
