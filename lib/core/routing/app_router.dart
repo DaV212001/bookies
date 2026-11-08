@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../features/auth/views/login_view.dart';
 import '../../features/auth/views/register_view.dart';
+import '../../features/profile/views/edit_profile_view.dart';
 import '../../features/settings/views/settings_view.dart';
 import '../../features/gallery/views/component_gallery_screen.dart';
 import '../../features/library/views/library_view.dart';
@@ -44,6 +45,11 @@ final appRouter = GoRouter(
       path: '/register',
       parentNavigatorKey: _rootNavigatorKey,
       builder: (context, state) => const RegisterView(),
+    ),
+    GoRoute(
+      path: '/profile',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const EditProfileView(),
     ),
     if (kDebugMode)
       GoRoute(

@@ -59,3 +59,18 @@ class SignInWithGoogleEvent extends AuthEvent {
 class LogoutEvent extends AuthEvent {
   const LogoutEvent();
 }
+
+class UpdateProfileEvent extends AuthEvent {
+  final String? username;
+  final String? displayName;
+  final String? avatarUrl;
+
+  const UpdateProfileEvent({
+    this.username,
+    this.displayName,
+    this.avatarUrl,
+  });
+
+  @override
+  List<Object?> get props => [username, displayName, avatarUrl];
+}

@@ -96,8 +96,7 @@ class ApiAuthRepository implements AuthRepository {
 
   @override
   Future<UserEntity> signInWithGoogle({
-    String? idToken,
-    String? email,
+    required String idToken,
     String? displayName,
     String? avatarUrl,
   }) async {
@@ -105,8 +104,7 @@ class ApiAuthRepository implements AuthRepository {
       final response = await _apiClient.dio.post(
         '/auth/google',
         data: {
-          if (idToken != null) 'idToken': idToken,
-          if (email != null) 'email': email.trim().toLowerCase(),
+          'idToken': idToken,
           if (displayName != null) 'displayName': displayName,
           if (avatarUrl != null) 'avatarUrl': avatarUrl,
         },
@@ -121,6 +119,35 @@ class ApiAuthRepository implements AuthRepository {
       return user;
     } catch (e) {
       AppLogger.e(_tag, 'Google Sign-In failed', e);
+      rethrow;
+    }
+  }
+
+  @override
+  Future<UserEntity> updateProfile({
+    String? username,
+    String? displayName,
+    String? avatarUrl,
+  }) async {
+    try {
+      final data = <String, dynamic>{};
+      if (username != null && username.trim().isNotEmpty) {
+        data['username'] = username.trim().toLowerCase();
+      }
+      if (displayName != null && displayName.trim().isNotEmpty) {
+        data['displayName'] = displayName.trim();
+      }
+      if (avatarUrl != null) {
+        data['avatarUrl'] = avatarUrl.trim();
+      }
+
+      final response = await _apiClient.dio.patch('/auth/profile', data: data);
+      final updatedUser = _mapJsonToUser(response.data);
+      _authStateController.add(updatedUser);
+      AppLogger.i(_tag, 'Profile updated: @${updatedUser.username} (${updatedUser.displayName})');
+      return updatedUser;
+    } catch (e) {
+      AppLogger.e(_tag, 'Failed to update user profile', e);
       rethrow;
     }
   }

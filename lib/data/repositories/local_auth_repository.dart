@@ -35,14 +35,13 @@ class LocalAuthRepository implements AuthRepository {
 
   @override
   Future<UserEntity> signInWithGoogle({
-    String? idToken,
-    String? email,
+    required String idToken,
     String? displayName,
     String? avatarUrl,
   }) async {
     final googleUser = User(
       id: 'google_user_${DateTime.now().millisecondsSinceEpoch}',
-      username: (email?.split('@').first ?? 'google_reader').toLowerCase(),
+      username: 'google_reader_${DateTime.now().millisecondsSinceEpoch % 1000}',
       displayName: displayName ?? 'Google Reader',
     );
     _localDataService.currentUser = googleUser;
@@ -67,6 +66,25 @@ class LocalAuthRepository implements AuthRepository {
     _localDataService.currentUser = newUser;
     final entity = newUser.toDomain();
     await _apiClient.saveToken('mock_jwt_token_${newUser.id}');
+    _authStateController.add(entity);
+    return entity;
+  }
+
+  @override
+  Future<UserEntity> updateProfile({
+    String? username,
+    String? displayName,
+    String? avatarUrl,
+  }) async {
+    final current = _localDataService.currentUser;
+    final updated = User(
+      id: current.id,
+      username: (username != null && username.trim().isNotEmpty) ? username.trim().toLowerCase() : current.username,
+      displayName: (displayName != null && displayName.trim().isNotEmpty) ? displayName.trim() : current.displayName,
+      avatarUrl: avatarUrl ?? current.avatarUrl,
+    );
+    _localDataService.currentUser = updated;
+    final entity = updated.toDomain();
     _authStateController.add(entity);
     return entity;
   }

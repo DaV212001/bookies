@@ -31,6 +31,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<RegisterWithEmailEvent>(_onRegisterWithEmail);
     on<SignInWithGoogleEvent>(_onSignInWithGoogle);
     on<LogoutEvent>(_onLogout);
+    on<UpdateProfileEvent>(_onUpdateProfile);
   }
 
   Future<void> _onCheckAuthStatus(
@@ -181,12 +182,41 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     ));
   }
 
+
+  Future<void> _onUpdateProfile(
+    UpdateProfileEvent event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(state.copyWith(status: AuthStatus.loading, errorMessage: null));
+    try {
+      final updatedUser = await _authRepository.updateProfile(
+        username: event.username,
+        displayName: event.displayName,
+        avatarUrl: event.avatarUrl,
+      );
+      emit(state.copyWith(
+        status: AuthStatus.authenticated,
+        user: updatedUser,
+        errorMessage: null,
+      ));
+    } catch (e) {
+      AppLogger.e(_tag, 'Update profile error: $e');
+      emit(state.copyWith(
+        status: AuthStatus.failure,
+        errorMessage: _extractErrorMessage(e),
+      ));
+    }
+  }
+
   String _extractErrorMessage(dynamic error) {
     final str = error.toString();
     if (str.contains('401') || str.contains('Unauthorized')) {
       return 'Invalid email or password. Please try again.';
     }
     if (str.contains('409') || str.contains('Conflict')) {
+      if (str.toLowerCase().contains('username') || str.toLowerCase().contains('taken')) {
+        return 'This username is already taken. Please choose another.';
+      }
       return 'An account with this email or username already exists.';
     }
     return ErrorSanitizer.formatAndReport(error, contextTag: 'Auth');

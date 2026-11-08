@@ -37,6 +37,20 @@ class _SettingsViewState extends State<SettingsView> {
           _buildProfileCard(context, theme, user),
           const SizedBox(height: 24),
 
+          // --- Account & Profile ---
+          _buildSectionTitle(theme, 'Account & Profile'),
+          const SizedBox(height: 12),
+          _buildCardGroup(theme, [
+            ListTile(
+              leading: const Icon(LucideIcons.userCheck),
+              title: const Text('Edit Profile Details'),
+              subtitle: const Text('Customize display name, @username, and avatar'),
+              trailing: const Icon(LucideIcons.chevronRight, size: 20),
+              onTap: () => context.push('/profile'),
+            ),
+          ]),
+          const SizedBox(height: 24),
+
           // --- Theme & Appearance ---
           _buildSectionTitle(theme, 'Appearance & Theme'),
           const SizedBox(height: 12),
@@ -288,93 +302,107 @@ class _SettingsViewState extends State<SettingsView> {
         return Stack(
           clipBehavior: Clip.none,
           children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    theme.colorScheme.primaryContainer.withOpacity(0.6),
-                    theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                  color: theme.colorScheme.primary.withOpacity(0.2),
-                ),
-              ),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 28,
-                    backgroundImage: avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
-                    backgroundColor: theme.colorScheme.primary,
-                    child: avatarUrl.isEmpty
-                        ? Text(
-                            displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U',
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          )
-                        : null,
+            InkWell(
+              onTap: () => context.push('/profile'),
+              borderRadius: BorderRadius.circular(24),
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      theme.colorScheme.primaryContainer.withOpacity(0.6),
+                      theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          displayName,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: theme.colorScheme.primary.withOpacity(0.2),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 28,
+                      backgroundImage: avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
+                      backgroundColor: theme.colorScheme.primary,
+                      child: avatarUrl.isEmpty
+                          ? Text(
+                              displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U',
+                              style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            )
+                          : null,
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            displayName,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          '@$username',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.primary,
-                            fontWeight: FontWeight.w600,
+                          const SizedBox(height: 2),
+                          Text(
+                            '@$username',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            _buildStatBadge(theme, 'Active Reader'),
-                            const SizedBox(width: 8),
-                            if (currentUser.email != null)
-                              Expanded(
-                                child: Text(
-                                  currentUser.email!,
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: theme.colorScheme.onSurfaceVariant,
-                                    overflow: TextOverflow.ellipsis,
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              _buildStatBadge(theme, 'Active Reader'),
+                              const SizedBox(width: 8),
+                              if (currentUser.email != null)
+                                Expanded(
+                                  child: Text(
+                                    currentUser.email!,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
                                   ),
                                 ),
-                              ),
-                          ],
-                        ),
-                      ],
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
             Positioned(
               top: 8,
               right: 8,
-              child: IconButton(
-                tooltip: 'Sign Out',
-                icon: const Icon(LucideIcons.logOut, size: 20),
-                onPressed: () {
-                  context.read<AuthBloc>().add(const LogoutEvent());
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Logged out of Bookies.')),
-                  );
-                },
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    tooltip: 'Edit Profile',
+                    icon: const Icon(LucideIcons.pencil, size: 18),
+                    onPressed: () => context.push('/profile'),
+                  ),
+                  IconButton(
+                    tooltip: 'Sign Out',
+                    icon: const Icon(LucideIcons.logOut, size: 18),
+                    onPressed: () {
+                      context.read<AuthBloc>().add(const LogoutEvent());
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Logged out of Bookies.')),
+                      );
+                    },
+                  ),
+                ],
               ),
             ),
           ],

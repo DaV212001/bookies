@@ -13,10 +13,9 @@ abstract class AuthRepository {
     required String password,
   });
 
-  /// Sign in with Google account (native OAuth ID token or profile claims)
+  /// Sign in with Google account (cryptographically verified native OAuth ID token)
   Future<UserEntity> signInWithGoogle({
-    String? idToken,
-    String? email,
+    required String idToken,
     String? displayName,
     String? avatarUrl,
   });
@@ -27,6 +26,13 @@ abstract class AuthRepository {
     required String email,
     required String password,
     required String displayName,
+  });
+
+  /// Update user profile (username, displayName, avatarUrl)
+  Future<UserEntity> updateProfile({
+    String? username,
+    String? displayName,
+    String? avatarUrl,
   });
 
   /// Log out and invalidate local tokens
