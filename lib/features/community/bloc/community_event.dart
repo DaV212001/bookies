@@ -1,6 +1,12 @@
 import 'package:equatable/equatable.dart';
 import 'package:bookies/domain/entities/community_entity.dart';
 
+enum CommunityFilterTab {
+  myClubs,
+  explore,
+  all,
+}
+
 abstract class CommunityEvent extends Equatable {
   const CommunityEvent();
 
@@ -10,6 +16,15 @@ abstract class CommunityEvent extends Equatable {
 
 class LoadCommunities extends CommunityEvent {
   const LoadCommunities();
+}
+
+class SetCommunityFilterTab extends CommunityEvent {
+  final CommunityFilterTab tab;
+
+  const SetCommunityFilterTab(this.tab);
+
+  @override
+  List<Object?> get props => [tab];
 }
 
 class SearchCommunities extends CommunityEvent {

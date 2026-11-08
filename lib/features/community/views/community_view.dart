@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_bloc/flutter_bloc';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
@@ -15,7 +15,7 @@ import 'package:bookies/features/community/views/community_detail_view.dart';
 import 'package:bookies/core/widgets/create_community_dialog.dart';
 import 'package:bookies/core/widgets/responsive_text.dart';
 
-typedef _CommunityListItem = ({Community community, Book? book});
+typedef _CommunityListItem = ({Community community, Book? book, bool isJoined});
 
 class CommunitiesView extends StatelessWidget {
   const CommunitiesView({super.key});
@@ -69,7 +69,11 @@ class _CommunitiesContentState extends State<_CommunitiesContent> {
 
         final communities = (state is CommunityLoaded)
             ? state.allCommunities
-                .map((c) => (community: Community.fromDomain(c), book: null as Book?))
+                .map((c) => (
+                      community: Community.fromDomain(c),
+                      book: null as Book?,
+                      isJoined: state.joinedCommunityIds.contains(c.id),
+                    ))
                 .toList()
             : <_CommunityListItem>[];
 
@@ -77,12 +81,19 @@ class _CommunitiesContentState extends State<_CommunitiesContent> {
             ? state.filteredItems
                 .map((item) => (
                       community: Community.fromDomain(item.community),
-                      book: item.book != null ? Book.fromDomain(item.book!) : null
+                      book: item.book != null ? Book.fromDomain(item.book!) : null,
+                      isJoined: item.isJoined,
                     ))
                 .toList()
             : <_CommunityListItem>[];
 
         final popularFirst = (state is CommunityLoaded) ? state.popularFirst : false;
+        final filterTab = (state is CommunityLoaded)
+            ? state.filterTab
+            : CommunityFilterTab.myClubs;
+        final myClubsCount = (state is CommunityLoaded) ? state.myClubsCount : 0;
+        final exploreCount = (state is CommunityLoaded) ? state.exploreCount : 0;
+        final totalCount = (state is CommunityLoaded) ? state.totalCount : 0;
         final query = _searchController.text.trim();
 
         return Scaffold(
@@ -119,6 +130,7 @@ class _CommunitiesContentState extends State<_CommunitiesContent> {
                             _CommunityIntro(
                               theme: theme,
                               communities: communities,
+                              joinedCount: myClubsCount,
                             ),
                             const SizedBox(height: 16),
                             TextField(
@@ -189,59 +201,204 @@ class _CommunitiesContentState extends State<_CommunitiesContent> {
                                 ),
                               ),
                             ),
+                            const SizedBox(height: 12),
+                            // Filter Segmented Chips
+                            SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Row(
+                                children: [
+                                  ChoiceChip(
+                                    avatar: Icon(
+                                      LucideIcons.bookmarkCheck,
+                                      size: 14,
+                                      color: filterTab == CommunityFilterTab.myClubs
+                                          ? theme.colorScheme.onPrimary
+                                          : theme.colorScheme.primary,
+                                    ),
+                                    label: Text('My Clubs ($myClubsCount)'),
+                                    selected: filterTab == CommunityFilterTab.myClubs,
+                                    selectedColor: theme.colorScheme.primary,
+                                    labelStyle: TextStyle(
+                                      color: filterTab == CommunityFilterTab.myClubs
+                                          ? theme.colorScheme.onPrimary
+                                          : theme.colorScheme.onSurface,
+                                      fontWeight: filterTab == CommunityFilterTab.myClubs
+                                          ? FontWeight.bold
+                                          : FontWeight.w500,
+                                      fontSize: 12.5,
+                                    ),
+                                    onSelected: (_) {
+                                      context.read<CommunityBloc>().add(
+                                            const SetCommunityFilterTab(
+                                              CommunityFilterTab.myClubs,
+                                            ),
+                                          );
+                                    },
+                                  ),
+                                  const SizedBox(width: 8),
+                                  ChoiceChip(
+                                    avatar: Icon(
+                                      LucideIcons.compass,
+                                      size: 14,
+                                      color: filterTab == CommunityFilterTab.explore
+                                          ? theme.colorScheme.onPrimary
+                                          : theme.colorScheme.onSurfaceVariant,
+                                    ),
+                                    label: Text('Explore Public ($exploreCount)'),
+                                    selected: filterTab == CommunityFilterTab.explore,
+                                    selectedColor: theme.colorScheme.primary,
+                                    labelStyle: TextStyle(
+                                      color: filterTab == CommunityFilterTab.explore
+                                          ? theme.colorScheme.onPrimary
+                                          : theme.colorScheme.onSurface,
+                                      fontWeight: filterTab == CommunityFilterTab.explore
+                                          ? FontWeight.bold
+                                          : FontWeight.w500,
+                                      fontSize: 12.5,
+                                    ),
+                                    onSelected: (_) {
+                                      context.read<CommunityBloc>().add(
+                                            const SetCommunityFilterTab(
+                                              CommunityFilterTab.explore,
+                                            ),
+                                          );
+                                    },
+                                  ),
+                                  const SizedBox(width: 8),
+                                  ChoiceChip(
+                                    avatar: Icon(
+                                      LucideIcons.globe,
+                                      size: 14,
+                                      color: filterTab == CommunityFilterTab.all
+                                          ? theme.colorScheme.onPrimary
+                                          : theme.colorScheme.onSurfaceVariant,
+                                    ),
+                                    label: Text('All ($totalCount)'),
+                                    selected: filterTab == CommunityFilterTab.all,
+                                    selectedColor: theme.colorScheme.primary,
+                                    labelStyle: TextStyle(
+                                      color: filterTab == CommunityFilterTab.all
+                                          ? theme.colorScheme.onPrimary
+                                          : theme.colorScheme.onSurface,
+                                      fontWeight: filterTab == CommunityFilterTab.all
+                                          ? FontWeight.bold
+                                          : FontWeight.w500,
+                                      fontSize: 12.5,
+                                    ),
+                                    onSelected: (_) {
+                                      context.read<CommunityBloc>().add(
+                                            const SetCommunityFilterTab(
+                                              CommunityFilterTab.all,
+                                            ),
+                                          );
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
                             const SizedBox(height: 10),
+                            // Sort row
                             Row(
                               children: [
-                                Text('Browse', style: theme.textTheme.labelLarge),
-                                const SizedBox(width: 10),
-                                ChoiceChip(
-                                  label: const Text('All rooms'),
-                                  selected: !popularFirst,
-                                  onSelected: (_) {
-                                    if (popularFirst) {
-                                      context.read<CommunityBloc>().add(
-                                            const ToggleSortOrder(),
-                                          );
-                                    }
-                                  },
+                                Text(
+                                  'Sort:',
+                                  style: theme.textTheme.labelMedium?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                                 const SizedBox(width: 8),
-                                ChoiceChip(
-                                  label: const Text('Most readers'),
-                                  selected: popularFirst,
-                                  onSelected: (_) {
-                                    if (!popularFirst) {
-                                      context.read<CommunityBloc>().add(
-                                            const ToggleSortOrder(),
-                                          );
-                                    }
+                                InkWell(
+                                  borderRadius: BorderRadius.circular(20),
+                                  onTap: () {
+                                    context.read<CommunityBloc>().add(
+                                          const ToggleSortOrder(),
+                                        );
                                   },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 5,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: theme.colorScheme.surfaceContainerHighest
+                                          .withValues(alpha: 0.5),
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(
+                                        color: theme.colorScheme.outlineVariant
+                                            .withValues(alpha: 0.5),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          popularFirst
+                                              ? LucideIcons.trendingUp
+                                              : LucideIcons.clock,
+                                          size: 13,
+                                          color: theme.colorScheme.secondary,
+                                        ),
+                                        const SizedBox(width: 5),
+                                        Text(
+                                          popularFirst ? 'Most readers' : 'Default order',
+                                          style: theme.textTheme.labelSmall?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                            color: theme.colorScheme.secondary,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Icon(
+                                          LucideIcons.arrowUpDown,
+                                          size: 11,
+                                          color: theme.colorScheme.secondary,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 18),
+                            const SizedBox(height: 14),
                           ],
                         ),
                       ),
                     ),
                     if (filteredCommunities.isEmpty)
-                      const SliverToBoxAdapter(
-                        child: Padding(
-                          padding: EdgeInsets.fromLTRB(16, 10, 16, 36),
-                          child: Center(
-                            child: Text('No communities match your search.'),
-                          ),
+                      SliverToBoxAdapter(
+                        child: _buildEmptyFilterState(
+                          context,
+                          theme,
+                          filterTab: filterTab,
+                          query: query,
                         ),
                       )
                     else
                       SliverPadding(
-                        padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
+                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
                         sliver: SliverList(
                           delegate: SliverChildBuilderDelegate((context, index) {
                             final item = filteredCommunities[index];
                             return _CommunityBookCard(
                               community: item.community,
                               book: item.book,
+                              isJoined: item.isJoined,
+                              onQuickJoin: item.isJoined
+                                  ? null
+                                  : () {
+                                      context.read<CommunityBloc>().add(
+                                            JoinCommunityRequested(
+                                              item.community.id,
+                                            ),
+                                          );
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Joined "${item.community.name}".',
+                                          ),
+                                        ),
+                                      );
+                                    },
                               onTap: () =>
                                   Navigator.of(context, rootNavigator: true).push(
                                     MaterialPageRoute(
@@ -273,6 +430,147 @@ class _CommunitiesContentState extends State<_CommunitiesContent> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildEmptyFilterState(
+    BuildContext context,
+    ThemeData theme, {
+    required CommunityFilterTab filterTab,
+    required String query,
+  }) {
+    if (query.isNotEmpty) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(16, 36, 16, 36),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                LucideIcons.searchX,
+                size: 38,
+                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'No communities match "$query"',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Try searching with a different term or clear the search filter.',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (filterTab == CommunityFilterTab.myClubs) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(24, 36, 24, 48),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  LucideIcons.bookmarkCheck,
+                  size: 34,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'You haven\'t joined any clubs yet',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Explore reading rooms to share discussions, highlights, and annotations with fellow readers.',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 18),
+              FilledButton.icon(
+                onPressed: () {
+                  context.read<CommunityBloc>().add(
+                        const SetCommunityFilterTab(
+                          CommunityFilterTab.explore,
+                        ),
+                      );
+                },
+                icon: const Icon(LucideIcons.compass, size: 16),
+                label: const Text('Explore Public Clubs'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (filterTab == CommunityFilterTab.explore) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(24, 36, 24, 48),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.secondaryContainer.withValues(alpha: 0.4),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  LucideIcons.checkCheck,
+                  size: 34,
+                  color: theme.colorScheme.secondary,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'You\'re part of every club!',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'You have already joined all active reading rooms. Start a new club around any book in your library!',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return const Padding(
+      padding: EdgeInsets.fromLTRB(16, 24, 16, 36),
+      child: Center(
+        child: Text('No communities available.'),
+      ),
     );
   }
 
@@ -312,9 +610,14 @@ class _CommunitiesContentState extends State<_CommunitiesContent> {
 
 class _CommunityIntro extends StatelessWidget {
   final ThemeData theme;
-  final List<({Community community, Book? book})> communities;
+  final List<({Community community, Book? book, bool isJoined})> communities;
+  final int joinedCount;
 
-  const _CommunityIntro({required this.theme, required this.communities});
+  const _CommunityIntro({
+    required this.theme,
+    required this.communities,
+    required this.joinedCount,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -327,7 +630,9 @@ class _CommunityIntro extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.colorScheme.primaryContainer,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.colorScheme.primary.withOpacity(0.18)),
+        border: Border.all(
+          color: theme.colorScheme.primary.withValues(alpha: 0.18),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -360,7 +665,9 @@ class _CommunityIntro extends StatelessWidget {
                 value: '${communities.length}',
                 theme: theme,
               ),
-              const SizedBox(width: 24),
+              const SizedBox(width: 20),
+              _Stat(label: 'MY CLUBS', value: '$joinedCount', theme: theme),
+              const SizedBox(width: 20),
               _Stat(label: 'READERS', value: '$readers', theme: theme),
             ],
           ),
@@ -403,12 +710,16 @@ class _Stat extends StatelessWidget {
 class _CommunityBookCard extends StatelessWidget {
   final Community community;
   final Book? book;
+  final bool isJoined;
   final VoidCallback onTap;
+  final VoidCallback? onQuickJoin;
 
   const _CommunityBookCard({
     required this.community,
     required this.book,
+    required this.isJoined,
     required this.onTap,
+    this.onQuickJoin,
   });
 
   @override
@@ -418,7 +729,15 @@ class _CommunityBookCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 0,
       color: theme.colorScheme.surfaceContainerLow,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: isJoined
+            ? BorderSide(
+                color: theme.colorScheme.primary.withValues(alpha: 0.35),
+                width: 1.2,
+              )
+            : BorderSide.none,
+      ),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: onTap,
@@ -443,13 +762,74 @@ class _CommunityBookCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    ResponsiveText.title(
-                      community.name,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                      maxLines: 2,
-                      minFontSize: 13,
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: ResponsiveText.title(
+                            community.name,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                            maxLines: 2,
+                            minFontSize: 13,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        if (isJoined)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 7,
+                              vertical: 2.5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primaryContainer,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: theme.colorScheme.primary
+                                    .withValues(alpha: 0.3),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  LucideIcons.check,
+                                  size: 11,
+                                  color: theme.colorScheme.primary,
+                                ),
+                                const SizedBox(width: 3),
+                                Text(
+                                  'Member',
+                                  style: theme.textTheme.labelSmall?.copyWith(
+                                    color: theme.colorScheme.primary,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 10,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        else
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 7,
+                              vertical: 2.5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.surfaceContainerHighest,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              'Public',
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                     const SizedBox(height: 3),
                     ResponsiveText.label(
@@ -484,20 +864,52 @@ class _CommunityBookCard extends StatelessWidget {
                     const SizedBox(height: 9),
                     Row(
                       children: [
-                        const Icon(LucideIcons.users, size: 14),
+                        Icon(
+                          LucideIcons.users,
+                          size: 14,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
                         const SizedBox(width: 5),
                         Text(
                           '${community.memberCount} readers',
-                          style: theme.textTheme.labelSmall,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
                         ),
+                        const Spacer(),
+                        if (!isJoined && onQuickJoin != null)
+                          SizedBox(
+                            height: 28,
+                            child: TextButton.icon(
+                              style: TextButton.styleFrom(
+                                visualDensity: VisualDensity.compact,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                ),
+                                foregroundColor: theme.colorScheme.primary,
+                              ),
+                              onPressed: onQuickJoin,
+                              icon: const Icon(LucideIcons.userPlus, size: 13),
+                              label: const Text(
+                                'Join',
+                                style: TextStyle(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          )
+                        else
+                          Icon(
+                            LucideIcons.chevronRight,
+                            size: 16,
+                            color: theme.colorScheme.onSurfaceVariant
+                                .withValues(alpha: 0.6),
+                          ),
                       ],
                     ),
                   ],
                 ),
-              ),
-              const Padding(
-                padding: EdgeInsets.only(top: 27),
-                child: Icon(LucideIcons.chevronRight, size: 18),
               ),
             ],
           ),

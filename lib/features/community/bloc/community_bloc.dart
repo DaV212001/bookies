@@ -24,6 +24,7 @@ class CommunityBloc extends Bloc<CommunityEvent, CommunityState> {
     on<LoadCommunities>(_onLoadCommunities);
     on<SearchCommunities>(_onSearchCommunities);
     on<ToggleSortOrder>(_onToggleSortOrder);
+    on<SetCommunityFilterTab>(_onSetCommunityFilterTab);
     on<CreateNewCommunity>(_onCreateNewCommunity);
     on<JoinCommunityRequested>(_onJoinCommunityRequested);
     on<LeaveCommunityRequested>(_onLeaveCommunityRequested);
@@ -38,6 +39,8 @@ class CommunityBloc extends Bloc<CommunityEvent, CommunityState> {
     try {
       final books = await _bookRepository.getLibraryBooks();
       final communities = await _communityRepository.getCommunities();
+      final joined = await _communityRepository.getJoinedCommunities();
+      final joinedIds = joined.map((c) => c.id).toSet();
 
       await _communitiesSubscription?.cancel();
       _communitiesSubscription =
@@ -45,40 +48,79 @@ class CommunityBloc extends Bloc<CommunityEvent, CommunityState> {
         add(CommunitiesUpdated(updated));
       });
 
+      final initialTab = joinedIds.isNotEmpty
+          ? CommunityFilterTab.myClubs
+          : CommunityFilterTab.explore;
+
       final items = _filterAndSort(
         communities: communities,
         books: books,
+        joinedIds: joinedIds,
         query: '',
         popularFirst: false,
+        filterTab: initialTab,
       );
 
       emit(CommunityLoaded(
         allCommunities: communities,
         books: books,
+        joinedCommunityIds: joinedIds,
         filteredItems: items,
         searchQuery: '',
         popularFirst: false,
+        filterTab: initialTab,
       ));
     } catch (e) {
       emit(CommunityError(e.toString()));
     }
   }
 
-  void _onCommunitiesUpdated(
+  Future<void> _onCommunitiesUpdated(
     CommunitiesUpdated event,
+    Emitter<CommunityState> emit,
+  ) async {
+    if (state is CommunityLoaded) {
+      final current = state as CommunityLoaded;
+      Set<String> joinedIds = current.joinedCommunityIds;
+      try {
+        final joined = await _communityRepository.getJoinedCommunities();
+        joinedIds = joined.map((c) => c.id).toSet();
+      } catch (_) {}
+
+      final items = _filterAndSort(
+        communities: event.communities,
+        books: current.books,
+        joinedIds: joinedIds,
+        query: current.searchQuery,
+        popularFirst: current.popularFirst,
+        filterTab: current.filterTab,
+      );
+
+      emit(current.copyWith(
+        allCommunities: event.communities,
+        joinedCommunityIds: joinedIds,
+        filteredItems: items,
+      ));
+    }
+  }
+
+  void _onSetCommunityFilterTab(
+    SetCommunityFilterTab event,
     Emitter<CommunityState> emit,
   ) {
     if (state is CommunityLoaded) {
       final current = state as CommunityLoaded;
       final items = _filterAndSort(
-        communities: event.communities,
+        communities: current.allCommunities,
         books: current.books,
+        joinedIds: current.joinedCommunityIds,
         query: current.searchQuery,
         popularFirst: current.popularFirst,
+        filterTab: event.tab,
       );
 
       emit(current.copyWith(
-        allCommunities: event.communities,
+        filterTab: event.tab,
         filteredItems: items,
       ));
     }
@@ -93,8 +135,10 @@ class CommunityBloc extends Bloc<CommunityEvent, CommunityState> {
       final items = _filterAndSort(
         communities: current.allCommunities,
         books: current.books,
+        joinedIds: current.joinedCommunityIds,
         query: event.query,
         popularFirst: event.popularFirst,
+        filterTab: current.filterTab,
       );
 
       emit(current.copyWith(
@@ -115,8 +159,10 @@ class CommunityBloc extends Bloc<CommunityEvent, CommunityState> {
       final items = _filterAndSort(
         communities: current.allCommunities,
         books: current.books,
+        joinedIds: current.joinedCommunityIds,
         query: current.searchQuery,
         popularFirst: newPopularFirst,
+        filterTab: current.filterTab,
       );
 
       emit(current.copyWith(
@@ -149,6 +195,22 @@ class CommunityBloc extends Bloc<CommunityEvent, CommunityState> {
   ) async {
     try {
       await _communityRepository.joinCommunity(event.communityId);
+      if (state is CommunityLoaded) {
+        final current = state as CommunityLoaded;
+        final updatedJoined = Set<String>.from(current.joinedCommunityIds)..add(event.communityId);
+        final items = _filterAndSort(
+          communities: current.allCommunities,
+          books: current.books,
+          joinedIds: updatedJoined,
+          query: current.searchQuery,
+          popularFirst: current.popularFirst,
+          filterTab: current.filterTab,
+        );
+        emit(current.copyWith(
+          joinedCommunityIds: updatedJoined,
+          filteredItems: items,
+        ));
+      }
     } catch (e) {
       emit(CommunityError(e.toString()));
     }
@@ -160,6 +222,22 @@ class CommunityBloc extends Bloc<CommunityEvent, CommunityState> {
   ) async {
     try {
       await _communityRepository.leaveCommunity(event.communityId);
+      if (state is CommunityLoaded) {
+        final current = state as CommunityLoaded;
+        final updatedJoined = Set<String>.from(current.joinedCommunityIds)..remove(event.communityId);
+        final items = _filterAndSort(
+          communities: current.allCommunities,
+          books: current.books,
+          joinedIds: updatedJoined,
+          query: current.searchQuery,
+          popularFirst: current.popularFirst,
+          filterTab: current.filterTab,
+        );
+        emit(current.copyWith(
+          joinedCommunityIds: updatedJoined,
+          filteredItems: items,
+        ));
+      }
     } catch (e) {
       emit(CommunityError(e.toString()));
     }
@@ -168,17 +246,34 @@ class CommunityBloc extends Bloc<CommunityEvent, CommunityState> {
   List<CommunityWithBook> _filterAndSort({
     required List<CommunityEntity> communities,
     required List<BookEntity> books,
+    required Set<String> joinedIds,
     required String query,
     required bool popularFirst,
+    required CommunityFilterTab filterTab,
   }) {
     final booksById = {for (final book in books) book.id: book};
     final items = <CommunityWithBook>[
       for (final community in communities)
-        (community: community, book: booksById[community.bookId]),
+        (
+          community: community,
+          book: booksById[community.bookId],
+          isJoined: joinedIds.contains(community.id),
+        ),
     ];
 
+    final tabFiltered = items.where((item) {
+      switch (filterTab) {
+        case CommunityFilterTab.myClubs:
+          return item.isJoined;
+        case CommunityFilterTab.explore:
+          return !item.isJoined;
+        case CommunityFilterTab.all:
+          return true;
+      }
+    }).toList();
+
     final q = query.trim().toLowerCase();
-    final filtered = items.where((item) {
+    final filtered = tabFiltered.where((item) {
       if (q.isEmpty) return true;
       return item.community.name.toLowerCase().contains(q) ||
           item.community.description.toLowerCase().contains(q) ||

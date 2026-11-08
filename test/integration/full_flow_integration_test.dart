@@ -68,16 +68,15 @@ class InMemoryAuthRepository implements AuthRepository {
 
   @override
   Future<UserEntity> signInWithGoogle({
-    String? idToken,
-    String? email,
+    required String idToken,
     String? displayName,
     String? avatarUrl,
   }) async {
     _currentUser = UserEntity(
       id: 'google-user-01',
-      username: (email?.split('@').first ?? 'google_user'),
+      username: 'google_user',
       displayName: displayName ?? 'Google User',
-      email: email ?? 'google@bookies.app',
+      email: 'google.reader@gmail.com',
       avatarUrl: avatarUrl,
     );
     _controller.add(_currentUser);
@@ -93,6 +92,29 @@ class InMemoryAuthRepository implements AuthRepository {
   @override
   Future<String?> getAccessToken() async =>
       _currentUser != null ? 'test-jwt-token' : null;
+
+  @override
+  Future<UserEntity> updateProfile({
+    String? displayName,
+    String? username,
+    String? avatarUrl,
+  }) async {
+    if (_currentUser == null) throw Exception('No user logged in');
+    _currentUser = UserEntity(
+      id: _currentUser!.id,
+      username: username ?? _currentUser!.username,
+      displayName: displayName ?? _currentUser!.displayName,
+      email: _currentUser!.email,
+      avatarUrl: avatarUrl ?? _currentUser!.avatarUrl,
+    );
+    _controller.add(_currentUser);
+    return _currentUser!;
+  }
+
+  @override
+  Future<Map<String, dynamic>> checkUsernameAvailability(String username) async {
+    return {'available': true, 'username': username};
+  }
 
   void dispose() {
     _controller.close();
@@ -519,7 +541,6 @@ void main() {
       // Step 6: Google Single Sign-On
       authBloc.add(const SignInWithGoogleEvent(
         idToken: 'google-oauth-token-xyz',
-        email: 'google.reader@gmail.com',
         displayName: 'Google Reader',
         avatarUrl: 'https://lh3.googleusercontent.com/avatar.png',
       ));
