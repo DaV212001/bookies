@@ -90,6 +90,19 @@ class LocalAuthRepository implements AuthRepository {
   }
 
   @override
+  Future<Map<String, dynamic>> checkUsernameAvailability(String username) async {
+    final clean = username.trim().toLowerCase();
+    if (clean == _localDataService.currentUser.username.toLowerCase()) {
+      return {'available': true, 'reason': 'CURRENT_USER', 'message': 'Current handle'};
+    }
+    return {
+      'available': true,
+      'reason': 'AVAILABLE',
+      'message': '@$clean is available',
+    };
+  }
+
+  @override
   Future<void> logout() async {
     await _apiClient.clearToken();
     _authStateController.add(null);

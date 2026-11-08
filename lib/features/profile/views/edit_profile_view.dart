@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -5,6 +6,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../auth/bloc/auth_bloc.dart';
 import '../../../domain/entities/user_entity.dart';
+import '../../../domain/repositories/auth_repository.dart';
 
 class EditProfileView extends StatefulWidget {
   const EditProfileView({super.key});
@@ -21,6 +23,11 @@ class _EditProfileViewState extends State<EditProfileView> {
 
   String? _selectedAvatarUrl;
   bool _hasCustomUrl = false;
+
+  Timer? _usernameDebounce;
+  bool _isCheckingUsername = false;
+  bool? _isUsernameAvailable;
+  String? _usernameFeedback;
 
   static const List<Map<String, String>> _avatarPresets = [
     {
@@ -59,18 +66,79 @@ class _EditProfileViewState extends State<EditProfileView> {
     _usernameController = TextEditingController(text: user?.username ?? '');
     _avatarUrlController = TextEditingController(text: user?.avatarUrl ?? '');
     _selectedAvatarUrl = user?.avatarUrl;
+    _isUsernameAvailable = true;
+    _usernameFeedback = 'Current handle';
   }
 
   @override
   void dispose() {
+    _usernameDebounce?.cancel();
     _displayNameController.dispose();
     _usernameController.dispose();
     _avatarUrlController.dispose();
     super.dispose();
   }
 
+  void _onUsernameChanged(String value, UserEntity? currentUser) {
+    _usernameDebounce?.cancel();
+    final clean = value.trim().toLowerCase();
+
+    if (clean.isEmpty) {
+      setState(() {
+        _isCheckingUsername = false;
+        _isUsernameAvailable = null;
+        _usernameFeedback = null;
+      });
+      return;
+    }
+
+    if (currentUser != null && clean == currentUser.username.toLowerCase()) {
+      setState(() {
+        _isCheckingUsername = false;
+        _isUsernameAvailable = true;
+        _usernameFeedback = 'Current handle';
+      });
+      return;
+    }
+
+    if (!RegExp(r'^[a-zA-Z0-9_]{3,30}$').hasMatch(clean)) {
+      setState(() {
+        _isCheckingUsername = false;
+        _isUsernameAvailable = false;
+        _usernameFeedback = 'Must be 3–30 letters, numbers, or _';
+      });
+      return;
+    }
+
+    setState(() {
+      _isCheckingUsername = true;
+      _usernameFeedback = 'Checking availability...';
+    });
+
+    _usernameDebounce = Timer(const Duration(milliseconds: 400), () async {
+      try {
+        final authRepo = context.read<AuthRepository>();
+        final res = await authRepo.checkUsernameAvailability(clean);
+        if (!mounted || _usernameController.text.trim().toLowerCase() != clean) return;
+
+        setState(() {
+          _isCheckingUsername = false;
+          _isUsernameAvailable = res['available'] == true;
+          _usernameFeedback = res['message'] as String? ??
+              (res['available'] == true ? '@$clean is available' : '@$clean is taken');
+        });
+      } catch (_) {
+        if (!mounted) return;
+        setState(() {
+          _isCheckingUsername = false;
+        });
+      }
+    });
+  }
+
   void _onSave(UserEntity? currentUser) {
     if (!_formKey.currentState!.validate()) return;
+    if (_isUsernameAvailable == false) return;
 
     final displayName = _displayNameController.text.trim();
     final username = _usernameController.text.trim().toLowerCase();
@@ -121,7 +189,9 @@ class _EditProfileViewState extends State<EditProfileView> {
             title: const Text('Edit Profile'),
             actions: [
               TextButton(
-                onPressed: isLoading ? null : () => _onSave(user),
+                onPressed: (isLoading || _isCheckingUsername || _isUsernameAvailable == false)
+                    ? null
+                    : () => _onSave(user),
                 child: isLoading
                     ? const SizedBox(
                         width: 18,
@@ -362,15 +432,39 @@ class _EditProfileViewState extends State<EditProfileView> {
                   ),
                   const SizedBox(height: 20),
 
-                  // Username / Handle Field
+                  // Username / Handle Field with Real-Time Debounced Availability Check
                   TextFormField(
                     controller: _usernameController,
                     autocorrect: false,
-                    decoration: const InputDecoration(
+                    onChanged: (val) => _onUsernameChanged(val, user),
+                    decoration: InputDecoration(
                       labelText: 'Username',
                       hintText: 'bookworm',
-                      prefixIcon: Icon(LucideIcons.atSign, size: 20),
-                      helperText: 'Unique handle (3–30 chars, letters, numbers, underscores)',
+                      prefixIcon: const Icon(LucideIcons.atSign, size: 20),
+                      suffixIcon: _isCheckingUsername
+                          ? const Padding(
+                              padding: EdgeInsets.all(12),
+                              child: SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                            )
+                          : _isUsernameAvailable == true
+                              ? const Icon(LucideIcons.checkCircle2, color: Colors.green, size: 20)
+                              : _isUsernameAvailable == false
+                                  ? Icon(LucideIcons.alertCircle, color: theme.colorScheme.error, size: 20)
+                                  : null,
+                      helperText: _usernameFeedback ??
+                          'Unique handle (3–30 chars, letters, numbers, underscores)',
+                      helperStyle: _usernameFeedback != null
+                          ? TextStyle(
+                              color: _isUsernameAvailable == true
+                                  ? Colors.green
+                                  : theme.colorScheme.error,
+                              fontWeight: FontWeight.w600,
+                            )
+                          : null,
                     ),
                     validator: (val) {
                       if (val == null || val.trim().isEmpty) {
@@ -385,6 +479,9 @@ class _EditProfileViewState extends State<EditProfileView> {
                       }
                       if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(clean)) {
                         return 'Only letters, numbers, and underscores are allowed';
+                      }
+                      if (_isUsernameAvailable == false) {
+                        return _usernameFeedback ?? 'Username is already taken';
                       }
                       return null;
                     },
@@ -432,7 +529,9 @@ class _EditProfileViewState extends State<EditProfileView> {
                     width: double.infinity,
                     height: 50,
                     child: FilledButton.icon(
-                      onPressed: isLoading ? null : () => _onSave(user),
+                      onPressed: (isLoading || _isCheckingUsername || _isUsernameAvailable == false)
+                          ? null
+                          : () => _onSave(user),
                       icon: isLoading
                           ? const SizedBox(
                               width: 20,

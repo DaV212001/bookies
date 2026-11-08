@@ -153,6 +153,23 @@ class ApiAuthRepository implements AuthRepository {
   }
 
   @override
+  Future<Map<String, dynamic>> checkUsernameAvailability(String username) async {
+    try {
+      final response = await _apiClient.dio.get(
+        '/auth/check-username',
+        queryParameters: {'username': username.trim().toLowerCase()},
+      );
+      if (response.statusCode == 200 && response.data != null) {
+        return Map<String, dynamic>.from(response.data);
+      }
+      return {'available': false, 'message': 'Unable to verify availability'};
+    } catch (e) {
+      AppLogger.w(_tag, 'Failed to check username availability: $e');
+      return {'available': false, 'message': 'Network error checking handle'};
+    }
+  }
+
+  @override
   Future<void> logout() async {
     await _apiClient.clearToken();
     _authStateController.add(null);

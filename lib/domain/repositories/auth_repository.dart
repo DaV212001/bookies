@@ -35,6 +35,9 @@ abstract class AuthRepository {
     String? avatarUrl,
   });
 
+  /// Real-time check if a username handle is available
+  Future<Map<String, dynamic>> checkUsernameAvailability(String username);
+
   /// Log out and invalidate local tokens
   Future<void> logout();
 
