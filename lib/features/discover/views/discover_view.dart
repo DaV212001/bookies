@@ -67,7 +67,7 @@ class _DiscoverViewState extends State<DiscoverView> {
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               duration: const Duration(seconds: 5),
-              action: state.errorMessage!.toLowerCase().contains('import') ? SnackBarAction(label: 'Import EPUB', textColor: Colors.white, onPressed: () async { try { final result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['epub']); if (result != null && result.files.single.path != null) { final path = result.files.single.path!; if (context.mounted) { context.read<LibraryBloc>().add(ImportBook(path)); } } } catch (_) {} }) : null,
+              action: state.errorMessage!.toLowerCase().contains('import') ? SnackBarAction(label: 'Import EPUB', textColor: Colors.white, onPressed: () async { try { final result = await FilePicker.pickFiles(type: FileType.custom, allowedExtensions: ['epub']); if (result != null && result.files.single.path != null) { final path = result.files.single.path!; if (context.mounted) { context.read<LibraryBloc>().add(ImportBook(path)); } } } catch (_) {} }) : null,
             ),
           );
         }
