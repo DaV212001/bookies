@@ -417,7 +417,7 @@ class _EditProfileViewState extends State<EditProfileView> {
                       labelText: 'Display Name',
                       hintText: 'e.g. Alice Reader',
                       prefixIcon: Icon(LucideIcons.user, size: 20),
-                      helperText: 'Your public name visible to other readers and clubs',
+                      helperText: 'Your public name visible to other readers and communities',
                     ),
                     validator: (val) {
                       if (val == null || val.trim().isEmpty) {

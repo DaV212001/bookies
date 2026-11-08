@@ -277,7 +277,7 @@ class _SettingsViewState extends State<SettingsView> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Sign in with Google or Email to join reading clubs',
+                        'Sign in with Google or Email to join reading communities',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                         ),

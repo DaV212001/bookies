@@ -49,7 +49,7 @@ class CommunityBloc extends Bloc<CommunityEvent, CommunityState> {
       });
 
       final initialTab = joinedIds.isNotEmpty
-          ? CommunityFilterTab.myClubs
+          ? CommunityFilterTab.myCommunities
           : CommunityFilterTab.explore;
 
       final items = _filterAndSort(
@@ -263,7 +263,7 @@ class CommunityBloc extends Bloc<CommunityEvent, CommunityState> {
 
     final tabFiltered = items.where((item) {
       switch (filterTab) {
-        case CommunityFilterTab.myClubs:
+        case CommunityFilterTab.myCommunities:
           return item.isJoined;
         case CommunityFilterTab.explore:
           return !item.isJoined;

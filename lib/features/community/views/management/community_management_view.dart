@@ -536,7 +536,7 @@ class _CommunityManagementViewState extends State<CommunityManagementView>
         actions: [
           PopupMenuButton<String>(
             icon: const Icon(LucideIcons.ellipsisVertical),
-            tooltip: 'Club Options',
+            tooltip: 'Community Options',
             onSelected: (val) {
               if (val == 'export_to_new_book') {
                 _openExportToNewBookDialog();
@@ -563,7 +563,7 @@ class _CommunityManagementViewState extends State<CommunityManagementView>
                   children: [
                     Icon(LucideIcons.users, size: 18),
                     SizedBox(width: 10),
-                    Expanded(child: Text('Import Readers from Club...')),
+                    Expanded(child: Text('Import Readers from Community...')),
                   ],
                 ),
               ),

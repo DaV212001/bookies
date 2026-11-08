@@ -90,8 +90,8 @@ class _CommunitiesContentState extends State<_CommunitiesContent> {
         final popularFirst = (state is CommunityLoaded) ? state.popularFirst : false;
         final filterTab = (state is CommunityLoaded)
             ? state.filterTab
-            : CommunityFilterTab.myClubs;
-        final myClubsCount = (state is CommunityLoaded) ? state.myClubsCount : 0;
+            : CommunityFilterTab.myCommunities;
+        final myCommunitiesCount = (state is CommunityLoaded) ? state.myCommunitiesCount : 0;
         final exploreCount = (state is CommunityLoaded) ? state.exploreCount : 0;
         final totalCount = (state is CommunityLoaded) ? state.totalCount : 0;
         final query = _searchController.text.trim();
@@ -130,7 +130,7 @@ class _CommunitiesContentState extends State<_CommunitiesContent> {
                             _CommunityIntro(
                               theme: theme,
                               communities: communities,
-                              joinedCount: myClubsCount,
+                              joinedCount: myCommunitiesCount,
                             ),
                             const SizedBox(height: 16),
                             TextField(
@@ -211,18 +211,18 @@ class _CommunitiesContentState extends State<_CommunitiesContent> {
                                     avatar: Icon(
                                       LucideIcons.bookmarkCheck,
                                       size: 14,
-                                      color: filterTab == CommunityFilterTab.myClubs
+                                      color: filterTab == CommunityFilterTab.myCommunities
                                           ? theme.colorScheme.onPrimary
                                           : theme.colorScheme.primary,
                                     ),
-                                    label: Text('My Clubs ($myClubsCount)'),
-                                    selected: filterTab == CommunityFilterTab.myClubs,
+                                    label: Text('My Communities ($myCommunitiesCount)'),
+                                    selected: filterTab == CommunityFilterTab.myCommunities,
                                     selectedColor: theme.colorScheme.primary,
                                     labelStyle: TextStyle(
-                                      color: filterTab == CommunityFilterTab.myClubs
+                                      color: filterTab == CommunityFilterTab.myCommunities
                                           ? theme.colorScheme.onPrimary
                                           : theme.colorScheme.onSurface,
-                                      fontWeight: filterTab == CommunityFilterTab.myClubs
+                                      fontWeight: filterTab == CommunityFilterTab.myCommunities
                                           ? FontWeight.bold
                                           : FontWeight.w500,
                                       fontSize: 12.5,
@@ -230,7 +230,7 @@ class _CommunitiesContentState extends State<_CommunitiesContent> {
                                     onSelected: (_) {
                                       context.read<CommunityBloc>().add(
                                             const SetCommunityFilterTab(
-                                              CommunityFilterTab.myClubs,
+                                              CommunityFilterTab.myCommunities,
                                             ),
                                           );
                                     },
@@ -472,7 +472,7 @@ class _CommunitiesContentState extends State<_CommunitiesContent> {
       );
     }
 
-    if (filterTab == CommunityFilterTab.myClubs) {
+    if (filterTab == CommunityFilterTab.myCommunities) {
       return Padding(
         padding: const EdgeInsets.fromLTRB(24, 36, 24, 48),
         child: Center(
@@ -493,7 +493,7 @@ class _CommunitiesContentState extends State<_CommunitiesContent> {
               ),
               const SizedBox(height: 16),
               Text(
-                'You haven\'t joined any clubs yet',
+                'You haven\'t joined any communities yet',
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -517,7 +517,7 @@ class _CommunitiesContentState extends State<_CommunitiesContent> {
                       );
                 },
                 icon: const Icon(LucideIcons.compass, size: 16),
-                label: const Text('Explore Public Clubs'),
+                label: const Text('Explore Communities'),
               ),
             ],
           ),
@@ -546,7 +546,7 @@ class _CommunitiesContentState extends State<_CommunitiesContent> {
               ),
               const SizedBox(height: 16),
               Text(
-                'You\'re part of every club!',
+                'You\'re part of every community!',
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -554,7 +554,7 @@ class _CommunitiesContentState extends State<_CommunitiesContent> {
               ),
               const SizedBox(height: 6),
               Text(
-                'You have already joined all active reading rooms. Start a new club around any book in your library!',
+                'You have already joined all active reading rooms. Start a new community around any book in your library!',
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
@@ -666,7 +666,7 @@ class _CommunityIntro extends StatelessWidget {
                 theme: theme,
               ),
               const SizedBox(width: 20),
-              _Stat(label: 'MY CLUBS', value: '$joinedCount', theme: theme),
+              _Stat(label: 'MY COMMUNITIES', value: '$joinedCount', theme: theme),
               const SizedBox(width: 20),
               _Stat(label: 'READERS', value: '$readers', theme: theme),
             ],

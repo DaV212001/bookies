@@ -40,11 +40,13 @@ class CommunityLoaded extends CommunityState {
     this.joinedCommunityIds = const {},
     this.searchQuery = '',
     this.popularFirst = false,
-    this.filterTab = CommunityFilterTab.myClubs,
+    this.filterTab = CommunityFilterTab.myCommunities,
   });
 
-  int get myClubsCount =>
+  int get myCommunitiesCount =>
       allCommunities.where((c) => joinedCommunityIds.contains(c.id)).length;
+
+  int get myClubsCount => myCommunitiesCount;
 
   int get exploreCount =>
       allCommunities.where((c) => !joinedCommunityIds.contains(c.id)).length;

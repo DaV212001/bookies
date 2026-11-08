@@ -122,7 +122,7 @@ class _LoginViewState extends State<LoginView> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Enter your reading sanctuary and reconnect with your book clubs.',
+                          'Enter your reading sanctuary and reconnect with your book communities.',
                           textAlign: TextAlign.center,
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,

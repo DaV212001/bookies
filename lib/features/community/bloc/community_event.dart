@@ -2,7 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'package:bookies/domain/entities/community_entity.dart';
 
 enum CommunityFilterTab {
-  myClubs,
+  myCommunities,
   explore,
   all,
 }

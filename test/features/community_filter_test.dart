@@ -154,16 +154,16 @@ void main() {
       communityRepo.dispose();
     });
 
-    test('Initial Load correctly segments My Clubs vs Explore Public', () async {
+    test('Initial Load correctly segments My Communities vs Explore Public', () async {
       communityBloc.add(const LoadCommunities());
 
       await expectLater(
         communityBloc.stream,
         emitsThrough(predicate<CommunityState>((s) {
           if (s is! CommunityLoaded) return false;
-          // Initial tab should be myClubs because comm-1 is joined
-          expect(s.filterTab, CommunityFilterTab.myClubs);
-          expect(s.myClubsCount, 1);
+          // Initial tab should be myCommunities because comm-1 is joined
+          expect(s.filterTab, CommunityFilterTab.myCommunities);
+          expect(s.myCommunitiesCount, 1);
           expect(s.exploreCount, 1);
           expect(s.totalCount, 2);
           // Filtered list should only contain joined community (comm-1)
@@ -219,7 +219,7 @@ void main() {
       );
     });
 
-    test('Joining a community updates counts and moves it to My Clubs', () async {
+    test('Joining a community updates counts and moves it to My Communities', () async {
       communityBloc.add(const LoadCommunities());
       await expectLater(
         communityBloc.stream,
@@ -232,7 +232,7 @@ void main() {
         communityBloc.stream,
         emitsThrough(predicate<CommunityState>((s) {
           if (s is! CommunityLoaded) return false;
-          expect(s.myClubsCount, 2);
+          expect(s.myCommunitiesCount, 2);
           expect(s.exploreCount, 0);
           expect(s.joinedCommunityIds.contains('comm-2'), isTrue);
           return true;

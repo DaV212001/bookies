@@ -93,7 +93,7 @@ class _RegisterViewState extends State<RegisterView> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Create your personal reading profile to start annotations, discussions, and synchronized reading clubs.',
+                          'Create your personal reading profile to start annotations, discussions, and synchronized reading communities.',
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                             height: 1.4,
