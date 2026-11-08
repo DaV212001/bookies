@@ -1,4 +1,6 @@
-part of 'library_bloc.dart';
+import 'package:equatable/equatable.dart';
+import '../../../data/models/book.dart';
+import 'library_view_filter.dart';
 
 abstract class LibraryState extends Equatable {
   const LibraryState();

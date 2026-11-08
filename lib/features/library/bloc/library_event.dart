@@ -1,4 +1,5 @@
-part of 'library_bloc.dart';
+import 'package:equatable/equatable.dart';
+import 'library_view_filter.dart';
 
 abstract class LibraryEvent extends Equatable {
   const LibraryEvent();

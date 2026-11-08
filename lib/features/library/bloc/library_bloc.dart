@@ -14,8 +14,11 @@ import 'library_view_filter.dart';
 
 export 'library_view_filter.dart';
 
-part 'library_event.dart';
-part 'library_state.dart';
+import 'library_event.dart';
+import 'library_state.dart';
+
+export 'library_event.dart';
+export 'library_state.dart';
 
 class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
   final LocalDataService _dataService;
