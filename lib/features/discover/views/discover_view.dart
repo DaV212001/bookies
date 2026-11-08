@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import 'package:file_picker/file_picker.dart';
-import 'package:bookies/features/library/bloc/library_event.dart';
 import 'package:bookies/core/widgets/responsive_text.dart';
 import 'package:bookies/data/models/book.dart';
 import 'package:bookies/domain/entities/catalog_book_entity.dart';
