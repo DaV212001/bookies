@@ -52,7 +52,7 @@ class _RegisterViewState extends State<RegisterView> {
     return BlocConsumer<AuthBloc, AuthState>(
       listener: (context, state) {
         if (state.isAuthenticated) {
-          context.go('/library');
+          context.go('/');
         } else if (state.errorMessage != null) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -44,11 +45,12 @@ final appRouter = GoRouter(
       parentNavigatorKey: _rootNavigatorKey,
       builder: (context, state) => const RegisterView(),
     ),
-    GoRoute(
-      path: '/gallery',
-      parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const ComponentGalleryScreen(),
-    ),
+    if (kDebugMode)
+      GoRoute(
+        path: '/gallery',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const ComponentGalleryScreen(),
+      ),
     GoRoute(
       path: '/reader',
       parentNavigatorKey: _rootNavigatorKey,
@@ -92,6 +94,10 @@ final appRouter = GoRouter(
             GoRoute(
               path: '/',
               builder: (context, state) => const LibraryView(),
+            ),
+            GoRoute(
+              path: '/library',
+              redirect: (context, state) => '/',
             ),
           ],
         ),
